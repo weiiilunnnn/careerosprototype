@@ -1,9 +1,5 @@
-import Navbar from "@/components/navbar/Navbar";
+import CareerLandscape from "./pages/CareerLandscape";
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-white">
-      <Navbar />
-    </main>
-  );
+  return <CareerLandscape />;
 }
