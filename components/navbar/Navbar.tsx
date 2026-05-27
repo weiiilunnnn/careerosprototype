@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, ChevronDown, Menu, X } from "lucide-react";
+import Link from "next/link";
 
-const navItems = ["Dashboard", "Explore Careers", "My Growth", "Applications", "Messages"];
+const navItems = ["Dashboard", "Career Landscape", "My Growth", "Applications", "Messages"];
 
 export default function Navbar() {
-  const [activeItem, setActiveItem] = useState("Explore Careers");
+  const [activeItem, setActiveItem] = useState("Career Landscape");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -31,16 +32,8 @@ export default function Navbar() {
           <div className="relative hidden items-center gap-8 lg:flex">
             {navItems.map((item) => {
               const isActive = item === activeItem;
-
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  className={`relative h-20 px-1 text-sm font-semibold transition ${
-                    isActive ? "text-[#f0184f]" : "text-black/75 hover:text-black"
-                  }`}
-                  onClick={() => setActiveItem(item)}
-                >
+              const content = (
+                <>
                   {item}
                   {isActive ? (
                     <motion.span
@@ -49,6 +42,30 @@ export default function Navbar() {
                       transition={{ type: "spring", stiffness: 430, damping: 32 }}
                     />
                   ) : null}
+                </>
+              );
+
+              const className = `relative flex h-20 items-center px-1 text-sm font-semibold transition ${
+                isActive ? "text-[#f0184f]" : "text-black/75 hover:text-black"
+              }`;
+
+              return item === "Career Landscape" ? (
+                <Link
+                  className={className}
+                  href="/"
+                  key={item}
+                  onClick={() => setActiveItem(item)}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <button
+                  className={className}
+                  key={item}
+                  onClick={() => setActiveItem(item)}
+                  type="button"
+                >
+                  {content}
                 </button>
               );
             })}
@@ -82,19 +99,35 @@ export default function Navbar() {
         <div className="border-t border-black/5 bg-white px-5 py-3 lg:hidden">
           <div className="grid gap-1">
             {navItems.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={`rounded-md px-3 py-3 text-left text-sm font-semibold ${
-                  item === activeItem ? "bg-[#fff1f5] text-[#f0184f]" : "text-black/75"
-                }`}
-                onClick={() => {
-                  setActiveItem(item);
-                  setIsMenuOpen(false);
-                }}
-              >
-                {item}
-              </button>
+              item === "Career Landscape" ? (
+                <Link
+                  className={`rounded-md px-3 py-3 text-left text-sm font-semibold ${
+                    item === activeItem ? "bg-[#fff1f5] text-[#f0184f]" : "text-black/75"
+                  }`}
+                  href="/"
+                  key={item}
+                  onClick={() => {
+                    setActiveItem(item);
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  {item}
+                </Link>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  className={`rounded-md px-3 py-3 text-left text-sm font-semibold ${
+                    item === activeItem ? "bg-[#fff1f5] text-[#f0184f]" : "text-black/75"
+                  }`}
+                  onClick={() => {
+                    setActiveItem(item);
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  {item}
+                </button>
+              )
             ))}
           </div>
         </div>
