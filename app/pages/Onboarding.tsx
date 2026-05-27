@@ -20,6 +20,8 @@ import {
 import Link from "next/link";
 import Navbar from "@/components/navbar/Navbar";
 
+// ─── Theme ────────────────────────────────────────────────────────────────────
+
 const theme = {
   navy: "#07182B",
   rose1: "#F04D7A",
@@ -30,6 +32,8 @@ const theme = {
   soft2: "#FDE7EE",
   line: "#F5CBD6",
 } as const;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface StepField {
   name: string;
@@ -50,6 +54,8 @@ interface Step {
 }
 
 type FormState = Record<string, string | string[]>;
+
+// ─── Steps config ─────────────────────────────────────────────────────────────
 
 const steps: Step[] = [
   {
@@ -134,6 +140,8 @@ const starterForm: FormState = steps.reduce<FormState>((acc, step) => {
   return acc;
 }, {});
 
+// ─── Decorative shapes (welcome screen only) ──────────────────────────────────
+
 function DecorativeShapes() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -147,6 +155,8 @@ function DecorativeShapes() {
     </div>
   );
 }
+
+// ─── Welcome screen ───────────────────────────────────────────────────────────
 
 function Welcome({ onStart }: { onStart: () => void }) {
   return (
@@ -194,6 +204,8 @@ function ProgressDots({ current }: { current: number }) {
   );
 }
 
+// ─── Repeatable text field ────────────────────────────────────────────────────
+
 interface RepeatableTextFieldProps {
   field: StepField;
   value: string | string[];
@@ -236,7 +248,7 @@ function RepeatableTextField({ field, value, onChange }: RepeatableTextFieldProp
               value={item}
               onChange={(e) => updateItem(index, e.target.value)}
               placeholder={index === 0 ? field.placeholder : "Others"}
-              className="w-full rounded-xl border bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-transparent focus:ring-4"
+              className="w-full rounded-xl border bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]/30"
               style={{ borderColor: "#CBD5E1" }}
             />
             {values.length > 1 && (
@@ -254,6 +266,8 @@ function RepeatableTextField({ field, value, onChange }: RepeatableTextFieldProp
     </div>
   );
 }
+
+// ─── File upload field ────────────────────────────────────────────────────────
 
 interface FileUploadFieldProps {
   field: StepField;
@@ -333,6 +347,8 @@ function FileUploadField({ field, value, onChange }: FileUploadFieldProps) {
   );
 }
 
+// ─── Onboarding step ──────────────────────────────────────────────────────────
+
 interface OnboardingStepProps {
   stepIndex: number;
   form: FormState;
@@ -358,9 +374,9 @@ function OnboardingStep({ stepIndex, form, setForm, onNext, onBack }: Onboarding
           </div>
         </div>
 
-        <section className="grid flex-1 items-start gap-6 lg:grid-cols-[0.82fr_1.18fr]">
+        <section className="grid flex-1 items-stretch gap-6 lg:grid-cols-[0.82fr_1.18fr]">
           <aside
-            className="rounded-[1.6rem] p-6 text-white shadow-xl"
+            className="self-start rounded-[1.6rem] p-6 text-white shadow-xl"
             style={{ background: `linear-gradient(145deg, ${theme.navy}, #0D2846)` }}
           >
             <div
@@ -391,7 +407,7 @@ function OnboardingStep({ stepIndex, form, setForm, onNext, onBack }: Onboarding
           </aside>
 
           <div
-            className="flex flex-col rounded-[1.6rem] border bg-white p-6 shadow-xl"
+            className="flex min-h-0 flex-col rounded-[1.6rem] border bg-white p-6 shadow-xl"
             style={{ borderColor: theme.line }}
           >
             <div className="mb-5 shrink-0">
@@ -400,7 +416,7 @@ function OnboardingStep({ stepIndex, form, setForm, onNext, onBack }: Onboarding
                 Complete this section to improve your first Living Portfolio.
               </p>
             </div>
-            <div className="space-y-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
               {step.fields.map((field) => {
                 if (field.type === "file")
                   return (
@@ -433,7 +449,7 @@ function OnboardingStep({ stepIndex, form, setForm, onNext, onBack }: Onboarding
                           setForm((old) => ({ ...old, [field.name]: e.target.value }))
                         }
                         placeholder={field.placeholder}
-                        className={`w-full rounded-xl border bg-white py-3.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-transparent focus:ring-4 ${
+                        className={`w-full rounded-xl border bg-white py-3.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]/30 ${
                           field.name === "portfolio" ? "pl-11 pr-4" : "px-4"
                         }`}
                         style={{ borderColor: "#CBD5E1" }}
@@ -493,7 +509,7 @@ export default function Onboarding() {
     if (stepIndex < steps.length - 1) {
       setStepIndex((old) => old + 1);
     } else {
-      window.location.href = "/profile";
+      window.location.href = "/?view=profile";
     }
   };
 
