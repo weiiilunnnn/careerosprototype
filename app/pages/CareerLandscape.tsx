@@ -2,7 +2,6 @@ import {
   ArrowRight,
   BadgeCheck,
   BarChart3,
-  Bell,
   BriefcaseBusiness,
   ChevronDown,
   CircleUserRound,
@@ -17,6 +16,7 @@ import {
   Target,
   UsersRound,
 } from "lucide-react";
+import Link from "next/link";
 import Navbar from "@/components/navbar/Navbar";
 
 const trajectories = [
@@ -194,10 +194,13 @@ function TrajectoryCard({
             ))}
           </div>
 
-          <button className="mx-auto mt-4 flex items-center gap-2 text-sm font-bold text-rose-600">
+          <Link
+            className="mx-auto mt-4 flex w-fit items-center gap-2 text-sm font-bold text-rose-600"
+            href="/?view=deep-dive"
+          >
             View Path Details
             <ArrowRight className="h-4 w-4" />
-          </button>
+          </Link>
         </div>
 
         <div className="flex flex-row justify-between gap-4 lg:flex-col lg:items-end">
@@ -252,20 +255,6 @@ export default function CareerLandscape() {
             <p className="mt-2 text-base text-gray-500">
               AI-matched career blueprints based on similar candidate histories.
             </p>
-          </div>
-
-          <div className="flex items-center gap-5">
-            <button className="relative grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-600" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-rose-100 text-sm font-bold text-rose-700">
-                AS
-              </div>
-              <p className="text-sm font-medium text-gray-900">Ananya Sharma</p>
-              <ChevronDown className="h-4 w-4 text-gray-600" />
-            </div>
           </div>
         </div>
 
