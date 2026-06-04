@@ -6,8 +6,8 @@ import { Bell, ChevronDown, Menu, X } from "lucide-react";
 
 const navItems = ["Dashboard", "Explore Careers", "My Growth", "Applications", "Messages"];
 
-export default function Navbar() {
-  const [activeItem, setActiveItem] = useState("Explore Careers");
+export default function Navbar({ initialActiveItem = "Explore Careers" }: { initialActiveItem?: string }) {
+  const [activeItem, setActiveItem] = useState(initialActiveItem);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
