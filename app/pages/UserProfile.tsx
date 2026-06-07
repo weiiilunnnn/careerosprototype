@@ -1,38 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import {
-  BarChart3,
-  Bell,
-  Building2,
-  CircleHelp,
   Edit3,
   ExternalLink,
   FileText,
   GraduationCap,
+  Mail,
   MapPin,
+  Phone,
   Plus,
+  Save,
   ShieldCheck,
-  Sparkles,
-  UserRound,
+  Trash2,
   X,
   LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import Navbar from "@/components/navbar/Navbar";
-import { Badge } from "@/components/ui/badge";
-
-// ─── Theme ────────────────────────────────────────────────────────────────────
 
 const theme = {
+  navy: "#081433",
+  deepNavy: "#152238",
+  darkerNavy: "#131f33",
+  muted: "#46536D",
   rose1: "#F04D7A",
   rose2: "#E00046",
+  rose3: "#D81B3F",
   rose4: "#B80039",
   soft: "#FFF2F6",
+  soft2: "#FDE7EE",
   line: "#F5CBD6",
+  border: "#E5E8F0",
+  detailDark: "#0f0f0f",
 } as const;
 
-// ─── Helper components ────────────────────────────────────────────────────────
+type ModalType =
+  | "edit-about"
+  | "add-experience"
+  | "edit-experience"
+  | "add-education"
+  | "edit-education"
+  | "add-skills"
+  | "edit-skills"
+  | "update-resume"
+  | "add-certificate"
+  | "edit-certificates"
+  | "edit-github"
+  | null;
+
+interface Experience {
+  title: string;
+  company: string;
+  period: string;
+  location: string;
+  description: string;
+  skills: string;
+  logoType: "grab" | "maybank" | "custom";
+  fallback: string;
+}
+
+interface Education {
+  institution: string;
+  programme: string;
+  period: string;
+  detail: string;
+}
+
+interface Certificate {
+  name: string;
+  meta: string;
+}
+
+interface ProfileDetails {
+  location: string;
+  email: string;
+  phone: string;
+}
 
 function GitHubLogo({ className = "h-6 w-6" }: { className?: string }) {
   return (
@@ -42,492 +86,1229 @@ function GitHubLogo({ className = "h-6 w-6" }: { className?: string }) {
       fill="currentColor"
       aria-hidden="true"
     >
-      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.16c-3.2.7-3.88-1.38-3.88-1.38-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18A11.1 11.1 0 0 1 12 6c.98 0 1.96.13 2.88.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.08 0 4.42-2.69 5.39-5.26 5.67.41.36.78 1.06.78 2.14v3.18c0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+      <path d="M12 .297C5.373.297 0 5.67 0 12.297c0 5.303 3.438 9.8 8.207 11.387.6.111.82-.26.82-.577 0-.285-.011-1.23-.017-2.232-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.73.083-.73 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.419-1.305.762-1.605-2.665-.304-5.466-1.333-5.466-5.932 0-1.311.469-2.382 1.236-3.222-.124-.303-.536-1.524.117-3.176 0 0 1.008-.323 3.301 1.23a11.49 11.49 0 0 1 3.006-.404c1.019.005 2.045.138 3.006.404 2.292-1.553 3.298-1.23 3.298-1.23.655 1.652.243 2.873.119 3.176.77.84 1.235 1.911 1.235 3.222 0 4.61-2.805 5.625-5.478 5.922.43.371.823 1.103.823 2.222 0 1.606-.015 2.9-.015 3.293 0 .32.216.694.825.576C20.565 22.092 24 17.597 24 12.297c0-6.627-5.373-12-12-12Z" />
     </svg>
   );
 }
 
-function ProfileInfoRow({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
+function GrabLogo() {
   return (
-    <div className="flex items-center gap-4 text-[#081433]">
-      <Icon className="h-5 w-5 shrink-0 text-[#38445C]" />
-      <p className="text-sm font-semibold leading-6">{text}</p>
+    <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm">
+      <span className="text-[13px] font-black tracking-tight text-[#00B14F]">
+        Grab
+      </span>
     </div>
   );
 }
 
-function ActionButton({
-  children,
-  onClick,
-  variant = "ghost",
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  variant?: "ghost" | "outline";
-}) {
-  const base =
-    "inline-flex items-center justify-center gap-2 rounded-lg font-extrabold transition hover:scale-[1.015] active:scale-[0.985]";
+function MaybankLogo() {
+  return (
+    <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl border bg-[#FFC600] shadow-sm">
+      <span className="text-[10px] font-black tracking-tight text-[#111111]">
+        MAYBANK
+      </span>
+    </div>
+  );
+}
 
-  if (variant === "outline") {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`${base} border px-3 py-2 text-xs hover:bg-pink-50`}
-        style={{ borderColor: theme.line, color: theme.rose2 }}
-      >
-        {children}
-      </button>
-    );
-  }
+function CompanyLogo({
+  logoType,
+  fallback,
+}: {
+  logoType: Experience["logoType"];
+  fallback: string;
+}) {
+  if (logoType === "grab") return <GrabLogo />;
+  if (logoType === "maybank") return <MaybankLogo />;
 
   return (
+    <div
+      className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white shadow-sm"
+      style={{
+        background: `linear-gradient(135deg, ${theme.rose1}, ${theme.rose2})`,
+      }}
+    >
+      {fallback}
+    </div>
+  );
+}
+
+function PrimaryButton({
+  children,
+  onClick,
+  type = "button",
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  type?: "button" | "submit";
+}) {
+  return (
     <button
-      type="button"
+      type={type}
       onClick={onClick}
-      className={`${base} px-2 py-1 text-sm hover:bg-pink-50`}
-      style={{ color: theme.rose2 }}
+      className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]"
+      style={{ backgroundColor: theme.rose2 }}
     >
       {children}
     </button>
   );
 }
 
-interface ProfileSectionProps {
-  title: string;
-  children: React.ReactNode;
-  showEdit?: boolean;
-  showAdd?: boolean;
-  onEdit?: () => void;
-  onAdd?: () => void;
+function OutlineButton({
+  children,
+  onClick,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:bg-[#FFF2F6] hover:shadow-sm active:translate-y-0"
+      style={{
+        borderColor: theme.line,
+        color: theme.rose2,
+        backgroundColor: "white",
+      }}
+    >
+      {children}
+    </button>
+  );
 }
 
-function ProfileSection({
-  title,
-  children,
-  showEdit = false,
-  showAdd = false,
-  onEdit,
-  onAdd,
-}: ProfileSectionProps) {
+function EditIconButton({
+  onClick,
+  dark = false,
+}: {
+  onClick?: () => void;
+  dark?: boolean;
+}) {
   return (
-    <div className="rounded-2xl border bg-white px-7 py-5 shadow-sm" style={{ borderColor: "#E5E8F0" }}>
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <h2 className="text-xl font-black text-[#081433]">{title}</h2>
-        <div className="flex items-center gap-3 text-[#081433]">
-          {showAdd && (
-            <ActionButton onClick={onAdd ?? (() => {})}>
-              <Plus className="h-4 w-4" />
-              Add
-            </ActionButton>
-          )}
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition hover:-translate-y-0.5 active:translate-y-0"
+      style={{
+        borderColor: dark ? "rgba(255,255,255,0.18)" : theme.line,
+        color: dark ? "#FFFFFF" : theme.rose2,
+        backgroundColor: dark ? "rgba(255,255,255,0.08)" : "white",
+      }}
+    >
+      <Edit3 className="h-4 w-4" />
+    </button>
+  );
+}
 
-          {showEdit && (
-            <ActionButton onClick={onEdit ?? (() => {})}>
-              <Edit3 className="h-4 w-4" />
-              Edit
-            </ActionButton>
-          )}
+function TextInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold text-[#152238]">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-xl border bg-white px-4 py-3 text-sm font-medium text-[#152238] outline-none transition placeholder:text-slate-400 focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]/30"
+        style={{ borderColor: "#CBD5E1" }}
+      />
+    </label>
+  );
+}
+
+function TextAreaInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold text-[#152238]">
+        {label}
+      </span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={5}
+        className="w-full resize-none rounded-xl border bg-white px-4 py-3 text-sm font-medium leading-6 text-[#152238] outline-none transition placeholder:text-slate-400 focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]/30"
+        style={{ borderColor: "#CBD5E1" }}
+      />
+    </label>
+  );
+}
+
+function Modal({
+  title,
+  description,
+  children,
+  onClose,
+  onSave,
+  saveLabel = "Save changes",
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+  onClose: () => void;
+  onSave: () => void;
+  saveLabel?: string;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#131f33]/45 px-5 backdrop-blur-sm">
+      <div
+        className="w-full max-w-xl rounded-[1.5rem] border bg-white p-6 shadow-2xl"
+        style={{ borderColor: theme.border }}
+      >
+        <div className="flex items-start justify-between gap-5">
+          <div>
+            <h2 className="text-xl font-semibold text-[#152238]">{title}</h2>
+            <p className="mt-2 text-sm font-normal leading-6 text-[#46536D]">
+              {description}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-[#FFF2F6] hover:text-[#E00046]"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+          {children}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <OutlineButton onClick={onClose}>Cancel</OutlineButton>
+          <PrimaryButton onClick={onSave}>
+            <Save className="h-4 w-4" />
+            {saveLabel}
+          </PrimaryButton>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CardHeader({
+  title,
+  children,
+}: {
+  title: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-[76px] items-center justify-between gap-4 rounded-t-2xl border-b border-[#F1F3F7] bg-white px-7 py-4 shadow-[0_8px_14px_rgba(21,34,56,0.035)]">
+      <h2 className="text-lg font-semibold leading-none text-[#152238]">
+        {title}
+      </h2>
       {children}
     </div>
   );
 }
 
-interface ExperienceItemProps {
-  icon: "chart" | "lab";
+function ProfileSection({
+  title,
+  children,
+  showEdit,
+  showAdd,
+  onEdit,
+  onAdd,
+}: {
   title: string;
-  company: string;
-  period: string;
-  location: string;
-  description: string;
-  skills: string;
+  children: ReactNode;
+  showEdit?: boolean;
+  showAdd?: boolean;
+  onEdit?: () => void;
+  onAdd?: () => void;
+}) {
+  return (
+    <section
+      className="overflow-hidden rounded-2xl border bg-white shadow-sm"
+      style={{ borderColor: theme.border }}
+    >
+      <CardHeader title={title}>
+        <div className="flex items-center gap-3">
+          {showAdd && (
+            <OutlineButton onClick={onAdd}>
+              <Plus className="h-4 w-4" />
+              Add
+            </OutlineButton>
+          )}
+
+          {showEdit && <EditIconButton onClick={onEdit} />}
+        </div>
+      </CardHeader>
+
+      <div className="px-7 py-5">{children}</div>
+    </section>
+  );
 }
 
-function ExperienceItem({ icon, title, company, period, location, description, skills }: ExperienceItemProps) {
+function ExperienceItem({
+  item,
+  onEdit,
+}: {
+  item: Experience;
+  onEdit: () => void;
+}) {
   return (
-    <div className="flex gap-5">
-      <div
-        className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl shadow-sm"
-        style={{
-          background:
-            icon === "chart"
-              ? "linear-gradient(135deg, #140038, #43227A)"
-              : "linear-gradient(135deg, #0A9B8D, #117C72)",
-        }}
-      >
-        {icon === "chart" ? (
-          <BarChart3 className="h-7 w-7 text-white" />
-        ) : (
-          <Sparkles className="h-7 w-7 text-white" />
-        )}
-      </div>
-      <div>
-        <h3 className="text-lg font-black text-[#081433]">{title}</h3>
-        <p className="mt-1 text-sm font-semibold text-[#081433]">{company}</p>
-        <p className="mt-1 text-sm font-medium text-[#081433]">{period} · {location}</p>
-        <p className="mt-2 text-sm font-medium leading-6 text-[#081433]">{description}</p>
-        <div className="mt-2 flex items-center gap-3 text-sm text-[#081433]">
-          <span className="h-2.5 w-2.5 rotate-45 rounded-sm bg-[#081433]" />
-          <p><span className="font-black">Skills:</span> {skills}</p>
+    <div className="flex gap-5 border-b pb-5 last:border-b-0 last:pb-0">
+      <CompanyLogo logoType={item.logoType} fallback={item.fallback} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold text-[#152238]">
+              {item.title}
+            </h3>
+            <p className="mt-1 text-sm font-medium text-[#152238]">
+              {item.company}
+            </p>
+            <p className="mt-1 text-sm font-normal text-[#46536D]">
+              {item.period} · {item.location}
+            </p>
+          </div>
+
+          <EditIconButton onClick={onEdit} />
+        </div>
+
+        <p className="mt-2 text-sm font-normal leading-6 text-[#152238]">
+          {item.description}
+        </p>
+
+        <div className="mt-2 flex items-center gap-3 text-sm text-[#152238]">
+          <span className="h-2 w-2 rotate-45 rounded-sm bg-[#152238]" />
+          <p>
+            <span className="font-semibold">Skills:</span> {item.skills}
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-interface SideDocumentCardProps {
+function EducationItem({
+  item,
+  onEdit,
+}: {
+  item: Education;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="flex gap-5 border-b pb-5 last:border-b-0 last:pb-0">
+      <div
+        className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl shadow-sm"
+        style={{ backgroundColor: theme.soft }}
+      >
+        <GraduationCap className="h-6 w-6" style={{ color: theme.rose2 }} />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold text-[#152238]">
+              {item.institution}
+            </h3>
+            <p className="mt-1 text-sm font-medium text-[#152238]">
+              {item.programme}
+            </p>
+            <p className="mt-1 text-sm font-normal text-[#46536D]">
+              {item.period}
+            </p>
+          </div>
+
+          <EditIconButton onClick={onEdit} />
+        </div>
+
+        <p className="mt-2 text-sm font-normal leading-6 text-[#152238]">
+          {item.detail}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PinkAccentItem({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border bg-white p-4 pl-5"
+      style={{ borderColor: theme.border }}
+    >
+      <div
+        className="absolute left-0 top-0 h-full w-1.5 rounded-l-xl"
+        style={{ backgroundColor: theme.rose2 }}
+      />
+      {children}
+    </div>
+  );
+}
+
+function SideDocumentCard({
+  title,
+  icon: Icon,
+  button,
+  showEditButton,
+  items,
+  onAction,
+  onEdit,
+}: {
   title: string;
   icon: LucideIcon;
   button: string;
+  showEditButton?: boolean;
   items: { name: string; meta: string }[];
-  footer: string;
   onAction: () => void;
-}
-
-function SideDocumentCard({ title, icon: Icon, button, items, footer, onAction }: SideDocumentCardProps) {
-  return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E5E8F0" }}>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: theme.soft }}>
-            <Icon className="h-5 w-5" style={{ color: theme.rose2 }} />
-          </div>
-          <h2 className="text-lg font-black text-[#081433]">{title}</h2>
-        </div>
-
-        <ActionButton variant="outline" onClick={onAction}>
-          {button}
-        </ActionButton>
-      </div>
-      <div className="space-y-3">
-        {items.map((item) => (
-          <div key={item.name} className="flex items-center gap-3 rounded-xl border p-4" style={{ borderColor: "#E5E8F0" }}>
-            <FileText className="h-7 w-7 shrink-0" style={{ color: theme.rose2 }} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-black text-[#081433]">{item.name}</p>
-              <p className="mt-1 text-sm font-medium text-[#46536D]">{item.meta}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="mt-4 text-xs font-medium text-[#46536D]">{footer}</p>
-    </div>
-  );
-}
-
-function ActionModal({
-  title,
-  description,
-  onClose,
-}: {
-  title: string;
-  description: string;
-  onClose: () => void;
+  onEdit?: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border bg-white p-6 shadow-2xl" style={{ borderColor: "#E5E8F0" }}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black text-[#081433]">{title}</h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-[#46536D]">{description}</p>
+    <section
+      className="overflow-hidden rounded-2xl border bg-white shadow-sm"
+      style={{ borderColor: theme.border }}
+    >
+      <div className="flex min-h-[76px] items-center justify-between gap-4 rounded-t-2xl border-b border-[#F1F3F7] bg-white px-5 py-4 shadow-[0_8px_14px_rgba(21,34,56,0.035)]">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.soft }}
+          >
+            <Icon className="h-5 w-5" style={{ color: theme.rose2 }} />
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition hover:bg-pink-50"
-            aria-label="Close modal"
-          >
-            <X className="h-5 w-5" style={{ color: theme.rose2 }} />
-          </button>
+          <h2 className="text-base font-semibold leading-none text-[#152238]">
+            {title}
+          </h2>
         </div>
 
-        <div className="mt-6 space-y-4">
-          <label className="block">
-            <span className="text-xs font-extrabold uppercase tracking-wide text-[#46536D]">Title</span>
-            <input
-              className="mt-2 h-11 w-full rounded-xl border px-4 text-sm font-medium outline-none transition focus:border-[#E00046]"
-              style={{ borderColor: "#E5E8F0" }}
-              placeholder="Enter title"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-extrabold uppercase tracking-wide text-[#46536D]">Details</span>
-            <textarea
-              className="mt-2 min-h-28 w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none transition focus:border-[#E00046]"
-              style={{ borderColor: "#E5E8F0" }}
-              placeholder="Add profile details here"
-            />
-          </label>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border px-5 py-3 text-sm font-extrabold transition hover:bg-gray-50"
-            style={{ borderColor: "#E5E8F0", color: "#081433" }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl px-5 py-3 text-sm font-extrabold text-white shadow-lg transition hover:scale-[1.015] active:scale-[0.985]"
-            style={{ background: theme.rose2 }}
-          >
-            Save Changes
-          </button>
+        <div className="flex items-center gap-2">
+          {showEditButton && onEdit && <EditIconButton onClick={onEdit} />}
+          <OutlineButton onClick={onAction}>{button}</OutlineButton>
         </div>
       </div>
-    </div>
+
+      <div className="space-y-3 p-5">
+        {items.length === 0 ? (
+          <div
+            className="rounded-xl border border-dashed p-4 text-sm font-medium text-[#46536D]"
+            style={{ borderColor: theme.border }}
+          >
+            No item added yet.
+          </div>
+        ) : (
+          items.map((item) => (
+            <PinkAccentItem key={item.name}>
+              <div className="flex items-center gap-3">
+                <FileText
+                  className="h-6 w-6 shrink-0"
+                  style={{ color: theme.rose2 }}
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[#152238]">
+                    {item.name}
+                  </p>
+                  <p className="mt-1 text-sm font-normal text-[#46536D]">
+                    {item.meta}
+                  </p>
+                </div>
+              </div>
+            </PinkAccentItem>
+          ))
+        )}
+      </div>
+    </section>
   );
 }
 
-// ─── Profile page ─────────────────────────────────────────────────────────────
+function isPdfFile(file: File) {
+  return (
+    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
+  );
+}
 
 export default function UserProfile() {
-  const [modal, setModal] = useState<{ title: string; description: string } | null>(null);
+  const [modal, setModal] = useState<ModalType>(null);
+  const [editingExperienceIndex, setEditingExperienceIndex] = useState<
+    number | null
+  >(null);
+  const [editingEducationIndex, setEditingEducationIndex] = useState<
+    number | null
+  >(null);
 
-  const openModal = (title: string, description: string) => {
-    setModal({ title, description });
-  };
+  const [about, setAbout] = useState(
+    "They say AI is going to replace humans pretty soon.... Well guess jokes on them cause they ain't replacing me any time soon. If me myself does not even know what I'm doing right now, how on earth is AI going to replace me. Visca Barca Visca Catalunya."
+  );
 
-  const profile = {
-    name: "Alex Lee",
-    title: "Final Year Computer Science Student",
-    email: "alex.lee@email.com",
-    phone: "+60 12-345 6789",
-    university: "Asia Pacific University",
-    course: "Computer Science",
-    specialisation: "Data Analytics",
+  const [details, setDetails] = useState<ProfileDetails>({
     location: "Kuala Lumpur, Malaysia",
+    email: "jason.tan@email.com",
+    phone: "+60 12-345 6789",
+  });
+
+  const [experiences, setExperiences] = useState<Experience[]>([
+    {
+      title: "Data Analytics Intern",
+      company: "Grab",
+      period: "Jun 2025 – Aug 2025",
+      location: "Kuala Lumpur, Malaysia",
+      description:
+        "Supported analytics reporting, cleaned operational datasets, and created dashboard views to help teams monitor performance trends.",
+      skills: "SQL, Power BI, Excel, Data Cleaning",
+      logoType: "grab",
+      fallback: "GR",
+    },
+    {
+      title: "Business Intelligence Intern",
+      company: "Maybank",
+      period: "Jan 2025 – Apr 2025",
+      location: "Kuala Lumpur, Malaysia",
+      description:
+        "Prepared reporting datasets and assisted with business insights for internal performance tracking and stakeholder updates.",
+      skills: "Python, Reporting, Dashboarding",
+      logoType: "maybank",
+      fallback: "MB",
+    },
+  ]);
+
+  const [education, setEducation] = useState<Education[]>([
+    {
+      institution: "Asia Pacific University of Technology and Innovation",
+      programme: "BSc Computer Science with Specialism in Data Analytics",
+      period: "2023 – 2026",
+      detail:
+        "Relevant learning includes database systems, data analytics, software development, and machine learning.",
+    },
+    {
+      institution: "Taylor’s College",
+      programme: "Foundation in Computing",
+      period: "2022 – 2023",
+      detail:
+        "Built a foundation in programming, mathematics, communication, and problem solving before progressing into degree studies.",
+    },
+  ]);
+
+  const [skills, setSkills] = useState([
+    "Python",
+    "SQL",
+    "Power BI",
+    "Excel",
+    "Data Analytics",
+    "Machine Learning",
+    "Dashboard Design",
+  ]);
+
+  const [resume, setResume] = useState({
+    name: "Jason_Tan_Resume.pdf",
+    meta: "PDF · 231 KB",
+  });
+
+  const [certificates, setCertificates] = useState<Certificate[]>([
+    {
+      name: "Google Data Analytics Certificate.pdf",
+      meta: "PDF · 198 KB",
+    },
+    {
+      name: "Microsoft Power BI Data Analyst.pdf",
+      meta: "PDF · 215 KB",
+    },
+  ]);
+
+  const [githubLink, setGithubLink] = useState("github.com/jasontan");
+
+  const [aboutDraft, setAboutDraft] = useState(about);
+  const [detailsDraft, setDetailsDraft] = useState<ProfileDetails>(details);
+  const [experienceDraft, setExperienceDraft] = useState<Experience>(
+    experiences[0]
+  );
+  const [educationDraft, setEducationDraft] = useState<Education>(education[0]);
+  const [skillsDraft, setSkillsDraft] = useState(skills.join(", "));
+  const [resumeDraft, setResumeDraft] = useState(resume);
+  const [certificateDraft, setCertificateDraft] = useState<Certificate>({
+    name: "",
+    meta: "PDF",
+  });
+  const [certificateEditDraft, setCertificateEditDraft] =
+    useState<Certificate[]>(certificates);
+  const [githubDraft, setGithubDraft] = useState(githubLink);
+
+  const closeModal = () => setModal(null);
+
+  const openEditAbout = () => {
+    setAboutDraft(about);
+    setDetailsDraft(details);
+    setModal("edit-about");
   };
 
-  const skills = [
-    "Python", "SQL", "Power BI", "Excel",
-    "Data Analysis", "Data Visualization",
-    "Communication", "Problem Solving",
-  ];
+  const openAddExperience = () => {
+    setEditingExperienceIndex(null);
+    setExperienceDraft({
+      title: "",
+      company: "",
+      period: "",
+      location: "",
+      description: "",
+      skills: "",
+      logoType: "custom",
+      fallback: "CO",
+    });
+    setModal("add-experience");
+  };
+
+  const openEditExperience = (index: number) => {
+    setEditingExperienceIndex(index);
+    setExperienceDraft(experiences[index]);
+    setModal("edit-experience");
+  };
+
+  const openAddEducation = () => {
+    setEditingEducationIndex(null);
+    setEducationDraft({
+      institution: "",
+      programme: "",
+      period: "",
+      detail: "",
+    });
+    setModal("add-education");
+  };
+
+  const openEditEducation = (index: number) => {
+    setEditingEducationIndex(index);
+    setEducationDraft(education[index]);
+    setModal("edit-education");
+  };
+
+  const openAddSkills = () => {
+    setSkillsDraft("");
+    setModal("add-skills");
+  };
+
+  const openEditSkills = () => {
+    setSkillsDraft(skills.join(", "));
+    setModal("edit-skills");
+  };
+
+  const openResumeUpdate = () => {
+    setResumeDraft(resume);
+    setModal("update-resume");
+  };
+
+  const openAddCertificate = () => {
+    setCertificateDraft({ name: "", meta: "PDF" });
+    setModal("add-certificate");
+  };
+
+  const openEditCertificates = () => {
+    setCertificateEditDraft(certificates);
+    setModal("edit-certificates");
+  };
+
+  const openGithubEdit = () => {
+    setGithubDraft(githubLink);
+    setModal("edit-github");
+  };
 
   return (
-    <div className="min-h-screen bg-[#fbfbfc] text-[#081433]">
-      <Navbar />
+    <div
+      className="min-h-screen bg-[#fbfbfc] text-[#152238]"
+      style={{
+        fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
+      }}
+    >
 
       <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[300px_1fr_320px]">
-
-        {/* Left sidebar */}
-        <aside>
-          <div className="rounded-2xl border bg-white p-6 shadow-sm" style={{ borderColor: "#E5E8F0" }}>
-            <div className="flex flex-col items-center text-center">
-              <div
-                className="flex h-36 w-36 items-center justify-center rounded-full"
-                style={{ background: "linear-gradient(180deg, #FDE0E8, #FCEEF3)" }}
-              >
-                <div className="relative h-24 w-24">
-                  <div
-                    className="absolute left-1/2 top-2 h-14 w-14 -translate-x-1/2 rounded-full"
-                    style={{ background: `linear-gradient(180deg, ${theme.rose1}, ${theme.rose2})` }}
-                  />
-                  <div
-                    className="absolute bottom-0 left-1/2 h-14 w-24 -translate-x-1/2 rounded-t-full"
-                    style={{ background: `linear-gradient(180deg, ${theme.rose1}, ${theme.rose2})` }}
+        {/* Top Profile + About Section */}
+        <section
+          className="mb-5 overflow-hidden rounded-2xl border bg-white shadow-sm"
+          style={{ borderColor: theme.border }}
+        >
+          <div className="grid lg:grid-cols-[360px_1fr]">
+            {/* Left profile section */}
+            <div className="border-r border-[#E6E6E6] border-l-4 border-l-[#E00046] bg-white px-8 py-8 shadow-[8px_0_18px_rgba(15,15,15,0.035)]">
+              <div className="flex flex-col items-center text-center">
+                <div className="h-44 w-44 overflow-hidden rounded-full border-8 border-[#FFF2F6] shadow-sm">
+                  <img
+                    src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?auto=format&fit=crop&w=700&q=80"
+                    alt="Jason Tan profile"
+                    className="h-full w-full object-cover"
                   />
                 </div>
-              </div>
-              <h1 className="mt-6 text-3xl font-black tracking-tight text-[#081433]">{profile.name}</h1>
-              <p className="mt-2 text-sm font-medium text-[#46536D]">{profile.title}</p>
-              <div
-                className="mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold"
-                style={{ background: theme.soft, color: theme.rose2 }}
-              >
-                <UserRound className="h-4 w-4" />
-                Candidate Profile
-              </div>
-            </div>
 
-            <div className="my-6 h-px bg-[#E8ECF2]" />
+                <h1 className="mt-5 text-3xl font-semibold text-[#152238]">
+                  Jason Tan
+                </h1>
 
-            <div className="space-y-5">
-              <ProfileInfoRow icon={Building2} text={profile.university} />
-              <ProfileInfoRow icon={FileText} text={profile.course} />
-              <ProfileInfoRow icon={GraduationCap} text={`Specialisation: ${profile.specialisation}`} />
-              <ProfileInfoRow icon={MapPin} text={profile.location} />
-            </div>
+                <p className="mt-2 text-sm font-normal text-[#46536D]">
+                  Final Year Computer Science Student
+                </p>
 
-            <div className="my-6 h-px bg-[#E8ECF2]" />
-
-            <div className="space-y-5">
-              <ProfileInfoRow icon={Bell} text={profile.email} />
-              <ProfileInfoRow icon={CircleHelp} text={profile.phone} />
-            </div>
-
-            <Link
-              href="/?view=living-portfolio"
-              className="mt-8 flex w-full items-center justify-center gap-3 rounded-lg border-2 px-5 py-3.5 text-sm font-extrabold transition hover:scale-[1.015] hover:bg-pink-50 active:scale-[0.985]"
-              style={{ borderColor: theme.rose2, color: theme.rose2 }}
-            >
-              <ExternalLink className="h-4 w-4" />
-              View Living Portfolio
-            </Link>
-          </div>
-        </aside>
-
-        {/* Main content */}
-        <section className="space-y-3">
-          <ProfileSection
-            title="About"
-            showEdit
-            onEdit={() => openModal("Edit About", "Update the personal summary shown on the user profile.")}
-          >
-            <p className="max-w-4xl text-sm font-medium leading-7 text-[#081433]">
-              Enthusiastic final year Computer Science student with a strong interest in data analytics,
-              dashboard development, and turning data into actionable insights. Enjoy solving real world
-              problems with data and building tools that help drive better decisions.
-            </p>
-          </ProfileSection>
-
-          <ProfileSection
-            title="Experience"
-            showEdit
-            showAdd
-            onEdit={() => openModal("Edit Experience", "Update existing work experience details.")}
-            onAdd={() => openModal("Add Experience", "Add a new work experience entry to the profile.")}
-          >
-            <ExperienceItem
-              icon="chart"
-              title="Junior Data Analyst Intern"
-              company="Nova Insights"
-              period="Jun 2025 – Aug 2025"
-              location="Kuala Lumpur, Malaysia"
-              description="Built dashboard reports and performed data analysis to support business insights."
-              skills="SQL, Power BI, Excel"
-            />
-            <div className="my-4 h-px bg-[#E8ECF2]" />
-            <ExperienceItem
-              icon="lab"
-              title="Research Assistant Intern"
-              company="Bright Labs"
-              period="Jan 2025 – Apr 2025"
-              location="Kuala Lumpur, Malaysia"
-              description="Cleaned and prepared datasets and supported analytics tasks for research projects."
-              skills="Python, Data Cleaning, Reporting"
-            />
-          </ProfileSection>
-
-          <ProfileSection
-            title="Education"
-            showEdit
-            showAdd
-            onEdit={() => openModal("Edit Education", "Update education details such as university, degree, and graduation date.")}
-            onAdd={() => openModal("Add Education", "Add another education record to the profile.")}
-          >
-            <div className="flex items-center gap-5">
-              <div
-                className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl"
-                style={{ background: theme.soft }}
-              >
-                <GraduationCap className="h-9 w-9" style={{ color: theme.rose2 }} />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-[#081433]">
-                  Asia Pacific University of Technology and Innovation (APU)
-                </h3>
-                <p className="mt-1 text-sm font-medium text-[#081433]">Bachelor of Computer Science</p>
-                <p className="mt-1 text-sm font-medium text-[#081433]">Specialisation: Data Analytics</p>
-                <p className="mt-1 text-sm font-medium text-[#081433]">Expected Graduation: May 2026</p>
-              </div>
-            </div>
-          </ProfileSection>
-
-          <ProfileSection
-            title="Skills"
-            showEdit
-            showAdd
-            onEdit={() => openModal("Edit Skills", "Update the existing skills shown on the profile.")}
-            onAdd={() => openModal("Add Skill", "Add a new skill to strengthen the career profile.")}
-          >
-            <div className="flex flex-wrap gap-3">
-              {skills.map((skill) => (
-                <Badge
-                  key={skill}
-                  variant="secondary"
-                  className="min-w-[96px] justify-center rounded-lg border px-5 py-2.5 text-xs font-extrabold"
-                  style={{ borderColor: theme.line, color: theme.rose2, background: "#FFF7FA" }}
+                <Link
+                  href="/?view=living-portfolio"
+                  className="mt-6 inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl px-5 py-3.5 text-sm font-semibold text-white shadow-md transition hover:scale-[1.01] active:scale-[0.99]"
+                  style={{ backgroundColor: theme.rose2 }}
                 >
-                  {skill}
-                </Badge>
-              ))}
+                  <ExternalLink className="h-4 w-4" />
+                  View Portfolio
+                </Link>
+              </div>
             </div>
-          </ProfileSection>
+
+            {/* Right section */}
+            <div className="bg-white px-8 py-8">
+              <div
+                className="rounded-[1.5rem] px-8 py-7 text-white shadow-[0_16px_34px_rgba(15,15,15,0.16)]"
+                style={{ backgroundColor: theme.detailDark }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="max-w-4xl">
+                    <p className="text-2xl font-bold leading-none text-white">
+                      About
+                    </p>
+
+                    <p className="mt-5 max-w-3xl text-sm font-normal leading-7 text-white/72">
+                      {about}
+                    </p>
+                  </div>
+
+                  <EditIconButton onClick={openEditAbout} dark />
+                </div>
+
+                <div className="mt-7 grid gap-4 md:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
+                    <div className="mb-3 flex items-center gap-2 text-white/55">
+                      <MapPin className="h-4 w-4" />
+                      <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                        Location
+                      </span>
+                    </div>
+                    <p className="text-base font-semibold text-white">
+                      {details.location}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
+                    <div className="mb-3 flex items-center gap-2 text-white/55">
+                      <Mail className="h-4 w-4" />
+                      <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                        Email
+                      </span>
+                    </div>
+                    <p className="break-words text-base font-semibold text-white">
+                      {details.email}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
+                    <div className="mb-3 flex items-center gap-2 text-white/55">
+                      <Phone className="h-4 w-4" />
+                      <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                        Phone
+                      </span>
+                    </div>
+                    <p className="text-base font-semibold text-white">
+                      {details.phone}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Right sidebar */}
-        <aside className="space-y-4">
-          <SideDocumentCard
-            title="Resume / CV"
-            icon={FileText}
-            button="Update"
-            footer="Last updated 2 days ago"
-            onAction={() => openModal("Update Resume / CV", "Upload or replace the resume file connected to this profile.")}
-            items={[{ name: "Alex_Lee_Resume.pdf", meta: "PDF · 231 KB" }]}
-          />
-          <SideDocumentCard
-            title="Certificates"
-            icon={ShieldCheck}
-            button="Add Certificate"
-            footer="2 certificates added"
-            onAction={() => openModal("Add Certificate", "Add a new certificate that can later be reflected in the Living Portfolio.")}
-            items={[
-              { name: "Google Data Analytics Certificate.pdf", meta: "PDF · 198 KB" },
-              { name: "Microsoft Power BI Data Analyst.pdf", meta: "PDF · 215 KB" },
-            ]}
-          />
+        {/* Bottom Layout */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
+          {/* Bottom Left */}
+          <section className="space-y-5">
+            <ProfileSection
+              title="Experience"
+              showAdd
+              onAdd={openAddExperience}
+            >
+              <div className="space-y-5">
+                {experiences.map((item, index) => (
+                  <ExperienceItem
+                    key={`${item.company}-${item.title}-${index}`}
+                    item={item}
+                    onEdit={() => openEditExperience(index)}
+                  />
+                ))}
+              </div>
+            </ProfileSection>
 
-          <div className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E5E8F0" }}>
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: theme.soft }}>
-                  <ExternalLink className="h-5 w-5" style={{ color: theme.rose2 }} />
+            <ProfileSection title="Education" showAdd onAdd={openAddEducation}>
+              <div className="space-y-5">
+                {education.map((item, index) => (
+                  <EducationItem
+                    key={`${item.institution}-${index}`}
+                    item={item}
+                    onEdit={() => openEditEducation(index)}
+                  />
+                ))}
+              </div>
+            </ProfileSection>
+
+            <ProfileSection
+              title="Skills"
+              showAdd
+              showEdit
+              onAdd={openAddSkills}
+              onEdit={openEditSkills}
+            >
+              <div className="flex flex-wrap gap-3">
+                {skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="rounded-full border px-4 py-2 text-sm font-semibold"
+                    style={{
+                      borderColor: theme.line,
+                      backgroundColor: theme.soft,
+                      color: theme.rose2,
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </ProfileSection>
+          </section>
+
+          {/* Bottom Right */}
+          <aside className="space-y-5">
+            <SideDocumentCard
+              title="Resume / CV"
+              icon={FileText}
+              button="Update"
+              items={[resume]}
+              onAction={openResumeUpdate}
+            />
+
+            <SideDocumentCard
+              title="Certificates"
+              icon={ShieldCheck}
+              button="Add"
+              showEditButton
+              items={certificates}
+              onAction={openAddCertificate}
+              onEdit={openEditCertificates}
+            />
+
+            <section
+              className="overflow-hidden rounded-2xl border bg-white shadow-sm"
+              style={{ borderColor: theme.border }}
+            >
+              <div className="flex min-h-[76px] items-center justify-between gap-4 rounded-t-2xl border-b border-[#F1F3F7] bg-white px-5 py-4 shadow-[0_8px_14px_rgba(21,34,56,0.035)]">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-full"
+                    style={{ backgroundColor: theme.soft }}
+                  >
+                    <GitHubLogo className="h-5 w-5 text-[#152238]" />
+                  </div>
+                  <h2 className="text-base font-semibold leading-none text-[#152238]">
+                    GitHub
+                  </h2>
                 </div>
-                <h2 className="text-lg font-black text-[#081433]">Portfolio</h2>
+
+                <EditIconButton onClick={openGithubEdit} />
               </div>
 
-              <ActionButton
-                variant="outline"
-                onClick={() => openModal("Edit Portfolio Link", "Update the GitHub or portfolio link connected to this profile.")}
-              >
-                Edit Link
-              </ActionButton>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border p-4" style={{ borderColor: "#E5E8F0" }}>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#081433] text-white">
-                  <GitHubLogo className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-[#081433]">github.com/alexlee</p>
-                  <p className="mt-1 text-xs font-medium text-[#46536D]">Personal portfolio and projects</p>
-                </div>
+              <div className="p-5">
+                <PinkAccentItem>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#131f33] text-white">
+                      <GitHubLogo className="h-5 w-5" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[#152238]">
+                        {githubLink}
+                      </p>
+                      <p className="mt-1 text-xs font-normal text-[#46536D]">
+                        Personal portfolio and projects
+                      </p>
+                    </div>
+
+                    <ExternalLink
+                      className="ml-auto h-4 w-4 shrink-0"
+                      style={{ color: theme.rose2 }}
+                    />
+                  </div>
+                </PinkAccentItem>
               </div>
-              <ExternalLink className="h-4 w-4" style={{ color: theme.rose2 }} />
-            </div>
-          </div>
-        </aside>
+            </section>
+          </aside>
         </div>
       </main>
 
-      {modal && (
-        <ActionModal
-          title={modal.title}
-          description={modal.description}
-          onClose={() => setModal(null)}
-        />
+      {modal === "edit-about" && (
+        <Modal
+          title="Edit About and Details"
+          description="Update the profile summary and contact details shown in the top section."
+          onClose={closeModal}
+          onSave={() => {
+            setAbout(aboutDraft);
+            setDetails(detailsDraft);
+            closeModal();
+          }}
+        >
+          <TextAreaInput
+            label="About"
+            value={aboutDraft}
+            onChange={setAboutDraft}
+          />
+          <TextInput
+            label="Location"
+            value={detailsDraft.location}
+            onChange={(value) =>
+              setDetailsDraft((old) => ({ ...old, location: value }))
+            }
+            placeholder="Kuala Lumpur, Malaysia"
+          />
+          <TextInput
+            label="Email"
+            value={detailsDraft.email}
+            onChange={(value) =>
+              setDetailsDraft((old) => ({ ...old, email: value }))
+            }
+            placeholder="jason.tan@email.com"
+          />
+          <TextInput
+            label="Phone"
+            value={detailsDraft.phone}
+            onChange={(value) =>
+              setDetailsDraft((old) => ({ ...old, phone: value }))
+            }
+            placeholder="+60 12-345 6789"
+          />
+        </Modal>
+      )}
+
+      {(modal === "add-experience" || modal === "edit-experience") && (
+        <Modal
+          title={
+            modal === "add-experience" ? "Add Experience" : "Edit Experience"
+          }
+          description="Add or update work experience details for your career profile."
+          onClose={closeModal}
+          onSave={() => {
+            if (modal === "add-experience") {
+              setExperiences((old) => [...old, experienceDraft]);
+            } else if (editingExperienceIndex !== null) {
+              setExperiences((old) =>
+                old.map((item, index) =>
+                  index === editingExperienceIndex ? experienceDraft : item
+                )
+              );
+            }
+
+            closeModal();
+          }}
+        >
+          <TextInput
+            label="Role title"
+            value={experienceDraft.title}
+            onChange={(value) =>
+              setExperienceDraft((old) => ({ ...old, title: value }))
+            }
+            placeholder="Data Analytics Intern"
+          />
+          <TextInput
+            label="Company"
+            value={experienceDraft.company}
+            onChange={(value) =>
+              setExperienceDraft((old) => ({ ...old, company: value }))
+            }
+            placeholder="Grab"
+          />
+          <TextInput
+            label="Period"
+            value={experienceDraft.period}
+            onChange={(value) =>
+              setExperienceDraft((old) => ({ ...old, period: value }))
+            }
+            placeholder="Jun 2025 – Aug 2025"
+          />
+          <TextInput
+            label="Location"
+            value={experienceDraft.location}
+            onChange={(value) =>
+              setExperienceDraft((old) => ({ ...old, location: value }))
+            }
+            placeholder="Kuala Lumpur, Malaysia"
+          />
+          <TextAreaInput
+            label="Description"
+            value={experienceDraft.description}
+            onChange={(value) =>
+              setExperienceDraft((old) => ({ ...old, description: value }))
+            }
+          />
+          <TextInput
+            label="Skills"
+            value={experienceDraft.skills}
+            onChange={(value) =>
+              setExperienceDraft((old) => ({ ...old, skills: value }))
+            }
+            placeholder="SQL, Power BI, Excel"
+          />
+        </Modal>
+      )}
+
+      {(modal === "add-education" || modal === "edit-education") && (
+        <Modal
+          title={modal === "add-education" ? "Add Education" : "Edit Education"}
+          description="Add or update education details shown on your user profile."
+          onClose={closeModal}
+          onSave={() => {
+            if (modal === "add-education") {
+              setEducation((old) => [...old, educationDraft]);
+            } else if (editingEducationIndex !== null) {
+              setEducation((old) =>
+                old.map((item, index) =>
+                  index === editingEducationIndex ? educationDraft : item
+                )
+              );
+            }
+
+            closeModal();
+          }}
+        >
+          <TextInput
+            label="Institution"
+            value={educationDraft.institution}
+            onChange={(value) =>
+              setEducationDraft((old) => ({ ...old, institution: value }))
+            }
+            placeholder="Asia Pacific University"
+          />
+          <TextInput
+            label="Programme"
+            value={educationDraft.programme}
+            onChange={(value) =>
+              setEducationDraft((old) => ({ ...old, programme: value }))
+            }
+            placeholder="BSc Computer Science"
+          />
+          <TextInput
+            label="Period"
+            value={educationDraft.period}
+            onChange={(value) =>
+              setEducationDraft((old) => ({ ...old, period: value }))
+            }
+            placeholder="2023 – 2026"
+          />
+          <TextAreaInput
+            label="Details"
+            value={educationDraft.detail}
+            onChange={(value) =>
+              setEducationDraft((old) => ({ ...old, detail: value }))
+            }
+          />
+        </Modal>
+      )}
+
+      {(modal === "add-skills" || modal === "edit-skills") && (
+        <Modal
+          title={modal === "add-skills" ? "Add Skills" : "Edit Skills"}
+          description="Use commas to separate multiple skills."
+          onClose={closeModal}
+          onSave={() => {
+            const nextSkills = skillsDraft
+              .split(",")
+              .map((skill) => skill.trim())
+              .filter(Boolean);
+
+            if (modal === "add-skills") {
+              setSkills((old) => [...old, ...nextSkills]);
+            } else {
+              setSkills(nextSkills);
+            }
+
+            closeModal();
+          }}
+        >
+          <TextAreaInput
+            label="Skills"
+            value={skillsDraft}
+            onChange={setSkillsDraft}
+            placeholder="Python, SQL, Power BI"
+          />
+        </Modal>
+      )}
+
+      {modal === "update-resume" && (
+        <Modal
+          title="Update Resume / CV"
+          description="Upload an updated PDF resume and save it to your profile."
+          onClose={closeModal}
+          onSave={() => {
+            setResume(resumeDraft);
+            closeModal();
+          }}
+          saveLabel="Save update"
+        >
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold text-[#152238]">
+              Upload updated resume
+            </span>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="block w-full cursor-pointer rounded-xl border bg-white px-4 py-3 text-sm font-medium text-[#152238] file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#E00046] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+              style={{ borderColor: "#CBD5E1" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (!isPdfFile(file)) {
+                  alert("Please upload a PDF file only.");
+                  e.target.value = "";
+                  return;
+                }
+
+                setResumeDraft({
+                  name: file.name,
+                  meta: `PDF · ${Math.max(1, Math.round(file.size / 1024))} KB`,
+                });
+              }}
+            />
+          </label>
+        </Modal>
+      )}
+
+      {modal === "add-certificate" && (
+        <Modal
+          title="Add Certificate"
+          description="Upload a PDF certificate or achievement proof and save it to your profile."
+          onClose={closeModal}
+          onSave={() => {
+            if (certificateDraft.name.trim()) {
+              setCertificates((old) => [...old, certificateDraft]);
+            }
+
+            closeModal();
+          }}
+          saveLabel="Save certificate"
+        >
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold text-[#152238]">
+              Upload certificate
+            </span>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="block w-full cursor-pointer rounded-xl border bg-white px-4 py-3 text-sm font-medium text-[#152238] file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#E00046] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+              style={{ borderColor: "#CBD5E1" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (!isPdfFile(file)) {
+                  alert("Please upload a PDF file only.");
+                  e.target.value = "";
+                  return;
+                }
+
+                setCertificateDraft({
+                  name: file.name,
+                  meta: `PDF · ${Math.max(1, Math.round(file.size / 1024))} KB`,
+                });
+              }}
+            />
+          </label>
+        </Modal>
+      )}
+
+      {modal === "edit-certificates" && (
+        <Modal
+          title="Edit Certificates"
+          description="Remove certificates that should no longer appear in your profile."
+          onClose={closeModal}
+          onSave={() => {
+            setCertificates(certificateEditDraft);
+            closeModal();
+          }}
+          saveLabel="Save certificates"
+        >
+          {certificateEditDraft.length === 0 ? (
+            <div
+              className="rounded-xl border border-dashed p-4 text-sm font-medium text-[#46536D]"
+              style={{ borderColor: theme.border }}
+            >
+              No certificates left.
+            </div>
+          ) : (
+            certificateEditDraft.map((certificate) => (
+              <div
+                key={certificate.name}
+                className="flex items-center justify-between gap-3 rounded-xl border bg-white p-4"
+                style={{ borderColor: theme.border }}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <FileText
+                    className="h-6 w-6 shrink-0"
+                    style={{ color: theme.rose2 }}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#152238]">
+                      {certificate.name}
+                    </p>
+                    <p className="mt-1 text-sm font-normal text-[#46536D]">
+                      {certificate.meta}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCertificateEditDraft((old) =>
+                      old.filter((item) => item.name !== certificate.name)
+                    )
+                  }
+                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-[#FFF2F6] text-[#E00046] transition hover:bg-[#FDE7EE]"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </Modal>
+      )}
+
+      {modal === "edit-github" && (
+        <Modal
+          title="Edit GitHub Link"
+          description="Update the GitHub profile or portfolio link displayed on your profile."
+          onClose={closeModal}
+          onSave={() => {
+            setGithubLink(githubDraft);
+            closeModal();
+          }}
+        >
+          <TextInput
+            label="GitHub link"
+            value={githubDraft}
+            onChange={setGithubDraft}
+            placeholder="github.com/yourname"
+          />
+        </Modal>
       )}
     </div>
   );

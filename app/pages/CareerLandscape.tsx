@@ -241,7 +241,6 @@ function TrajectoryCard({
 export default function CareerLandscape() {
   return (
     <main className="min-h-screen bg-[#fbfbfc] text-gray-950">
-      <Navbar />
 
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

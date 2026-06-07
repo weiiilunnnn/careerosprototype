@@ -5,7 +5,6 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   ChevronRight,
-  CircleHelp,
   FileText,
   GraduationCap,
   Lightbulb,
@@ -23,6 +22,7 @@ import Navbar from "@/components/navbar/Navbar";
 
 const theme = {
   navy: "#081433",
+  deepNavy: "#152238",
   muted: "#46536D",
   rose1: "#F04D7A",
   rose2: "#E00046",
@@ -31,11 +31,12 @@ const theme = {
   soft2: "#FDE7EE",
   line: "#F5CBD6",
   border: "#E5E8F0",
-  page: "#FFFFFF",
+  page: "#fbfbfc",
+  dark: "#0f0f0f",
 } as const;
 
 const profile = {
-  name: "Alex Lee",
+  name: "Jason Tan",
   title: "Final Year Computer Science Student",
   direction: "Data & Analytics Professional",
   summary:
@@ -67,7 +68,14 @@ const careerPaths = [
 ];
 
 const skills = {
-  technical: ["Python", "SQL", "Data Analysis", "Power BI", "Excel", "Machine Learning"],
+  technical: [
+    "Python",
+    "SQL",
+    "Data Analysis",
+    "Power BI",
+    "Excel",
+    "Machine Learning",
+  ],
   tools: ["Jupyter", "Tableau", "Power Query", "Google Sheets"],
   soft: ["Communication", "Problem Solving", "Critical Thinking", "Teamwork"],
 };
@@ -105,17 +113,19 @@ const projects = [
 const timeline = [
   {
     title: "Junior Data Analyst Intern",
-    company: "Tech Solutions Sdn Bhd",
-    period: "Jan 2025 - Present",
-    duration: "7 months",
-    description: "Built dashboards and automated reports to monitor key business metrics.",
+    company: "Grab",
+    period: "Jun 2025 - Aug 2025",
+    duration: "3 months",
+    description:
+      "Built dashboards and automated reports to monitor key business metrics.",
   },
   {
-    title: "Data Analytics Intern",
-    company: "Innovatech Malaysia",
-    period: "Jun 2024 - Dec 2024",
-    duration: "7 months",
-    description: "Supported data cleaning, analysis, and visualization for marketing campaigns.",
+    title: "Business Intelligence Intern",
+    company: "Maybank",
+    period: "Jan 2025 - Apr 2025",
+    duration: "4 months",
+    description:
+      "Supported data cleaning, analysis, and visualization for internal reporting.",
   },
 ];
 
@@ -132,10 +142,10 @@ function SectionCard({
 }) {
   return (
     <section
-      className="rounded-2xl border bg-white p-6 shadow-sm"
+      className="overflow-hidden rounded-2xl border bg-white shadow-sm"
       style={{ borderColor: theme.border }}
     >
-      <div className="mb-5 flex items-center justify-between gap-4">
+      <div className="flex min-h-[76px] items-center justify-between gap-4 rounded-t-2xl border-b border-[#F1F3F7] bg-white px-7 py-4 shadow-[0_8px_14px_rgba(21,34,56,0.035)]">
         <div className="flex items-center gap-3">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-full"
@@ -143,14 +153,15 @@ function SectionCard({
           >
             <Icon className="h-5 w-5" style={{ color: theme.rose2 }} />
           </div>
-          <h2 className="text-xl font-black tracking-tight" style={{ color: theme.navy }}>
+
+          <h2 className="text-lg font-semibold leading-none text-[#152238]">
             {title}
           </h2>
         </div>
 
         {action && (
           <button
-            className="flex items-center gap-2 text-sm font-bold transition hover:opacity-80"
+            className="flex cursor-pointer items-center gap-2 text-sm font-semibold transition hover:opacity-80"
             style={{ color: theme.rose2 }}
           >
             {action}
@@ -159,7 +170,7 @@ function SectionCard({
         )}
       </div>
 
-      {children}
+      <div className="px-7 py-5">{children}</div>
     </section>
   );
 }
@@ -184,11 +195,15 @@ function InfoPill({
       >
         <Icon className="h-5 w-5" style={{ color: theme.rose2 }} />
       </div>
+
       <div>
-        <p className="text-xs font-bold" style={{ color: theme.muted }}>
+        <p className="text-xs font-semibold" style={{ color: theme.muted }}>
           {label}
         </p>
-        <p className="mt-0.5 text-sm font-black" style={{ color: theme.navy }}>
+        <p
+          className="mt-0.5 text-sm font-semibold"
+          style={{ color: theme.navy }}
+        >
           {value}
         </p>
       </div>
@@ -199,7 +214,7 @@ function InfoPill({
 function SkillTag({ children }: { children: React.ReactNode }) {
   return (
     <span
-      className="rounded-lg border px-4 py-2 text-xs font-extrabold"
+      className="rounded-lg border px-4 py-2 text-xs font-semibold"
       style={{
         borderColor: theme.line,
         backgroundColor: "#FFF7FA",
@@ -243,17 +258,20 @@ function CareerPathCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-black" style={{ color: theme.navy }}>
+          <h3 className="text-base font-semibold" style={{ color: theme.navy }}>
             {title}
           </h3>
-          <p className="mt-2 text-sm font-bold" style={{ color: theme.navy }}>
+          <p
+            className="mt-2 text-sm font-semibold"
+            style={{ color: theme.navy }}
+          >
             {match}% Match
           </p>
         </div>
 
         {label && (
           <span
-            className="rounded-md px-2.5 py-1 text-xs font-black text-white"
+            className="rounded-md px-2.5 py-1 text-xs font-semibold text-white"
             style={{ backgroundColor: theme.rose2 }}
           >
             {label}
@@ -266,7 +284,41 @@ function CareerPathCard({
   );
 }
 
-function ProjectItem({
+function StrengthRing({ value }: { value: number }) {
+  return (
+    <div
+      className="flex h-full min-h-[210px] flex-col items-center justify-center rounded-xl border bg-white p-5"
+      style={{ borderColor: theme.border }}
+    >
+      <div
+        className="flex h-32 w-32 items-center justify-center rounded-full"
+        style={{
+          background: `conic-gradient(${theme.rose2} ${
+            value * 3.6
+          }deg, #F5D9E1 0deg)`,
+        }}
+      >
+        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white">
+          <span
+            className="text-2xl font-semibold"
+            style={{ color: theme.navy }}
+          >
+            {value}%
+          </span>
+        </div>
+      </div>
+
+      <p className="mt-5 text-sm font-medium" style={{ color: theme.muted }}>
+        Profile Strength
+      </p>
+      <p className="mt-1 text-base font-semibold" style={{ color: theme.rose2 }}>
+        Strong
+      </p>
+    </div>
+  );
+}
+
+function ProjectCard({
   icon: Icon,
   title,
   type,
@@ -283,52 +335,48 @@ function ProjectItem({
 }) {
   return (
     <div
-      className="flex gap-4 border-b px-1 py-5 last:border-b-0"
+      className="rounded-xl border bg-white p-5"
       style={{ borderColor: theme.border }}
     >
-      <div
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-        style={{
-          background: `linear-gradient(135deg, ${theme.rose1}, ${theme.rose2})`,
-        }}
-      >
-        <Icon className="h-6 w-6 text-white" />
-      </div>
+      <div className="flex items-start gap-4">
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: theme.soft }}
+        >
+          <Icon className="h-6 w-6" style={{ color: theme.rose2 }} />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-black" style={{ color: theme.navy }}>
-                {title}
-              </h3>
-              <span
-                className="rounded-full px-2.5 py-1 text-xs font-bold"
-                style={{ backgroundColor: theme.soft, color: theme.rose2 }}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p
+                className="text-xs font-semibold uppercase tracking-[0.18em]"
+                style={{ color: theme.rose2 }}
               >
                 {type}
-              </span>
+              </p>
+              <h3
+                className="mt-1 text-base font-semibold"
+                style={{ color: theme.navy }}
+              >
+                {title}
+              </h3>
             </div>
-            <p className="mt-2 max-w-3xl text-sm font-medium leading-6" style={{ color: theme.navy }}>
-              {description}
+
+            <p className="text-sm font-medium" style={{ color: theme.muted }}>
+              {date}
             </p>
           </div>
 
-          <p className="text-sm font-semibold" style={{ color: theme.muted }}>
-            {date}
+          <p className="mt-3 text-sm leading-6" style={{ color: theme.muted }}>
+            {description}
           </p>
-        </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-md px-3 py-1 text-xs font-bold"
-              style={{ backgroundColor: "#F1F3F7", color: theme.muted }}
-            >
-              {tag}
-            </span>
-          ))}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <SkillTag key={tag}>{tag}</SkillTag>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -351,30 +399,50 @@ function TimelineItem({
   isLast?: boolean;
 }) {
   return (
-    <div className="relative flex gap-5 pb-8 last:pb-0">
-      {!isLast && (
+    <div className="relative flex gap-5">
+      <div className="flex flex-col items-center">
         <div
-          className="absolute left-[7px] top-5 h-full w-px"
-          style={{ backgroundColor: theme.line }}
-        />
-      )}
+          className="flex h-10 w-10 items-center justify-center rounded-full"
+          style={{ backgroundColor: theme.soft }}
+        >
+          <BriefcaseBusiness
+            className="h-5 w-5"
+            style={{ color: theme.rose2 }}
+          />
+        </div>
 
-      <div
-        className="relative z-10 mt-1 h-4 w-4 shrink-0 rounded-full"
-        style={{ backgroundColor: theme.rose2 }}
-      />
+        {!isLast && <div className="mt-3 h-full w-px bg-[#E5E8F0]" />}
+      </div>
 
-      <div>
-        <h3 className="text-base font-black" style={{ color: theme.navy }}>
-          {title}
-        </h3>
-        <p className="mt-1 text-sm font-bold" style={{ color: theme.navy }}>
-          {company}
-        </p>
-        <p className="mt-1 text-sm font-medium" style={{ color: theme.muted }}>
-          {period} · {duration}
-        </p>
-        <p className="mt-2 text-sm font-medium leading-6" style={{ color: theme.navy }}>
+      <div className="min-w-0 flex-1 pb-7">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3
+              className="text-base font-semibold"
+              style={{ color: theme.navy }}
+            >
+              {title}
+            </h3>
+            <p
+              className="mt-1 text-sm font-medium"
+              style={{ color: theme.navy }}
+            >
+              {company}
+            </p>
+            <p className="mt-1 text-sm" style={{ color: theme.muted }}>
+              {period}
+            </p>
+          </div>
+
+          <span
+            className="rounded-full px-3 py-1 text-xs font-semibold"
+            style={{ backgroundColor: theme.soft, color: theme.rose2 }}
+          >
+            {duration}
+          </span>
+        </div>
+
+        <p className="mt-3 text-sm leading-6" style={{ color: theme.muted }}>
           {description}
         </p>
       </div>
@@ -384,40 +452,121 @@ function TimelineItem({
 
 export default function LivingPortfolio() {
   return (
-    <div className="min-h-screen bg-[#fbfbfc] text-[#081433]">
-      <Navbar />
+    <div
+      className="min-h-screen bg-[#fbfbfc] text-[#152238]"
+      style={{
+        fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
+      }}
+    >
 
       <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-black tracking-tight" style={{ color: theme.navy }}>
-            Living Portfolio
-          </h1>
-          <p className="mt-3 max-w-3xl text-base font-medium" style={{ color: theme.muted }}>
-            Your career story, always up to date. Profile updates are reflected here to show your
-            skills, evidence, growth, and realistic career path alignment.
-          </p>
-        </div>
+        {/* Top image hero card */}
+        <section
+          className="mb-5 overflow-hidden rounded-2xl border bg-white shadow-sm"
+          style={{ borderColor: theme.border }}
+        >
+          <div className="relative min-h-[360px] overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(21,34,56,0.18)]">
+            <img
+              src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1800&q=80"
+              alt="People discussing a job portfolio and career growth"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-r from-[#081433]/90 via-[#081433]/70 to-[#081433]/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#081433]/60 via-transparent to-transparent" />
+
+            <div className="relative z-10 flex min-h-[360px] flex-col justify-between px-8 py-8 text-white">
+              <div>
+                <div className="mb-5 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
+                    Profile intelligence
+                  </span>
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
+                    Career growth
+                  </span>
+                </div>
+
+                <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white md:text-5xl">
+                  Living Portfolio
+                </h1>
+
+                <p className="mt-5 max-w-3xl text-sm leading-7 text-white/78 md:text-base">
+                  Your career story, always up to date. Profile updates are
+                  reflected here to show your skills, evidence, growth, and
+                  realistic career path alignment.
+                </p>
+              </div>
+
+              <div className="mt-8 grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 shadow-sm backdrop-blur-md">
+                  <div className="mb-2 flex items-center gap-2 text-white/65">
+                    <UserRound className="h-4 w-4" />
+                    <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                      Profile
+                    </span>
+                  </div>
+                  <p className="text-base font-semibold text-white">
+                    {profile.name}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 shadow-sm backdrop-blur-md">
+                  <div className="mb-2 flex items-center gap-2 text-white/65">
+                    <Target className="h-4 w-4" />
+                    <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                      Direction
+                    </span>
+                  </div>
+                  <p className="text-base font-semibold text-white">
+                    {profile.direction}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 shadow-sm backdrop-blur-md">
+                  <div className="mb-2 flex items-center gap-2 text-white/65">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                      Strength
+                    </span>
+                  </div>
+                  <p className="text-base font-semibold text-white">
+                    {profile.profileStrength}% Strong
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div className="space-y-5">
-          {/* Career Profile Summary */}
           <SectionCard title="Career Profile Summary" icon={UserRound}>
-            <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
+            <div className="grid gap-5 lg:grid-cols-[1fr_250px]">
               <div
-                className="rounded-xl border p-5"
+                className="rounded-xl border bg-white p-5"
                 style={{ borderColor: theme.border }}
               >
-                <p className="text-sm font-bold" style={{ color: theme.muted }}>
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: theme.muted }}
+                >
                   Career Direction
                 </p>
-                <h3 className="mt-2 text-xl font-black" style={{ color: theme.navy }}>
+
+                <h3
+                  className="mt-2 text-xl font-semibold"
+                  style={{ color: theme.navy }}
+                >
                   {profile.direction}
                 </h3>
-                <p className="mt-3 max-w-4xl text-sm font-medium leading-7" style={{ color: theme.navy }}>
+
+                <p
+                  className="mt-4 text-sm leading-7"
+                  style={{ color: theme.navy }}
+                >
                   {profile.summary}
                 </p>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <InfoPill
                     icon={BriefcaseBusiness}
                     label="Experience"
@@ -433,55 +582,19 @@ export default function LivingPortfolio() {
                     label="Location"
                     value={profile.location}
                   />
-                  <InfoPill
-                    icon={Sparkles}
-                    label="Status"
-                    value="Growing"
-                  />
+                  <InfoPill icon={Sparkles} label="Status" value="Growing" />
                 </div>
               </div>
 
-              <div
-                className="flex flex-col items-center justify-center rounded-xl border p-6 text-center"
-                style={{ borderColor: theme.border }}
-              >
-                <div className="relative grid h-32 w-32 place-items-center rounded-full">
-                  <svg className="h-32 w-32 -rotate-90" viewBox="0 0 120 120">
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      fill="none"
-                      stroke="#F5D9E1"
-                      strokeWidth="10"
-                    />
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      fill="none"
-                      stroke={theme.rose2}
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      strokeDasharray={`${profile.profileStrength * 3.02} 302`}
-                    />
-                  </svg>
-                  <span className="absolute text-2xl font-black" style={{ color: theme.navy }}>
-                    {profile.profileStrength}%
-                  </span>
-                </div>
-                <p className="mt-4 text-sm font-bold" style={{ color: theme.muted }}>
-                  Profile Strength
-                </p>
-                <p className="mt-1 text-lg font-black" style={{ color: theme.rose2 }}>
-                  Strong
-                </p>
-              </div>
+              <StrengthRing value={profile.profileStrength} />
             </div>
           </SectionCard>
 
-          {/* Career Path Alignment */}
-          <SectionCard title="Career Path Alignment" icon={Lightbulb} action="View full analysis">
+          <SectionCard
+            title="Career Path Alignment"
+            icon={Lightbulb}
+            action="View full analysis"
+          >
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {careerPaths.map((path) => (
                 <CareerPathCard
@@ -492,77 +605,82 @@ export default function LivingPortfolio() {
                 />
               ))}
             </div>
+          </SectionCard>
 
-            <div className="mt-5 flex items-center gap-2 text-sm font-medium" style={{ color: theme.muted }}>
-              <CircleHelp className="h-4 w-4" />
-              <p>
-                Scores are based on your skills, experience, uploaded evidence, and similar career trajectories.
-              </p>
+          <SectionCard title="Skills Proven" icon={Medal}>
+            <div className="grid gap-5 lg:grid-cols-3">
+              <div>
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: theme.navy }}
+                >
+                  Technical Skills
+                </h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {skills.technical.map((skill) => (
+                    <SkillTag key={skill}>{skill}</SkillTag>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: theme.navy }}
+                >
+                  Tools
+                </h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {skills.tools.map((skill) => (
+                    <SkillTag key={skill}>{skill}</SkillTag>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: theme.navy }}
+                >
+                  Soft Skills
+                </h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {skills.soft.map((skill) => (
+                    <SkillTag key={skill}>{skill}</SkillTag>
+                  ))}
+                </div>
+              </div>
             </div>
           </SectionCard>
 
-          {/* Two Column Area */}
-          <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-            {/* Skills Proven */}
-            <SectionCard title="Skills Proven" icon={ShieldCheck} action="View all skills">
-              <div className="space-y-5">
-                <div>
-                  <p className="mb-3 text-sm font-black" style={{ color: theme.navy }}>
-                    Technical Skills
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {skills.technical.map((skill) => (
-                      <SkillTag key={skill}>{skill}</SkillTag>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-3 text-sm font-black" style={{ color: theme.navy }}>
-                    Tools
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {skills.tools.map((skill) => (
-                      <SkillTag key={skill}>{skill}</SkillTag>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-3 text-sm font-black" style={{ color: theme.navy }}>
-                    Soft Skills
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {skills.soft.map((skill) => (
-                      <SkillTag key={skill}>{skill}</SkillTag>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* Experience Timeline */}
-            <SectionCard title="Experience Timeline" icon={CalendarDays} action="View full timeline">
-              <div className="pl-1">
-                {timeline.map((item, index) => (
-                  <TimelineItem
-                    key={item.title}
-                    {...item}
-                    isLast={index === timeline.length - 1}
-                  />
-                ))}
-              </div>
-            </SectionCard>
-          </div>
-
-          {/* Projects and Achievements */}
-          <SectionCard title="Projects & Achievements" icon={Medal} action="View all">
-            <div
-              className="overflow-hidden rounded-xl border"
-              style={{ borderColor: theme.border }}
-            >
+          <SectionCard title="Projects and Achievements" icon={Trophy}>
+            <div className="grid gap-4">
               {projects.map((project) => (
-                <ProjectItem key={project.title} {...project} />
+                <ProjectCard
+                  key={project.title}
+                  icon={project.icon}
+                  title={project.title}
+                  type={project.type}
+                  date={project.date}
+                  description={project.description}
+                  tags={project.tags}
+                />
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Experience Timeline" icon={CalendarDays}>
+            <div>
+              {timeline.map((item, index) => (
+                <TimelineItem
+                  key={`${item.company}-${item.title}`}
+                  title={item.title}
+                  company={item.company}
+                  period={item.period}
+                  duration={item.duration}
+                  description={item.description}
+                  isLast={index === timeline.length - 1}
+                />
               ))}
             </div>
           </SectionCard>

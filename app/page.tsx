@@ -1,8 +1,16 @@
+import LandingPage from "./pages/LandingPage";
 import CareerLandscape from "./pages/CareerLandscape";
 import DeepDive from "./pages/DeepDive";
 import Onboarding from "./pages/Onboarding";
 import UserProfile from "./pages/UserProfile";
 import LivingPortfolio from "./pages/LivingPortfolio";
+import JobApplicationPage from "./pages/jobapplication";
+import ApplicationSubmitted from "./pages/ApplicationSubmitted";
+import MyApplications from "./pages/MyApplications";
+import TrackApplication from "./pages/TrackApplication";
+import SignInPage from "./pages/SignInPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import EmployerOnboarding from "./pages/EmployerOnboarding";
 
 export default async function Home({
   searchParams,
@@ -11,10 +19,20 @@ export default async function Home({
 }) {
   const { view } = await searchParams;
 
+  if (view === "onboarding") return <Onboarding />;
+  if (view === "employer-onboarding") return <EmployerOnboarding />;
   if (view === "deep-dive") return <DeepDive />;
   if (view === "career-landscape") return <CareerLandscape />;
   if (view === "profile") return <UserProfile />;
   if (view === "living-portfolio") return <LivingPortfolio />;
+  if (view === "jobapplication") return <JobApplicationPage />;
+  if (view === "application-submitted") return <ApplicationSubmitted />;
+  if (view === "my-applications") return <MyApplications />;
+  if (view === "track-application") return <TrackApplication />;
+  if (view === "login") return <SignInPage />;
+  if (view === "forgot-password") return <ForgotPasswordPage />;
+  if (view === "onboarding") return <Onboarding />;
 
-  return <Onboarding />;
+  // Default page when visiting "/"
+  return <LandingPage />;
 }
