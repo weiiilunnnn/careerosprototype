@@ -11,11 +11,14 @@ import {
 
 const theme = {
   navy: "#081433",
+  deepNavy: "#152238",
   muted: "#46536D",
-  rose: "#E00046",
+  rose1: "#F04D7A",
+  rose2: "#E00046",
   soft: "#FFF2F6",
+  line: "#F5CBD6",
   border: "#E5E8F0",
-};
+} as const;
 
 export default function MyApplications() {
   const applications = [
@@ -67,96 +70,76 @@ export default function MyApplications() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fbfbfc]">
+    <div
+      className="min-h-screen bg-[#fbfbfc] text-[#152238]"
+      style={{
+        fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
+      }}
+    >
       <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
 
         {/* Header */}
-        <div className="mb-8">
-          <h1
-            className="text-4xl font-black tracking-tight"
-            style={{ color: theme.navy }}
-          >
-            My Applications
-          </h1>
+        <div
+          className="relative mb-5 overflow-hidden rounded-2xl text-white shadow-[0_18px_40px_rgba(21,34,56,0.18)]"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=1800&q=80"
+            alt="Application planning desk"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#081433]/95 via-[#081433]/82 to-[#081433]/45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#081433]/70 via-transparent to-transparent" />
 
-          <p
-            className="mt-3 max-w-3xl text-base font-medium"
-            style={{ color: theme.muted }}
-          >
-            Track your applications, monitor progress, and manage saved
-            opportunities in one place.
-          </p>
-        </div>
+          <div className="relative z-10 p-8">
+            <div className="mb-5 flex flex-wrap gap-2">
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
+                Application tracker
+              </span>
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
+                Saved opportunities
+              </span>
+            </div>
+            <h1
+              className="text-4xl font-semibold tracking-normal text-white md:text-5xl"
+            >
+              My Applications
+            </h1>
 
-        {/* Stats */}
-        <div className="mb-5 grid gap-5 md:grid-cols-2">
+            <p
+              className="mt-5 max-w-3xl text-sm leading-7 text-white/75 md:text-base"
+            >
+              Track your applications, monitor progress, and manage saved
+              opportunities in one place.
+            </p>
 
-          <div
-            className="rounded-2xl border bg-white p-5 shadow-sm"
-            style={{ borderColor: theme.border }}
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: theme.soft }}
-              >
-                <BriefcaseBusiness
-                  size={22}
-                  style={{ color: theme.rose }}
-                />
-              </div>
-
-              <div>
-                <p
-                  className="text-2xl font-black"
-                  style={{ color: theme.navy }}
-                >
-                  18
-                </p>
-
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: theme.muted }}
-                >
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 shadow-sm backdrop-blur-md">
+                <div className="mb-2 flex items-center gap-2 text-white/65">
+                  <BriefcaseBusiness className="h-4 w-4" />
+                  <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                    Submitted
+                  </span>
+                </div>
+                <p className="text-base font-semibold text-white">18</p>
+                <p className="mt-1 text-xs font-medium text-white/65">
                   Applications Submitted
                 </p>
               </div>
-            </div>
-          </div>
 
-          <div
-            className="rounded-2xl border bg-white p-5 shadow-sm"
-            style={{ borderColor: theme.border }}
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: theme.soft }}
-              >
-                <Bookmark
-                  size={22}
-                  style={{ color: theme.rose }}
-                />
-              </div>
-
-              <div>
-                <p
-                  className="text-2xl font-black"
-                  style={{ color: theme.navy }}
-                >
-                  12
-                </p>
-
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: theme.muted }}
-                >
+              <div className="rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 shadow-sm backdrop-blur-md">
+                <div className="mb-2 flex items-center gap-2 text-white/65">
+                  <Bookmark className="h-4 w-4" />
+                  <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                    Saved
+                  </span>
+                </div>
+                <p className="text-base font-semibold text-white">12</p>
+                <p className="mt-1 text-xs font-medium text-white/65">
                   Saved Jobs
                 </p>
               </div>
             </div>
           </div>
-
         </div>
 
         {/* Content */}
@@ -170,15 +153,15 @@ export default function MyApplications() {
             <div className="mb-5 flex items-center justify-between">
 
               <h2
-                className="text-xl font-black"
+                className="text-xl font-semibold"
                 style={{ color: theme.navy }}
               >
                 My Applications
               </h2>
 
               <button
-                className="text-sm font-bold"
-                style={{ color: theme.rose }}
+                className="text-sm font-semibold"
+                style={{ color: theme.rose2 }}
               >
                 View All
               </button>
@@ -189,7 +172,7 @@ export default function MyApplications() {
                 <Link
                     key={job.title}
                     href="/?view=track-application"
-                    className="block rounded-xl border p-4 transition hover:border-[#E00046]/20 hover:bg-slate-50"
+                    className="block rounded-xl border p-4 transition hover:border-[#F04D7A] hover:bg-[#FFF7FA]"
                     style={{ borderColor: theme.border }}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -198,21 +181,21 @@ export default function MyApplications() {
 
                       <div
                         className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
-                        style={{ backgroundColor: theme.rose }}
+                        style={{ backgroundColor: theme.rose2 }}
                       >
                         <Building2 size={22} />
                       </div>
 
                       <div>
                         <h3
-                          className="text-lg font-black"
+                          className="text-lg font-semibold"
                           style={{ color: theme.navy }}
                         >
                           {job.title}
                         </h3>
 
                         <p
-                          className="mt-1 text-sm font-semibold"
+                          className="mt-1 text-sm font-medium"
                           style={{ color: theme.muted }}
                         >
                           {job.company}
@@ -242,7 +225,7 @@ export default function MyApplications() {
                     <div className="flex items-center gap-3">
 
                       <span
-                        className="rounded-lg px-3 py-2 text-xs font-bold"
+                        className="rounded-lg px-3 py-2 text-xs font-semibold"
                         style={{
                           backgroundColor: "#EDF4FF",
                           color: "#3575FF",
@@ -271,15 +254,15 @@ export default function MyApplications() {
             <div className="mb-5 flex items-center justify-between">
 
               <h2
-                className="text-xl font-black"
+                className="text-xl font-semibold"
                 style={{ color: theme.navy }}
               >
                 Saved Jobs
               </h2>
 
               <button
-                className="text-sm font-bold"
-                style={{ color: theme.rose }}
+                className="text-sm font-semibold"
+                style={{ color: theme.rose2 }}
               >
                 View All
               </button>
@@ -289,7 +272,7 @@ export default function MyApplications() {
               {savedJobs.map((job) => (
                 <div
                   key={job.title}
-                  className="rounded-xl border p-4"
+                  className="rounded-xl border p-4 transition hover:border-[#F04D7A] hover:bg-[#FFF7FA]"
                   style={{ borderColor: theme.border }}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -298,21 +281,21 @@ export default function MyApplications() {
 
                       <div
                         className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
-                        style={{ backgroundColor: theme.rose }}
+                        style={{ backgroundColor: theme.rose2 }}
                       >
                         <Building2 size={22} />
                       </div>
 
                       <div>
                         <h3
-                          className="text-lg font-black"
+                          className="text-lg font-semibold"
                           style={{ color: theme.navy }}
                         >
                           {job.title}
                         </h3>
 
                         <p
-                          className="mt-1 text-sm font-semibold"
+                          className="mt-1 text-sm font-medium"
                           style={{ color: theme.muted }}
                         >
                           {job.company}
@@ -344,8 +327,8 @@ export default function MyApplications() {
 
                       <Link
                         href="/?view=jobapplication"
-                        className="rounded-lg px-4 py-2 text-sm font-bold text-white"
-                        style={{ backgroundColor: theme.rose }}
+                        className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(224,0,70,0.18)]"
+                        style={{ backgroundColor: theme.rose2 }}
                       >
                         Apply Now
                       </Link>
