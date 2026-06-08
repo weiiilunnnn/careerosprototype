@@ -16,9 +16,20 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import Navbar from "@/components/navbar/Navbar";
 import Image from "next/image";
 import Link from "next/link";
+
+const theme = {
+  navy: "#081433",
+  deepNavy: "#152238",
+  muted: "#46536D",
+  rose1: "#F04D7A",
+  rose2: "#E00046",
+  soft: "#FFF2F6",
+  line: "#F5CBD6",
+  border: "#E5E8F0",
+  page: "#fbfbfc",
+} as const;
 
 const careerPath = [
   { label: "Intern", icon: GraduationCap },
@@ -64,49 +75,65 @@ const timeline = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#fdfcfa] text-[#111111]">
+    <div
+      className="min-h-screen bg-[#fbfbfc] text-[#152238]"
+      style={{
+        fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
+      }}
+    >
       <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
       <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-sm font-medium text-black/45">
+        <div className="flex items-center gap-3 text-sm font-medium text-[#46536D]">
           <Link
           href="/?view=career-landscape"
-          className="transition hover:text-[#f0184f]"
+          className="transition hover:text-[#E00046]"
         >
           Career Landscape
         </Link>
           <ChevronRight size={14} />
-          <span className="text-black/70">BI Analyst</span>
+          <span className="text-[#081433]">BI Analyst</span>
         </div>
         <div className="flex gap-3">
-          <button className="flex h-11 items-center gap-2 rounded-md border border-black/10 bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#f0184f]/30 hover:text-[#f0184f]">
+          <button className="flex h-11 items-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
             <Bookmark size={16} /> Save
           </button>
-          <button className="flex h-11 items-center gap-2 rounded-md border border-black/10 bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#f0184f]/30 hover:text-[#f0184f]">
+          <button className="flex h-11 items-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
             <Share2 size={16} /> Share
           </button>
         </div>
       </div>
 
-      <section className="grid gap-8 lg:grid-cols-[1fr_1.15fr]">
-        <div className="pt-2">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-[#f0184f]">Deep Dive</p>
-          <h2 className="mt-4 text-5xl font-black tracking-tight">BI Analyst</h2>
-          <p className="mt-5 max-w-md text-lg leading-8 text-black/75">
+      <section className="relative grid overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(21,34,56,0.18)] lg:grid-cols-[1fr_1.15fr]">
+        <img
+          src="https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1800&q=80"
+          alt="Analytics team reviewing a career dashboard"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#081433]/95 via-[#081433]/84 to-[#081433]/48" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#081433]/70 via-transparent to-transparent" />
+
+        <div className="relative z-10 p-8 text-white">
+          <div className="mb-5 flex flex-wrap gap-2">
+            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">Deep Dive</span>
+            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">Career intelligence</span>
+          </div>
+          <h2 className="text-4xl font-semibold tracking-normal md:text-5xl">BI Analyst</h2>
+          <p className="mt-5 max-w-md text-sm leading-7 text-white/75 md:text-base">
             People with similar profiles commonly transition into this role.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4">
             {[["85%", "Match"], ["Medium", "Difficulty"], ["12-18 months", "Est. Transition"]].map(([value, label]) => (
-              <div key={label} className="rounded-md bg-[#fff1f5] px-7 py-5 text-center">
-                <p className="text-2xl font-black text-[#f0184f]">{value}</p>
-                <p className="mt-1 text-sm font-semibold">{label}</p>
+              <div key={label} className="rounded-2xl border border-white/15 bg-white/[0.12] px-6 py-4 text-center backdrop-blur-md">
+                <p className="text-xl font-semibold text-white">{value}</p>
+                <p className="mt-1 text-xs font-medium text-white/65">{label}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 flex w-[472px] max-w-full items-center rounded-md bg-[#fff1f5] px-6 py-5 shadow-sm">
+          <div className="mt-8 flex w-[472px] max-w-full items-center rounded-2xl border border-white/15 bg-white/[0.12] px-6 py-5 shadow-sm backdrop-blur-md">
             <span className="flex items-center gap-4">
-              <UsersRound className="shrink-0 text-[#f0184f]" size={24} />
+              <UsersRound className="shrink-0 text-white" size={24} />
               <span className="text-sm font-semibold">
                 You are ranked in the top 18% of candidates in the Junior BI Analyst pool
               </span>
@@ -114,8 +141,8 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="rounded-md border border-black/5 bg-white p-8 shadow-[0_24px_70px_rgba(18,24,40,0.08)]">
-          <h3 className="font-bold">Typical Career Path</h3>
+        <div className="relative z-10 m-5 rounded-2xl border border-white/15 bg-white/[0.12] p-8 text-white shadow-sm backdrop-blur-md">
+          <h3 className="font-semibold text-white">Typical Career Path</h3>
           <div className="mt-8 grid grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-center gap-3">
             {careerPath.map((step, index) => {
               const Icon = step.icon;
@@ -125,24 +152,24 @@ export default function Home() {
                     <div
                       className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${
                         step.active
-                          ? "bg-[#f0184f] text-white shadow-[0_0_35px_rgba(240,24,79,0.45)]"
-                          : "bg-[#fff1f5] text-black/70"
+                          ? "bg-[#E00046] text-white shadow-[0_0_35px_rgba(224,0,70,0.35)]"
+                          : "bg-white/12 text-white/75"
                       }`}
                     >
                       <Icon size={28} />
                     </div>
-                    <p className={`mt-4 text-sm font-semibold ${step.active ? "text-[#f0184f]" : ""}`}>
+                    <p className={`mt-4 text-sm font-semibold ${step.active ? "text-white" : "text-white/70"}`}>
                       {step.label}
                     </p>
                   </div>
-                  {index < careerPath.length - 1 ? <ChevronRight className="text-black/35" size={20} /> : null}
+                  {index < careerPath.length - 1 ? <ChevronRight className="text-white/45" size={20} /> : null}
                 </div>
               );
             })}
           </div>
-          <div className="mt-8 border-t border-black/8 pt-6">
-            <p className="flex gap-3 text-sm leading-7 text-black/75">
-              <Sparkles className="mt-1 shrink-0 text-[#f0184f]" size={18} />
+          <div className="mt-8 border-t border-white/10 pt-6">
+            <p className="flex gap-3 text-sm leading-7 text-white/75">
+              <Sparkles className="mt-1 shrink-0 text-[#F04D7A]" size={18} />
               Most similar profiles reach BI Analyst in 1-2 years after their first analytics role.
             </p>
           </div>
@@ -150,10 +177,10 @@ export default function Home() {
       </section>
 
 
-      <section className="mt-9 rounded-md border border-black/5 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-black/5 px-6 py-5">
-          <h3 className="text-lg font-bold">Top Matching Job Openings</h3>
-          <button className="text-sm font-bold text-[#f0184f]">View all jobs</button>
+      <section className="mt-9 rounded-2xl border bg-white shadow-sm" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between border-b border-[#F1F3F7] px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#081433]">Top Matching Job Openings</h3>
+          <button className="text-sm font-semibold text-[#E00046]">View all jobs</button>
         </div>
         {jobs.map(([role, company, location, mode, match]) => (
           <Link
@@ -162,77 +189,77 @@ export default function Home() {
           scroll={false}
           replace={false}
           prefetch={true}
-          className="grid gap-4 border-b border-black/5 px-6 py-6 transition-colors hover:bg-[#fff8fa] md:grid-cols-[1fr_1.2fr_.9fr_auto] md:items-center"
+          className="grid gap-4 border-b border-[#F1F3F7] px-6 py-6 transition-colors hover:bg-[#FFF7FA] md:grid-cols-[1fr_1.2fr_.9fr_auto] md:items-center"
         >
             <div className="flex gap-4">
-              <span className="flex h-16 w-16 items-center justify-center rounded-md bg-[#f0184f] text-white">
+              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#E00046] text-white">
                 <Building2 size={27} />
               </span>
               <div>
-                <p className="font-bold">{role}</p>
-                <p className="text-sm text-black/55">{company}</p>
-                <p className="mt-2 text-xs text-black/50">{location} - {mode}</p>
+                <p className="font-semibold text-[#081433]">{role}</p>
+                <p className="text-sm text-[#46536D]">{company}</p>
+                <p className="mt-2 text-xs text-[#46536D]">{location} - {mode}</p>
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-bold">Why matched</p>
+              <p className="mb-2 text-xs font-semibold text-[#081433]">Why matched</p>
               <div className="flex flex-wrap gap-2">
                 {["SQL", "Fintech Exposure", "Analytics Experience"].map((tag) => (
-                  <span key={tag} className="rounded-full bg-[#fff1f5] px-3 py-1 text-xs font-semibold">{tag}</span>
+                  <span key={tag} className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">{tag}</span>
                 ))}
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-bold">Potential gap</p>
-              <span className="rounded-full bg-[#fff1f5] px-3 py-1 text-xs font-semibold">Power BI Reporting</span>
+              <p className="mb-2 text-xs font-semibold text-[#081433]">Potential gap</p>
+              <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">Power BI Reporting</span>
             </div>
-            <span className="rounded-md bg-[#fff1f5] px-4 py-2 text-center text-sm font-bold text-[#f0184f]">{match}</span>
+            <span className="rounded-lg bg-[#FFF2F6] px-4 py-2 text-center text-sm font-semibold text-[#E00046]">{match}</span>
           </Link>
         ))}
       </section>
       
-      <section className="mt-10 rounded-md border border-black/5 bg-white p-6 shadow-sm">
-        <h3 className="text-xl font-bold">Career Snapshot</h3>
+      <section className="mt-10 rounded-2xl border bg-white p-6 shadow-sm" style={{ borderColor: theme.border }}>
+        <h3 className="text-xl font-semibold text-[#081433]">Career Snapshot</h3>
         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {snapshots.map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.label} className="min-h-44 rounded-md border border-black/7 p-5">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fff1f5] text-[#f0184f]">
+              <div key={item.label} className="min-h-44 rounded-xl border p-5" style={{ borderColor: theme.border }}>
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF2F6] text-[#E00046]">
                   <Icon size={22} />
                 </span>
-                <p className="mt-7 text-sm font-bold">{item.label}</p>
-                <p className="mt-3 text-base font-semibold">{item.value}</p>
-                <p className="mt-1 text-sm leading-6 text-black/55">{item.note}</p>
+                <p className="mt-7 text-sm font-semibold text-[#081433]">{item.label}</p>
+                <p className="mt-3 text-base font-semibold text-[#081433]">{item.value}</p>
+                <p className="mt-1 text-sm leading-6 text-[#46536D]">{item.note}</p>
               </div>
             );
           })}
         </div>
       </section>
 
-      <section className="mt-9 overflow-hidden rounded-md bg-[#121d2d] p-8 text-white shadow-[0_24px_60px_rgba(18,24,40,0.18)]">
+      <section className="mt-9 overflow-hidden rounded-2xl p-8 text-white shadow-[0_24px_60px_rgba(18,24,40,0.18)]" style={{ background: `linear-gradient(135deg, ${theme.navy}, ${theme.deepNavy})` }}>
         <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr_.8fr]">
           <div>
             <div className="flex items-center gap-4">
-              <h3 className="text-2xl font-bold">Why this matches you</h3>
+              <h3 className="text-2xl font-semibold">Why this matches you</h3>
               <span className="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold">Based on your profile</span>
             </div>
             <div className="mt-8 space-y-4 text-sm font-medium">
               {["SQL proficiency detected", "Analytics internship experience", "Dashboarding affinity detected", "Strong alignment with similar successful profiles"].map((item) => (
                 <p key={item} className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#f0184f] text-xs">?</span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#E00046] text-xs">?</span>
                   {item}
                 </p>
               ))}
             </div>
           </div>
-          <div className="self-center rounded-md border border-white/8 bg-white/7 p-8 text-sm leading-7">
-            <Sparkles className="mb-4 text-[#ff4d79]" />
+          <div className="self-center rounded-2xl border border-white/10 bg-white/10 p-8 text-sm leading-7">
+            <Sparkles className="mb-4 text-[#F04D7A]" />
             Most successful BI Analyst transitions from similar profiles involved Power BI adoption within the first year.
           </div>
           <div className="relative hidden min-h-48 items-center justify-center lg:flex">
-            <div className="absolute h-44 w-52 rounded-md bg-[#ff4d79]/25 blur-3xl" />
-            <div className="relative overflow-hidden rounded-md border border-white/10 shadow-[0_0_50px_rgba(240,24,79,0.28)]">
+            <div className="absolute h-44 w-52 rounded-2xl bg-[#F04D7A]/25 blur-3xl" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-[0_0_50px_rgba(240,24,79,0.28)]">
               <Image
                 src="/bi-analyst-dashboard.png"
                 alt="BI analyst dashboard with charts and key metrics"
@@ -246,21 +273,21 @@ export default function Home() {
       </section>
 
       <section className="mt-9 grid gap-5 lg:grid-cols-[1.1fr_.8fr]">
-        <div className="rounded-md border border-black/5 bg-white p-7 shadow-sm">
-          <h3 className="text-lg font-bold">Skill Gap Analysis</h3>
+        <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
+          <h3 className="text-lg font-semibold text-[#081433]">Skill Gap Analysis</h3>
           <div className="mt-7 grid gap-7 md:grid-cols-[1.15fr_.85fr]">
             <div>
-              <div className="mb-4 grid grid-cols-[1fr_80px] text-xs font-semibold text-black/55">
+              <div className="mb-4 grid grid-cols-[1fr_80px] text-xs font-semibold text-[#46536D]">
                 <span>Skill</span>
                 <span>Impact</span>
               </div>
               <div className="space-y-5">
                 {skillGaps.map(([skill, impact, width]) => (
-                  <div key={skill} className="grid grid-cols-[1fr_80px] items-center gap-4 text-sm">
+                  <div key={skill} className="grid grid-cols-[1fr_80px] items-center gap-4 text-sm text-[#081433]">
                     <span>{skill}</span>
-                    <span className="flex items-center gap-3 text-black/55">
-                      <span className="h-2 w-12 rounded-full bg-[#ffe6ed]">
-                        <span className={`block h-full rounded-full bg-[#f0184f] ${width}`} />
+                    <span className="flex items-center gap-3 text-[#46536D]">
+                      <span className="h-2 w-12 rounded-full bg-[#F5D9E1]">
+                        <span className={`block h-full rounded-full bg-[#E00046] ${width}`} />
                       </span>
                       {impact}
                     </span>
@@ -269,26 +296,26 @@ export default function Home() {
               </div>
             </div>
             <div className="space-y-4">
-              <p className="text-sm font-bold">AI Insights</p>
-              <div className="rounded-md bg-[#fff1f5] p-5 text-sm leading-7">
-                <Sparkles className="mb-3 text-[#f0184f]" size={17} />
+              <p className="text-sm font-semibold text-[#081433]">AI Insights</p>
+              <div className="rounded-xl bg-[#FFF2F6] p-5 text-sm leading-7 text-[#46536D]">
+                <Sparkles className="mb-3 text-[#E00046]" size={17} />
                 Candidates with stakeholder-facing projects had significantly higher interview conversion.
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-md border border-black/5 bg-white p-7 shadow-sm">
-          <h3 className="text-lg font-bold">Timeline & Progression</h3>
-          <div className="relative mt-7 space-y-3 before:absolute before:bottom-[30px] before:left-[13px] before:top-[30px] before:z-10 before:w-0.5 before:rounded-full before:bg-black/15">
+        <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
+          <h3 className="text-lg font-semibold text-[#081433]">Timeline & Progression</h3>
+          <div className="relative mt-7 space-y-3 before:absolute before:bottom-[30px] before:left-[13px] before:top-[30px] before:z-10 before:w-0.5 before:rounded-full before:bg-[#E5E8F0]">
             {timeline.map((item) => (
-              <div key={item.role} className={`relative flex gap-4 rounded-md px-1 py-3 text-sm ${item.active ? "bg-[#fff8fa]" : ""}`}>
-                <span className={`relative z-20 mt-2 h-5 w-5 shrink-0 rounded-full bg-white ring-4 ring-white ${item.active ? "shadow-[0_0_20px_rgba(240,24,79,0.65)] after:absolute after:inset-0 after:rounded-full after:bg-[#f0184f]" : "after:absolute after:inset-0 after:rounded-full after:bg-[#bdbdbd]"}`} />
+              <div key={item.role} className={`relative flex gap-4 rounded-xl px-1 py-3 text-sm ${item.active ? "bg-[#FFF7FA]" : ""}`}>
+                <span className={`relative z-20 mt-2 h-5 w-5 shrink-0 rounded-full bg-white ring-4 ring-white ${item.active ? "shadow-[0_0_20px_rgba(224,0,70,0.45)] after:absolute after:inset-0 after:rounded-full after:bg-[#E00046]" : "after:absolute after:inset-0 after:rounded-full after:bg-[#CBD5E1]"}`} />
                 <div className="relative z-20">
-                  <p className={`text-xs font-bold uppercase tracking-wide ${item.active ? "text-[#f0184f]" : "text-black/40"}`}>{item.range}</p>
+                  <p className={`text-xs font-semibold uppercase tracking-wide ${item.active ? "text-[#E00046]" : "text-[#46536D]"}`}>{item.range}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <p className={`font-bold ${item.active ? "text-[#f0184f]" : "text-black/70"}`}>{item.role}</p>
-                    {item.active ? <span className="rounded-full bg-[#f0184f] px-2 py-0.5 text-[10px] font-bold uppercase text-white">Current path</span> : null}
+                    <p className={`font-semibold ${item.active ? "text-[#E00046]" : "text-[#081433]"}`}>{item.role}</p>
+                    {item.active ? <span className="rounded-full bg-[#E00046] px-2 py-0.5 text-[10px] font-semibold uppercase text-white">Current path</span> : null}
                   </div>
                 </div>
               </div>
@@ -298,62 +325,65 @@ export default function Home() {
       </section>
 
       <section className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.8fr]">
-        <div className="rounded-md border border-black/5 bg-white p-7 shadow-sm">
-          <h3 className="text-lg font-bold">Trade-offs & Considerations</h3>
+        <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
+          <h3 className="text-lg font-semibold text-[#081433]">Trade-offs & Considerations</h3>
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {["Communication heavy role", "Frequent reporting", "Continuous upskilling", "Technical ceiling"].map((item) => (
               <div key={item}>
-                <span className="flex h-12 w-12 items-center justify-center rounded-md bg-[#fff1f5] text-[#f0184f]">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF2F6] text-[#E00046]">
                   <Target size={21} />
                 </span>
-                <p className="mt-4 text-sm font-bold">{item}</p>
-                <p className="mt-2 text-sm leading-6 text-black/55">Requires ownership, clarity, and ongoing business exposure.</p>
+                <p className="mt-4 text-sm font-semibold text-[#081433]">{item}</p>
+                <p className="mt-2 text-sm leading-6 text-[#46536D]">Requires ownership, clarity, and ongoing business exposure.</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-md border border-black/5 bg-white p-7 shadow-sm">
-          <h3 className="text-lg font-bold">AI Career Coach</h3>
+        <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
+          <h3 className="text-lg font-semibold text-[#081433]">AI Career Coach</h3>
           <div className="mt-9 flex gap-5">
-            <span className="text-5xl font-black text-[#ff8aa6]">&quot;</span>
-            <p className="max-w-md text-sm leading-7">
+            <span className="text-5xl font-semibold text-[#F04D7A]">&quot;</span>
+            <p className="max-w-md text-sm leading-7 text-[#46536D]">
               Your technical alignment is already strong. The largest limiting factor now is stakeholder exposure and dashboard storytelling.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="mt-9 rounded-md border border-black/5 bg-white p-7 shadow-sm">
-        <h3 className="text-lg font-bold">Recommended Next Steps</h3>
+      <section className="mt-9 rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
+        <h3 className="text-lg font-semibold text-[#081433]">Recommended Next Steps</h3>
         <div className="mt-6 grid gap-5 lg:grid-cols-4">
           {nextSteps.map(([title, detail], index) => (
             <div key={title} className="flex gap-4">
-              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-[#fff1f5] text-[#f0184f]">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#FFF2F6] text-[#E00046]">
                 {index === 1 ? <UsersRound /> : index === 2 ? <LineChart /> : index === 3 ? <Target /> : <BookOpen />}
               </span>
               <div>
-                <p className="text-sm font-bold">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-black/55">{detail}</p>
+                <p className="text-sm font-semibold text-[#081433]">{title}</p>
+                <p className="mt-2 text-sm leading-6 text-[#46536D]">{detail}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mt-9 mb-4 flex flex-wrap items-center justify-between gap-5 rounded-md bg-[#fff1f5] px-8 py-7">
+      <section className="mt-9 mb-4 flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-[#FFF2F6] px-8 py-7">
         <div className="flex items-center gap-5">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#f0184f]">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#E00046]">
             <UsersRound size={30} />
           </span>
           <div>
-            <h3 className="text-xl font-black">Your career is evolving. Keep building.</h3>
-            <p className="mt-1 text-sm text-black/55">Update your profile and track your progress over time.</p>
+            <h3 className="text-xl font-semibold text-[#081433]">Your career is evolving. Keep building.</h3>
+            <p className="mt-1 text-sm text-[#46536D]">Update your profile and track your progress over time.</p>
           </div>
         </div>
-        <button className="rounded-md bg-[#f0184f] px-7 py-3 text-sm font-bold text-white shadow-[0_12px_28px_rgba(240,24,79,0.25)] transition hover:bg-[#d91445]">
+        <Link
+          href="/?view=profile"
+          className="rounded-xl bg-[#E00046] px-7 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(224,0,70,0.22)] transition hover:bg-[#D81B3F]"
+        >
           Upload New Achievement
-        </button>
+        </Link>
       </section>
       </main>
     </div>

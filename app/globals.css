@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -123,9 +123,62 @@
   }
   body {
     @apply bg-background text-foreground;
+    cursor: default;
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   }
   html {
     @apply font-sans;
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  }
+
+  button,
+  a,
+  [role="button"],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: default;
+  }
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  span,
+  div,
+  li,
+  label {
+    cursor: default;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    cursor: text;
+  }
+
+  a,
+  a *,
+  button,
+  button *,
+  [role="button"],
+  [role="button"] *,
+  summary,
+  summary * {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  button:disabled *,
+  [aria-disabled="true"],
+  [aria-disabled="true"] * {
+    cursor: default;
   }
 }
 
@@ -198,5 +251,56 @@
 
 .glow-pulse {
   animation: pulseGlow 6s ease-in-out infinite;
+}
+
+@keyframes careerFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes careerLineDraw {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@keyframes careerNodePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.career-fade-up {
+  animation: careerFadeUp 0.65s ease both;
+}
+
+.career-line-draw {
+  animation: careerLineDraw 2.6s linear infinite;
+}
+
+.career-node-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: careerNodePulse 2.4s ease-in-out infinite;
+}
+
+.career-ring-progress {
+  transition: stroke-dashoffset 0.8s ease;
 }
 

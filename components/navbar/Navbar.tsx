@@ -26,7 +26,7 @@ const navItems = [
     href: "/?view=career-landscape",
   },
   {
-    label: "My Growth",
+    label: "Living Portfolio",
     href: "/?view=living-portfolio",
   },
   {
@@ -125,7 +125,12 @@ export default function Navbar() {
   }, []);
   
   return (
-    <header className="sticky top-0 z-30 border-b border-black/5 bg-white/90 backdrop-blur-xl">
+    <header
+      className="sticky top-0 z-30 border-b border-black/5 bg-white/90 backdrop-blur-xl"
+      style={{
+        fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
+      }}
+    >
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
 
         {/* Left */}
@@ -145,7 +150,7 @@ export default function Navbar() {
             )}
           </button>
 
-          <h1 className="text-2xl font-extrabold tracking-tight">
+          <h1 className="cursor-default select-none text-2xl font-semibold tracking-normal text-[#081433]">
             Career
             <span className="text-[#f0184f]">
               OS
@@ -209,7 +214,7 @@ export default function Navbar() {
                   !showNotifications
                 )
               }
-              className="relative flex h-10 w-10 items-center justify-center rounded-md text-black/75 transition hover:bg-[#fff1f5] hover:text-[#f0184f]"
+              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-md text-black/75 transition hover:bg-[#fff1f5] hover:text-[#f0184f]"
             >
               <Bell size={18} />
 
