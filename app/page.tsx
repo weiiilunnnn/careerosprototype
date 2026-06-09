@@ -1,9 +1,5 @@
-import Navbar from "@/components/navbar/Navbar";
+import { EmployerPrototype } from "@/features/employer/EmployerPrototype";
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-white">
-      <Navbar />
-    </main>
-  );
+  return <EmployerPrototype />;
 }
