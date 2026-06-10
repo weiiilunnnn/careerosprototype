@@ -308,8 +308,6 @@
   transition: stroke-dashoffset 0.8s ease;
 }
 
-}
-
 @layer components {
   :root {
     --career-brand: #df0746;
