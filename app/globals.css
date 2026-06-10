@@ -308,6 +308,7 @@
   transition: stroke-dashoffset 0.8s ease;
 }
 
+/* Employer command center component polish */
 @layer components {
   :root {
     --career-brand: #df0746;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -21,6 +21,7 @@ import {
   MapPin,
   MessageSquareText,
   PenLine,
+  LogOut,
   Plus,
   Search,
   Send,
@@ -46,11 +47,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
-  initialActivity,
-  initialCandidates,
-  initialCompany,
   initialHiringSettings,
-  initialJobs,
   navItems,
   rolePermissions,
 } from "./data";
@@ -62,16 +59,19 @@ import {
   summarizeJob,
 } from "./logic";
 import { employerPageMap } from "./navigation";
+import { createEmployerStore, getEmployerSession, loadEmployerStore, roleFocus, saveEmployerStore } from "./store";
 import type {
   ActivityEvent,
   ActivityTone,
   Candidate,
   Company,
   CompanyRole,
+  EmployerStore,
   HiringSettings,
   Job,
   JobStatus,
   Page,
+  TeamMember,
 } from "./types";
 
 const smoothEase = [0.4, 0, 0.2, 1] as const;
@@ -125,22 +125,56 @@ function insertTokenAtCursor(
 }
 
 export function EmployerPrototype() {
-  const [hasCompany, setHasCompany] = useState(true);
-  const [company, setCompany] = useState<Company>(initialCompany);
-  const [role, setRole] = useState<CompanyRole>("Super Admin");
+  const initialStore = useMemo(() => loadEmployerStore(), []);
+  const [hasCompany, setHasCompany] = useState(Boolean(initialStore));
+  const [company, setCompany] = useState<Company>(() => initialStore?.company ?? {
+    name: "",
+    industry: "",
+    location: "",
+    size: "",
+    description: "",
+  });
+  const [members, setMembers] = useState<TeamMember[]>(() => initialStore?.members ?? []);
+  const [currentUserEmail, setCurrentUserEmail] = useState(() => getEmployerSession() || initialStore?.currentUserEmail || initialStore?.members[0]?.email || "");
+  const currentUser = useMemo(
+    () =>
+      members.find((member) => member.email.toLowerCase() === currentUserEmail.toLowerCase()) ??
+      members.find((member) => member.role === "Super Admin") ??
+      members[0],
+    [currentUserEmail, members]
+  );
+  const [rolePreview, setRole] = useState<CompanyRole>(() => currentUser?.role ?? "Super Admin");
   const [page, setPage] = useState<Page>("dashboard");
-  const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [activeJobId, setActiveJobId] = useState(1);
-  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
-  const [settings, setSettings] = useState<HiringSettings>(initialHiringSettings);
+  const [jobs, setJobs] = useState<Job[]>(() => initialStore?.jobs ?? []);
+  const [activeJobId, setActiveJobId] = useState(() => initialStore?.jobs[0]?.id ?? 1);
+  const [candidates, setCandidates] = useState<Candidate[]>(() => initialStore?.candidates ?? []);
+  const [settings, setSettings] = useState<HiringSettings>(() => initialStore?.settings ?? initialHiringSettings);
   const [selectedCandidateId, setSelectedCandidateId] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [stageType, setStageType] = useState("Online interview");
   const [noHireYet, setNoHireYet] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activityLog, setActivityLog] = useState<ActivityEvent[]>(initialActivity);
+  const [activityLog, setActivityLog] = useState<ActivityEvent[]>(() => initialStore?.activityLog ?? []);
   const [toast, setToast] = useState<{ title: string; body?: string; tone?: ActivityTone } | null>(null);
 
+  useEffect(() => {
+    if (!hasCompany || !company.name.trim()) return;
+    const store: EmployerStore = {
+      company,
+      currentUserEmail: currentUser?.email ?? currentUserEmail,
+      members,
+      jobs,
+      candidates,
+      settings,
+      activityLog,
+      createdAt: initialStore?.createdAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      mode: initialStore?.mode ?? "registered",
+    };
+    saveEmployerStore(store);
+  }, [activityLog, candidates, company, currentUser?.email, currentUserEmail, hasCompany, initialStore?.createdAt, initialStore?.mode, jobs, members, settings]);
+
+  const role = currentUser?.role ?? rolePreview;
   const permissions = rolePermissions[role];
   const activeJob = jobs.find((job) => job.id === activeJobId) ?? jobs[0];
   const activeJobCandidates = useMemo(
@@ -207,7 +241,29 @@ export function EmployerPrototype() {
     setPage(nextPage);
   }
 
+  function logOut() {
+    window.location.assign("/");
+  }
+
   function createCompany() {
+    const fallbackStore = createEmployerStore({
+      company: {
+        name: company.name || "New Company",
+        industry: company.industry || "Not specified",
+        location: company.location || "Not specified",
+        size: company.size || "Not specified",
+        description: company.description || "Employer profile created through CareerOS.",
+      },
+      ownerEmail: currentUserEmail || "admin@company.com",
+      ownerName: currentUser?.name || "Company Admin",
+    });
+    setCompany(fallbackStore.company);
+    setMembers(fallbackStore.members);
+    setCurrentUserEmail(fallbackStore.currentUserEmail ?? fallbackStore.members[0]?.email ?? "");
+    setJobs(fallbackStore.jobs);
+    setCandidates(fallbackStore.candidates);
+    setSettings(fallbackStore.settings);
+    setActivityLog(fallbackStore.activityLog);
     setHasCompany(true);
     setRole("Super Admin");
     setPage("dashboard");
@@ -218,7 +274,7 @@ export function EmployerPrototype() {
       const summary = summarizeJob(job.id, nextCandidates);
       return {
         ...job,
-        applicants: Math.max(job.applicants, summary.applicants),
+        applicants: summary.applicants,
         shortlisted: summary.shortlisted,
         hired: summary.hired,
       };
@@ -238,7 +294,19 @@ export function EmployerPrototype() {
     });
   }
 
-  function publishJob(draft: { title: string; department: string; salary: string; location: string; workMode: string; skills: string[]; screeningQuestion: string }) {
+  function publishJob(draft: {
+    title: string;
+    department: string;
+    salary: string;
+    location: string;
+    workMode: string;
+    employmentType: string;
+    description: string;
+    requirements: string;
+    deadline: string;
+    skills: string[];
+    screeningQuestion: string;
+  }) {
     const title = draft.title.trim();
     const department = draft.department.trim().toLowerCase();
     const hasDuplicate = jobs.some(
@@ -269,13 +337,18 @@ export function EmployerPrototype() {
       status: "Open",
       location: draft.location.trim(),
       workMode: draft.workMode.trim(),
+      employmentType: draft.employmentType.trim(),
       salary: draft.salary.trim(),
+      description: draft.description.trim(),
+      requirements: draft.requirements.trim(),
+      deadline: draft.deadline,
+      createdBy: currentUser?.name ?? "Current employer",
       skills: draft.skills.map((skill) => skill.trim()).filter(Boolean),
       screeningQuestion: draft.screeningQuestion.trim(),
       applicants: 0,
       shortlisted: 0,
       hired: 0,
-      expiresIn: 30,
+      expiresIn: draft.deadline ? Math.max(0, Math.ceil((new Date(draft.deadline).getTime() - Date.now()) / 86400000)) : 30,
     };
 
     setJobs((currentJobs) => [newJob, ...currentJobs]);
@@ -432,6 +505,7 @@ export function EmployerPrototype() {
           onCollapsedChange={setSidebarCollapsed}
           onRoleChange={setRole}
           onNavigate={go}
+          onLogOut={logOut}
         />
       )}
 
@@ -470,7 +544,16 @@ export function EmployerPrototype() {
       )}
 
       {hasCompany && page === "team" && (
-        <TeamPage role={role} permissions={permissions} onRoleChange={setRole} onNavigate={go} onNotify={notify} />
+        <TeamPage
+          role={role}
+          permissions={permissions}
+          members={members}
+          currentUserEmail={currentUser?.email ?? currentUserEmail}
+          onMembersChange={setMembers}
+          onRoleChange={setRole}
+          onNavigate={go}
+          onNotify={notify}
+        />
       )}
 
       {hasCompany && page === "profile" && (
@@ -1160,31 +1243,22 @@ function CommandHero({
 function TeamPage({
   role,
   permissions,
+  members,
+  currentUserEmail,
+  onMembersChange,
   onRoleChange,
   onNavigate,
   onNotify,
 }: {
   role: CompanyRole;
   permissions: (typeof rolePermissions)[CompanyRole];
+  members: TeamMember[];
+  currentUserEmail: string;
+  onMembersChange: (members: TeamMember[] | ((current: TeamMember[]) => TeamMember[])) => void;
   onRoleChange: (role: CompanyRole) => void;
   onNavigate: (page: Page) => void;
   onNotify: (title: string, body?: string, tone?: ActivityTone) => void;
 }) {
-  type TeamMember = {
-    name: string;
-    email: string;
-    role: CompanyRole;
-    presence: "Online" | "Offline";
-    isCurrentUser?: boolean;
-    focus: string;
-    lastActive: string;
-  };
-  const [members, setMembers] = useState<TeamMember[]>([
-    { name: "Shihong Wong", email: "shihong@talentbank.com", role, presence: "Online", isCurrentUser: true, focus: "Workspace owner", lastActive: "Now" },
-    { name: "Sarah Lee", email: "sarah@talentbank.com", role: "Admin", presence: "Offline", focus: "Hiring operations", lastActive: "2h ago" },
-    { name: "Nadia Lim", email: "nadia@talentbank.com", role: "User", presence: "Online", focus: "Candidate review", lastActive: "18m ago" },
-    { name: "Victor Chen", email: "victor@talentbank.com", role: "User", presence: "Offline", focus: "Leadership visibility", lastActive: "Yesterday" },
-  ]);
   const roleCards: CompanyRole[] = ["Super Admin", "Admin", "User"];
   const permissionMatrix = [
     ["Use hiring workspace", "Super Admin", "Admin", "User"],
@@ -1243,15 +1317,19 @@ function TeamPage({
       .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
       .join(" ") || "New Employer";
 
-    setMembers((current) => [
+    onMembersChange((current) => [
       ...current,
       {
+        id: current.length > 0 ? Math.max(...current.map((member) => member.id)) + 1 : 1,
         name,
         email,
         role: inviteRole,
+        status: "Pending",
         presence: "Offline",
-        focus: email,
+        focus: roleFocus(inviteRole),
         lastActive: "Not active yet",
+        password: invitePassword.trim(),
+        invitedAt: "Just now",
       },
     ]);
     setInviteModalOpen(false);
@@ -1259,6 +1337,21 @@ function TeamPage({
   }
 
   function requestMemberAction(member: TeamMember, action: "admin" | "remove" | "transfer") {
+    const isCurrentUser = member.email.toLowerCase() === currentUserEmail.toLowerCase();
+    const isPending = member.status === "Pending";
+    const superAdminCount = members.filter((item) => item.role === "Super Admin").length;
+    if (isCurrentUser && action === "remove") {
+      onNotify("Action blocked", "You cannot remove your own active employer account.", "amber");
+      return;
+    }
+    if (member.role === "Super Admin" && action === "remove" && superAdminCount <= 1) {
+      onNotify("Super Admin required", "Transfer ownership before removing the only Super Admin.", "amber");
+      return;
+    }
+    if (isPending && action !== "remove") {
+      onNotify("Invitation pending", "Permission changes are available after the user logs in.", "amber");
+      return;
+    }
     const isAdminTarget = member.role === "Admin";
     const canManageTarget =
       action === "transfer"
@@ -1290,24 +1383,24 @@ function TeamPage({
       ...copy,
       onConfirm: () => {
         if (action === "admin") {
-          setMembers((current) =>
+          onMembersChange((current) =>
             current.map((item) =>
-              item.name === member.name ? { ...item, role: "Admin", focus: "Hiring operations" } : item
+              item.email === member.email ? { ...item, role: "Admin", focus: roleFocus("Admin") } : item
             )
           );
           onNotify("Admin access granted", `${member.name} can now manage users.`, "emerald");
         }
         if (action === "remove") {
-          setMembers((current) => current.filter((item) => item.name !== member.name));
+          onMembersChange((current) => current.filter((item) => item.email !== member.email));
           onNotify("Employer removed", `${member.name} no longer has employer access.`, "zinc");
         }
         if (action === "transfer") {
-          setMembers((current) =>
+          onMembersChange((current) =>
             current.map((item) =>
-              item.isCurrentUser
-                ? { ...item, role: "Admin", focus: "Previous workspace owner" }
-                : item.name === member.name
-                  ? { ...item, role: "Super Admin", isCurrentUser: false, focus: "Workspace owner" }
+              item.email.toLowerCase() === currentUserEmail.toLowerCase()
+                ? { ...item, role: "Admin", focus: roleFocus("Admin") }
+                : item.email === member.email
+                  ? { ...item, role: "Super Admin", focus: roleFocus("Super Admin") }
                   : item
             )
           );
@@ -1340,7 +1433,7 @@ function TeamPage({
           <div className="mt-5 grid grid-cols-2 gap-2">
             <MiniStat label="Members" value={String(members.length)} />
             <MiniStat label="Online" value={String(members.filter((member) => member.presence === "Online").length)} />
-            <MiniStat label="Admins" value="1" />
+            <MiniStat label="Admins" value={String(members.filter((member) => member.role === "Admin").length)} />
             <MiniStat label="Super Admin" value="1 only" />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1376,9 +1469,11 @@ function TeamPage({
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
-              {members.map((member) => (
+              {members.map((member) => {
+                const isCurrentUser = member.email.toLowerCase() === currentUserEmail.toLowerCase();
+                return (
                 <motion.div
-                  key={member.name}
+                  key={member.email}
                   variants={listItemMotion}
                   initial="initial"
                   animate="animate"
@@ -1394,7 +1489,8 @@ function TeamPage({
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <p className="truncate font-semibold">{member.name}</p>
                         <Badge className="shrink-0 bg-pink-50 text-pink-700 ring-1 ring-pink-100">{member.role}</Badge>
-                        {member.isCurrentUser && <Badge variant="outline" className="shrink-0">You</Badge>}
+                        <Badge variant="outline" className="shrink-0">{member.status}</Badge>
+                        {isCurrentUser && <Badge variant="outline" className="shrink-0">You</Badge>}
                       </div>
                       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500">
                         <span className="truncate">{member.email}</span>
@@ -1418,7 +1514,7 @@ function TeamPage({
                     </div>
                   </div>
                   <div className="flex justify-start lg:justify-end">
-                    {member.isCurrentUser ? (
+                    {isCurrentUser ? (
                       <span className="rounded-full bg-zinc-50 px-3 py-2 text-sm text-zinc-500 ring-1 ring-zinc-200">Current user</span>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setManageMember(member)}>
@@ -1427,7 +1523,8 @@ function TeamPage({
                     )}
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -1519,7 +1616,7 @@ function TeamPage({
               <Button
                 variant="outline"
                 className="justify-start"
-                disabled={manageMember.role !== "User" || !permissions.canManageAdmins}
+                disabled={manageMember.status === "Pending" || manageMember.role !== "User" || !permissions.canManageAdmins}
                 onClick={() => {
                   setManageMember(null);
                   requestMemberAction(manageMember, "admin");
@@ -1530,7 +1627,7 @@ function TeamPage({
               <Button
                 variant="outline"
                 className="justify-start"
-                disabled={manageMember.role === "Super Admin" || !permissions.canTransferSuperAdmin}
+                disabled={manageMember.status === "Pending" || manageMember.role === "Super Admin" || !permissions.canTransferSuperAdmin}
                 onClick={() => {
                   setManageMember(null);
                   requestMemberAction(manageMember, "transfer");
@@ -2269,7 +2366,19 @@ function PostJobPage({
   jobs: Job[];
   settings: HiringSettings;
   permissions: (typeof rolePermissions)[CompanyRole];
-  onPublish: (draft: { title: string; department: string; salary: string; location: string; workMode: string; skills: string[]; screeningQuestion: string }) => boolean;
+  onPublish: (draft: {
+    title: string;
+    department: string;
+    salary: string;
+    location: string;
+    workMode: string;
+    employmentType: string;
+    description: string;
+    requirements: string;
+    deadline: string;
+    skills: string[];
+    screeningQuestion: string;
+  }) => boolean;
   onBack: () => void;
 }) {
   const [title, setTitle] = useState("");
@@ -2277,6 +2386,10 @@ function PostJobPage({
   const [salary, setSalary] = useState("");
   const [location, setLocation] = useState("");
   const [workMode, setWorkMode] = useState("");
+  const [employmentType, setEmploymentType] = useState("");
+  const [description, setDescription] = useState("");
+  const [requirements, setRequirements] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [skillInput, setSkillInput] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [screeningQuestion, setScreeningQuestion] = useState("");
@@ -2286,6 +2399,9 @@ function PostJobPage({
   const normalizedDepartment = department.trim();
   const normalizedSalary = salary.trim();
   const normalizedLocation = location.trim();
+  const normalizedEmploymentType = employmentType.trim();
+  const normalizedDescription = description.trim();
+  const normalizedRequirements = requirements.trim();
   const normalizedQuestion = screeningQuestion.trim();
   const cleanSkills = skills.map((skill) => skill.trim()).filter(Boolean);
 
@@ -2321,6 +2437,26 @@ function PostJobPage({
       label: "Work mode selected",
       detail: "Choose On site, Hybrid, or Remote.",
       complete: ["On site", "Hybrid", "Remote"].includes(workMode),
+    },
+    {
+      label: "Employment type selected",
+      detail: "Choose Full-time, Contract, Part-time, or Internship.",
+      complete: ["Full-time", "Contract", "Part-time", "Internship"].includes(employmentType),
+    },
+    {
+      label: "Job description added",
+      detail: "Describe what the role owns.",
+      complete: normalizedDescription.length >= 20,
+    },
+    {
+      label: "Requirements added",
+      detail: "Add the expected experience or requirements.",
+      complete: normalizedRequirements.length >= 20,
+    },
+    {
+      label: "Deadline selected",
+      detail: "Choose when this post should expire.",
+      complete: Boolean(deadline),
     },
     {
       label: "Required skills added",
@@ -2362,6 +2498,10 @@ function PostJobPage({
       salary: normalizedSalary,
       location: normalizedLocation,
       workMode,
+      employmentType: normalizedEmploymentType,
+      description: normalizedDescription,
+      requirements: normalizedRequirements,
+      deadline,
       skills: cleanSkills,
       screeningQuestion: normalizedQuestion,
     });
@@ -2430,8 +2570,52 @@ function PostJobPage({
                   </div>
                 </Field>
               </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <Field label="Employment type *">
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["Full-time", "Contract", "Part-time", "Internship"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setEmploymentType(type)}
+                        className={cn(
+                          "h-10 rounded-xl text-sm font-medium ring-1 transition",
+                          employmentType === type
+                            ? "bg-pink-600 text-white ring-pink-600 shadow-lg shadow-pink-500/15"
+                            : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                        )}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Application deadline *">
+                  <Input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} />
+                </Field>
+              </div>
             </StepBlock>
-            <StepBlock step="3" title="Required skills">
+            <StepBlock step="3" title="Role details">
+              <div className="grid gap-3">
+                <Field label="Job description *">
+                  <textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="Summarize what this role owns and why it matters."
+                    className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
+                  />
+                </Field>
+                <Field label="Requirements *">
+                  <textarea
+                    value={requirements}
+                    onChange={(event) => setRequirements(event.target.value)}
+                    placeholder="Add experience, skills, or working style requirements."
+                    className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
+                  />
+                </Field>
+              </div>
+            </StepBlock>
+            <StepBlock step="4" title="Required skills">
               <div className="flex flex-col gap-3">
                 <div className="flex gap-2">
                   <Input
@@ -2468,7 +2652,7 @@ function PostJobPage({
                 )}
               </div>
             </StepBlock>
-            <StepBlock step="4" title="Screening questions">
+            <StepBlock step="5" title="Screening questions">
               <Field label="Screening question *">
                 <textarea
                   value={screeningQuestion}
@@ -2536,19 +2720,20 @@ function CandidateReviewPage({
   onOpenProfile: (id: number) => void;
   onNavigate: (page: Page) => void;
 }) {
-  const [filter, setFilter] = useState<"Applied" | "Potential" | "Shortlisted" | null>(null);
+  const [filter, setFilter] = useState<"All" | "Applied" | "Potential" | "Shortlisted">("All");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const appliedReviewCount = candidates.filter((candidate) => candidate.source === "Applied" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired").length;
   const potentialReviewCount = candidates.filter((candidate) => candidate.source === "Potential" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired").length;
   const shortlistReviewCount = candidates.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited").length;
   const visibleCandidates = candidates.filter((candidate) => {
-    if (!filter) return true;
+    if (filter === "All") return true;
     if (filter === "Applied") return candidate.source === "Applied" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
     if (filter === "Potential") return candidate.source === "Potential" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
     return candidate.stage === "Shortlisted" || candidate.stage === "Invited";
   });
   const candidateTabs = [
+    { label: "All", value: candidates.length, type: "All" as const },
     { label: "Applied", value: appliedReviewCount, type: "Applied" as const },
     { label: "Potential", value: potentialReviewCount, type: "Potential" as const },
     { label: "Shortlisted", value: shortlistReviewCount, type: "Shortlisted" as const },
@@ -2578,8 +2763,8 @@ function CandidateReviewPage({
   }
 
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-4 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
-      <div className="space-y-4">
+    <section className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 py-6 lg:flex-row lg:items-start lg:px-8">
+      <div className="w-full min-w-0 flex-1 space-y-4">
         <WorkflowGuide
           trail={["Jobs", "Job workspace"]}
           current="Candidate review"
@@ -2607,9 +2792,9 @@ function CandidateReviewPage({
             {candidateTabs.map(({ label, value, type }) => (
               <button
                 key={type}
-                onClick={() => setFilter((current) => (current === type ? null : type))}
+                onClick={() => setFilter(type)}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium ring-1 transition",
+                  "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium ring-1 transition",
                   filter === type
                     ? "bg-zinc-950 text-white ring-zinc-950 shadow-sm"
                     : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50 hover:text-zinc-950"
@@ -2629,7 +2814,7 @@ function CandidateReviewPage({
             </Button>
           </div>
         </div>
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
           {visibleCandidates.length === 0 ? (
             <EmptyState
               icon={Search}
@@ -2637,7 +2822,7 @@ function CandidateReviewPage({
               description="Clear the search or switch filters to review the full talent pool."
               actionLabel="Clear filter"
               onAction={() => {
-                setFilter(null);
+                setFilter("All");
                 onSearch("");
               }}
             />
@@ -3961,6 +4146,7 @@ function CompanyNav({
   onCollapsedChange,
   onRoleChange,
   onNavigate,
+  onLogOut,
 }: {
   active: Page;
   role: CompanyRole;
@@ -3969,6 +4155,7 @@ function CompanyNav({
   onCollapsedChange: (collapsed: boolean) => void;
   onRoleChange: (role: CompanyRole) => void;
   onNavigate: (page: Page) => void;
+  onLogOut: () => void;
 }) {
   const activeSection =
     active === "job-detail" || active === "candidates" || active === "candidate-profile" || active === "shortlist" || active === "invite" || active === "hire-email"
@@ -4059,7 +4246,8 @@ function CompanyNav({
             {role.slice(0, 1)}
           </button>
         ) : (
-          <div className="career-clear-card w-full rounded-2xl p-3 lg:mt-auto">
+          <div className="w-full lg:mt-auto">
+            <div className="career-clear-card w-full rounded-2xl p-3">
             <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
             <select
               value={role}
@@ -4072,6 +4260,16 @@ function CompanyNav({
             <p className="mt-2 text-xs leading-5 text-zinc-500">
               Use this to test what each company role can access.
             </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 w-full justify-start gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              onClick={onLogOut}
+            >
+              <LogOut className="size-4" />
+              Log out
+            </Button>
           </div>
         )}
       </div>
@@ -4156,10 +4354,10 @@ function CandidateCard({
       whileHover={{ y: -3 }}
       whileTap={tactileTap}
       className={cn(
-      "career-list-row rounded-3xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200",
+      "career-list-row min-w-0 rounded-3xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200",
       active && "career-list-row-active"
     )}>
-      <button className="w-full text-left" onClick={() => onSelect(candidate.id)}>
+      <button className="w-full min-w-0 text-left" onClick={() => onSelect(candidate.id)}>
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -4257,7 +4455,7 @@ function CandidateEvidence({
   onNavigate: (page: Page) => void;
 }) {
   return (
-    <aside className="space-y-4">
+    <aside className="w-full min-w-0 space-y-4 lg:w-[360px] lg:shrink-0 lg:grow-0 lg:basis-[360px]">
       <Card className="career-section-band rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
