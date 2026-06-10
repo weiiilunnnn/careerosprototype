@@ -294,7 +294,7 @@ export default function Home() {
             <div className="absolute h-44 w-52 rounded-2xl bg-[#F04D7A]/25 blur-3xl" />
             <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-[0_0_50px_rgba(240,24,79,0.28)]">
               <Image
-                src="/bi-analyst-dashboard.png"
+                src="/bi-analyst-dashboard.jpeg"
                 alt="BI analyst dashboard with charts and key metrics"
                 width={260}
                 height={180}

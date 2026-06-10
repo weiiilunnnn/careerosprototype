@@ -47,10 +47,10 @@ export default function ApplicationSubmitted() {
           </Link>
 
           <Link
-            href="/?view=living-portfolio"
+            href="/?view=career-landscape"
             className="rounded-xl bg-[#f0184f] px-8 py-4 font-bold text-white shadow-[0_12px_30px_rgba(240,24,79,0.25)] transition hover:scale-105"
           >
-            My Growth
+            Career Landscape
           </Link>
         </div>
 

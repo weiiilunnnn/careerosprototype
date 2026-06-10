@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import Link from "next/link";
+import { createEmployerStore, saveEmployerStore, setEmployerSession } from "@/features/components (employer)/store";
 import {
   ArrowLeft,
   ArrowRight,
@@ -74,7 +76,7 @@ function FuturisticBg({
     function buildCircuits() {
       circuits.length = 0;
       for (let i=0;i<8;i++) {
-        const sx=Math.random()*W,sy=Math.random()*H,pts:any[]=[[sx,sy]]; let cx=sx,cy=sy;
+        const sx=Math.random()*W,sy=Math.random()*H,pts:[number, number][]=[[sx,sy]]; let cx=sx,cy=sy;
         for (let s=0;s<3+Math.floor(Math.random()*4);s++) { const d=Math.floor(Math.random()*4),l=40+Math.random()*120; if(d===0)cx+=l;else if(d===1)cx-=l;else if(d===2)cy+=l;else cy-=l; pts.push([cx,cy]); }
         circuits.push({points:pts,progress:Math.random(),speed:.001+Math.random()*.002,opacity:.12+Math.random()*.2,color:Math.random()>.5?primaryColor:gridColor});
       }
@@ -119,22 +121,22 @@ function Navbar() {
   return (
     <header style={{ position:"sticky", top:0, zIndex:30, backdropFilter:"blur(20px)", backgroundColor: scrolled?"rgba(255,255,255,.96)":"rgba(255,255,255,.85)", borderBottom: scrolled?"1px solid rgba(0,0,0,.08)":"1px solid rgba(0,0,0,.04)", boxShadow: scrolled?"0 4px 24px rgba(21,34,56,.07)":"none", transition:"all .4s ease" }}>
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <a href="/" style={{ textDecoration:"none" }}>
+        <Link href="/" style={{ textDecoration:"none" }}>
           <div className="text-2xl font-black tracking-tight" style={{ color:theme.deepNavy }}>
             Career<span style={{ color:theme.rose2 }}>OS</span>
           </div>
-        </a>
+        </Link>
         <div className="flex items-center gap-3">
-          <a href="/?view=login" className="inline-flex items-center rounded-full border px-6 py-3 text-sm font-extrabold"
+          <Link href="/?view=login" className="inline-flex items-center rounded-full border px-6 py-3 text-sm font-extrabold"
             style={{ borderColor:theme.border, color:theme.rose2, backgroundColor:"white", textDecoration:"none", transition:"background-color .2s ease, box-shadow .2s ease, transform .2s ease" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.backgroundColor=theme.soft;(e.currentTarget as HTMLElement).style.transform="translateY(-1px)";(e.currentTarget as HTMLElement).style.boxShadow="0 4px 12px rgba(224,0,70,.12)";}}
             onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.backgroundColor="white";(e.currentTarget as HTMLElement).style.transform="translateY(0)";(e.currentTarget as HTMLElement).style.boxShadow="none";}}
-          >Log in</a>
-          <a href="/" className="inline-flex items-center rounded-full px-6 py-3 text-sm font-extrabold text-white"
+          >Log in</Link>
+          <Link href="/" className="inline-flex items-center rounded-full px-6 py-3 text-sm font-extrabold text-white"
             style={{ backgroundColor:theme.rose2, boxShadow:"0 4px 16px rgba(224,0,70,.25)", textDecoration:"none", transition:"transform .2s ease, box-shadow .2s ease" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.transform="scale(1.03)";(e.currentTarget as HTMLElement).style.boxShadow="0 16px 40px rgba(224,0,70,.35)";}}
             onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.transform="scale(1)";(e.currentTarget as HTMLElement).style.boxShadow="0 4px 16px rgba(224,0,70,.25)";}}
-          >For Job Seekers</a>
+          >For Job Seekers</Link>
         </div>
       </nav>
     </header>
@@ -381,7 +383,7 @@ function Welcome({ onStart }: { onStart:()=>void }) {
           className="mt-6 max-w-xl text-base leading-7"
           style={{ color:"rgba(180,200,230,.72)", opacity:mounted?1:0, transform:mounted?"translateY(0)":"translateY(20px)", transition:"opacity .7s ease 220ms, transform .7s cubic-bezier(.22,1,.36,1) 220ms" }}
         >
-          CareerOS matches your open roles against verified candidate profiles — not just resumes. Tell us about your company and we'll surface the right people.
+          CareerOS matches your open roles against verified candidate profiles — not just resumes. Tell us about your company and we&apos;ll surface the right people.
         </p>
 
         {/* Stats row */}
@@ -442,7 +444,7 @@ function OnboardingStep({ stepIndex, form, setForm, onNext, onBack }: {
   const [mounted, setMounted] = useState(false);
   const canvasOffsetRef = useRef(0);
 
-  useEffect(()=>{ setMounted(false); const t=setTimeout(()=>setMounted(true),60); return ()=>clearTimeout(t); },[stepIndex]);
+  useEffect(()=>{ const t=setTimeout(()=>setMounted(true),60); return ()=>clearTimeout(t); },[stepIndex]);
 
   const update = (name:string, val:string|string[]) => setForm(old=>({...old,[name]:val}));
 
@@ -518,7 +520,7 @@ function OnboardingStep({ stepIndex, form, setForm, onNext, onBack }: {
                         ))}
                       </div>
                   }
-                  <div className="mt-4 flex gap-1.5">
+                  <div className="mt-7 flex gap-1.5">
                     {steps.map((s,i)=>(
                       <div key={s.key} className="h-1.5 rounded-full transition-all duration-300"
                         style={{ flex:i===stepIndex?2:1, background:i<=stepIndex?theme.rose2:"rgba(255,255,255,.15)" }} />
@@ -663,7 +665,7 @@ function CreatingProfile({ onDone }: { onDone:()=>void }) {
             const isPending=stageIndex<i;
             return (
               <div key={stage.label}
-                className="relative overflow-hidden rounded-2xl border px-5 py-4 text-left transition-all duration-500"
+                className="relative overflow-hidden rounded-2xl border px-5 pb-7 pt-4 text-left transition-all duration-500"
                 style={{ borderColor:isDone?"rgba(240,77,122,0.45)":isActive?"rgba(240,77,122,0.28)":"rgba(255,255,255,0.07)", background:isDone?"rgba(224,0,70,0.1)":isActive?"rgba(255,255,255,0.07)":"rgba(255,255,255,0.03)", opacity:isPending?0.4:1, transform:isPending?"translateY(6px)":"translateY(0)" }}
               >
                 {isActive && <div className="pointer-events-none absolute inset-0" style={{ background:"linear-gradient(90deg,transparent,rgba(240,77,122,0.07),transparent)", animation:"slide-x 1.6s ease infinite" }} />}
@@ -698,10 +700,10 @@ function CreatingProfile({ onDone }: { onDone:()=>void }) {
                       ))}
                     </div>
                   )}
-                  {isActive && (
-                    <div className="absolute bottom-0 left-0 h-0.5 rounded-full" style={{ background:`linear-gradient(90deg,${theme.rose2},${theme.rose1})`, animation:`progress-bar ${creationStages[i].duration}ms linear forwards`, width:0 }} />
-                  )}
                 </div>
+                {isActive && (
+                  <div className="absolute bottom-3 left-5 right-5 h-0.5 rounded-full" style={{ background:`linear-gradient(90deg,${theme.rose2},${theme.rose1})`, animation:`progress-bar ${creationStages[i].duration}ms linear forwards`, width:0 }} />
+                )}
               </div>
             );
           })}
@@ -732,6 +734,38 @@ export default function EmployerOnboarding() {
   };
   const goBack = () => setStepIndex(old=>Math.max(0,old-1));
 
+  const completeRegistration = () => {
+    const companyName = String(form.companyName || "").trim();
+    const industry = String(form.industry || "").trim();
+    const hq = String(form.hq || "").trim();
+    const country = String(form.country || "").trim();
+    const mission = String(form.mission || "").trim();
+    const contactName = String(form.contactName || "").trim();
+    const contactEmail = String(form.contactEmail || "").trim().toLowerCase();
+    const ownerEmail = contactEmail || `admin@${(companyName || "company").toLowerCase().replace(/[^a-z0-9]+/g, "") || "company"}.com`;
+    const company = {
+      name: companyName || "New Company",
+      industry: industry || "Not specified",
+      location: [hq, country].filter(Boolean).join(", ") || "Not specified",
+      size: String(form.companySize || "").trim() || "Not specified",
+      description: mission || "Employer profile created through CareerOS.",
+    };
+    const store = createEmployerStore({
+      company,
+      ownerName: contactName || "Company Admin",
+      ownerEmail,
+      ownerPassword: "careeros",
+    });
+
+    window.localStorage.setItem(
+      "careeros-employer-company",
+      JSON.stringify(company)
+    );
+    saveEmployerStore(store);
+    setEmployerSession(ownerEmail);
+    window.location.href = "/employer";
+  };
+
   return (
     <main style={{ fontFamily:"var(--font-geist-sans), Arial, Helvetica, sans-serif", minHeight:"100vh" }}>
       <style>{`
@@ -752,7 +786,7 @@ export default function EmployerOnboarding() {
         <OnboardingStep stepIndex={stepIndex} form={form} setForm={setForm} onNext={goNext} onBack={goBack} />
       )}
       {screen==="creating"  && (
-        <CreatingProfile onDone={()=>{ window.location.href="/?view=employer-prototype"; }} />
+        <CreatingProfile onDone={completeRegistration} />
       )}
     </main>
   );

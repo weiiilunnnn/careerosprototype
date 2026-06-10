@@ -11,7 +11,6 @@ import TrackApplication from "./pages/TrackApplication";
 import SignInPage from "./pages/SignInPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import EmployerOnboarding from "./pages/EmployerOnboarding";
-import { EmployerPrototype } from "@/features/employer/EmployerPrototype";
 
 export default async function Home({
   searchParams,
@@ -32,9 +31,6 @@ export default async function Home({
   if (view === "track-application") return <TrackApplication />;
   if (view === "login") return <SignInPage />;
   if (view === "forgot-password") return <ForgotPasswordPage />;
-  if (view === "employer-prototype") return <EmployerPrototype />;
-  if (view === "onboarding") return <Onboarding />;
 
-  // Default page when visiting "/"
   return <LandingPage />;
 }

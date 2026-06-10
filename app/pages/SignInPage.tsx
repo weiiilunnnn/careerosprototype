@@ -1,5 +1,9 @@
+"use client";
+
+import type { FormEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, Eye, LockKeyhole, Mail, Sparkles } from "lucide-react";
+import { authenticateEmployer } from "@/features/components (employer)/store";
 
 const theme = {
   navy: "#081433",
@@ -37,6 +41,20 @@ function GoogleLogo() {
 }
 
 export default function SignInPage() {
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    if (authenticateEmployer(email, password)) {
+      window.location.href = "/employer";
+      return;
+    }
+
+    window.location.href = "/?view=profile";
+  }
+
   return (
     <main
       className="grid h-screen min-h-screen overflow-hidden bg-white text-[#081433] lg:grid-cols-[65%_35%]"
@@ -103,7 +121,7 @@ export default function SignInPage() {
             </p>
           </div>
 
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleLogin}>
             <label className="block">
               <span className="mb-2 block text-sm font-bold text-[#152238]">
                 Email
@@ -111,6 +129,7 @@ export default function SignInPage() {
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A8499]" />
                 <input
+                  name="email"
                   type="email"
                   defaultValue="jason.tan@email.com"
                   className="w-full rounded-xl border bg-white py-3 pl-11 pr-4 text-sm font-semibold text-[#152238] outline-none transition placeholder:text-[#9AA3B8] focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]"
@@ -126,6 +145,7 @@ export default function SignInPage() {
               <div className="relative">
                 <LockKeyhole className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A8499]" />
                 <input
+                  name="password"
                   type="password"
                   defaultValue="careeros"
                   className="w-full rounded-xl border bg-white py-3 pl-11 pr-11 text-sm font-semibold text-[#152238] outline-none transition placeholder:text-[#9AA3B8] focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]"
@@ -153,14 +173,14 @@ export default function SignInPage() {
               </Link>
             </div>
 
-            <Link
-              href="/?view=profile"
+            <button
+              type="submit"
               className="mt-5 flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-sm font-extrabold text-white shadow-lg transition hover:scale-[1.01] active:scale-[0.99]"
               style={{ backgroundColor: theme.rose2 }}
             >
               Log in
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </button>
           </form>
 
           <div className="my-7 flex items-center gap-4">

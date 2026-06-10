@@ -1,4 +1,4 @@
-import type { ActivityEvent, Candidate, Company, CompanyRole, HiringSettings, Job, Page, RolePermission } from "./types";
+import type { ActivityEvent, Candidate, Company, CompanyRole, HiringSettings, Job, Page, RolePermission, TeamMember } from "./types";
 
 export const rolePermissions: Record<CompanyRole, RolePermission> = {
   "Super Admin": {
@@ -52,7 +52,12 @@ export const initialJobs: Job[] = [
     status: "Open",
     location: "Kuala Lumpur",
     workMode: "Hybrid",
+    employmentType: "Full-time",
     salary: "RM 18k-28k",
+    description: "Lead product strategy for CareerOS hiring workflows and marketplace intelligence.",
+    requirements: "Strong marketplace, B2B SaaS, discovery, and stakeholder leadership experience.",
+    deadline: "2026-06-27",
+    createdBy: "Shihong Wong",
     skills: ["Marketplace", "B2B SaaS", "Discovery"],
     screeningQuestion: "Tell us about a marketplace or B2B discovery decision you led.",
     applicants: 24,
@@ -67,13 +72,65 @@ export const initialJobs: Job[] = [
     status: "Open",
     location: "Remote",
     workMode: "Remote",
+    employmentType: "Full-time",
     salary: "RM 12k-18k",
+    description: "Design growth systems that improve candidate and employer activation.",
+    requirements: "Experience with activation, design systems, research, and product experimentation.",
+    deadline: "2026-07-09",
+    createdBy: "Sarah Lee",
     skills: ["Activation", "Design systems", "Research"],
     screeningQuestion: "Share a growth or activation redesign and how you measured success.",
     applicants: 0,
     shortlisted: 0,
     hired: 0,
     expiresIn: 30,
+  },
+];
+
+export const initialMembers: TeamMember[] = [
+  {
+    id: 1,
+    name: "Shihong Wong",
+    email: "admin@talentbank.com",
+    role: "Super Admin",
+    status: "Active",
+    presence: "Online",
+    focus: "Workspace owner",
+    lastActive: "Now",
+    password: "careeros",
+  },
+  {
+    id: 2,
+    name: "Sarah Lee",
+    email: "sarah@talentbank.com",
+    role: "Admin",
+    status: "Active",
+    presence: "Offline",
+    focus: "Hiring operations",
+    lastActive: "2h ago",
+    password: "careeros",
+  },
+  {
+    id: 3,
+    name: "Nadia Lim",
+    email: "nadia@talentbank.com",
+    role: "User",
+    status: "Active",
+    presence: "Online",
+    focus: "Candidate review",
+    lastActive: "18m ago",
+    password: "careeros",
+  },
+  {
+    id: 4,
+    name: "Victor Chen",
+    email: "victor@talentbank.com",
+    role: "User",
+    status: "Active",
+    presence: "Offline",
+    focus: "Leadership visibility",
+    lastActive: "Yesterday",
+    password: "careeros",
   },
 ];
 
