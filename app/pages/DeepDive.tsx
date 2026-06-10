@@ -4,17 +4,21 @@ import {
   BookOpen,
   BriefcaseBusiness,
   Building2,
+  CalendarClock,
   ChevronRight,
   Clock3,
+  Gauge,
   GraduationCap,
   LineChart,
   PanelTop,
   Share2,
+  SlidersHorizontal,
   Sparkles,
   Target,
   TrendingUp,
   UserRound,
   UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -72,6 +76,35 @@ const timeline = [
   { range: "1-3 years", role: "BI Analyst", active: true },
   { range: "3-5 years", role: "BI Lead" },
 ];
+
+function SectionTitle({
+  title,
+  icon: Icon,
+  light = false,
+}: {
+  title: string;
+  icon: LucideIcon;
+  light?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+          light ? "bg-white/10 text-[#F04D7A]" : "bg-[#FFF2F6] text-[#E00046]"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <h3
+        className={`text-lg font-semibold ${
+          light ? "text-white" : "text-[#081433]"
+        }`}
+      >
+        {title}
+      </h3>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
@@ -142,7 +175,7 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 m-5 rounded-2xl border border-white/15 bg-white/[0.12] p-8 text-white shadow-sm backdrop-blur-md">
-          <h3 className="font-semibold text-white">Typical Career Path</h3>
+          <SectionTitle title="Typical Career Path" icon={LineChart} light />
           <div className="mt-8 grid grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-center gap-3">
             {careerPath.map((step, index) => {
               const Icon = step.icon;
@@ -179,7 +212,7 @@ export default function Home() {
 
       <section className="mt-9 rounded-2xl border bg-white shadow-sm" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between border-b border-[#F1F3F7] px-6 py-5">
-          <h3 className="text-lg font-semibold text-[#081433]">Top Matching Job Openings</h3>
+          <SectionTitle title="Top Matching Job Openings" icon={Building2} />
           <button className="text-sm font-semibold text-[#E00046]">View all jobs</button>
         </div>
         {jobs.map(([role, company, location, mode, match]) => (
@@ -219,7 +252,7 @@ export default function Home() {
       </section>
       
       <section className="mt-10 rounded-2xl border bg-white p-6 shadow-sm" style={{ borderColor: theme.border }}>
-        <h3 className="text-xl font-semibold text-[#081433]">Career Snapshot</h3>
+        <SectionTitle title="Career Snapshot" icon={Gauge} />
         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {snapshots.map((item) => {
             const Icon = item.icon;
@@ -241,7 +274,7 @@ export default function Home() {
         <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr_.8fr]">
           <div>
             <div className="flex items-center gap-4">
-              <h3 className="text-2xl font-semibold">Why this matches you</h3>
+              <SectionTitle title="Why this matches you" icon={Sparkles} light />
               <span className="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold">Based on your profile</span>
             </div>
             <div className="mt-8 space-y-4 text-sm font-medium">
@@ -274,7 +307,7 @@ export default function Home() {
 
       <section className="mt-9 grid gap-5 lg:grid-cols-[1.1fr_.8fr]">
         <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold text-[#081433]">Skill Gap Analysis</h3>
+          <SectionTitle title="Skill Gap Analysis" icon={SlidersHorizontal} />
           <div className="mt-7 grid gap-7 md:grid-cols-[1.15fr_.85fr]">
             <div>
               <div className="mb-4 grid grid-cols-[1fr_80px] text-xs font-semibold text-[#46536D]">
@@ -306,7 +339,7 @@ export default function Home() {
         </div>
 
         <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold text-[#081433]">Timeline & Progression</h3>
+          <SectionTitle title="Timeline & Progression" icon={CalendarClock} />
           <div className="relative mt-7 space-y-3 before:absolute before:bottom-[30px] before:left-[13px] before:top-[30px] before:z-10 before:w-0.5 before:rounded-full before:bg-[#E5E8F0]">
             {timeline.map((item) => (
               <div key={item.role} className={`relative flex gap-4 rounded-xl px-1 py-3 text-sm ${item.active ? "bg-[#FFF7FA]" : ""}`}>
@@ -326,12 +359,12 @@ export default function Home() {
 
       <section className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.8fr]">
         <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold text-[#081433]">Trade-offs & Considerations</h3>
+          <SectionTitle title="Trade-offs & Considerations" icon={Target} />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {["Communication heavy role", "Frequent reporting", "Continuous upskilling", "Technical ceiling"].map((item) => (
+            {["Communication heavy role", "Frequent reporting", "Continuous upskilling", "Technical ceiling"].map((item, index) => (
               <div key={item}>
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF2F6] text-[#E00046]">
-                  <Target size={21} />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FFF2F6] text-xs font-semibold text-[#E00046]">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
                 <p className="mt-4 text-sm font-semibold text-[#081433]">{item}</p>
                 <p className="mt-2 text-sm leading-6 text-[#46536D]">Requires ownership, clarity, and ongoing business exposure.</p>
@@ -341,7 +374,7 @@ export default function Home() {
         </div>
 
         <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold text-[#081433]">AI Career Coach</h3>
+          <SectionTitle title="AI Career Coach" icon={Sparkles} />
           <div className="mt-9 flex gap-5">
             <span className="text-5xl font-semibold text-[#F04D7A]">&quot;</span>
             <p className="max-w-md text-sm leading-7 text-[#46536D]">
@@ -352,12 +385,12 @@ export default function Home() {
       </section>
 
       <section className="mt-9 rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
-        <h3 className="text-lg font-semibold text-[#081433]">Recommended Next Steps</h3>
+        <SectionTitle title="Recommended Next Steps" icon={BookOpen} />
         <div className="mt-6 grid gap-5 lg:grid-cols-4">
           {nextSteps.map(([title, detail], index) => (
             <div key={title} className="flex gap-4">
-              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#FFF2F6] text-[#E00046]">
-                {index === 1 ? <UsersRound /> : index === 2 ? <LineChart /> : index === 3 ? <Target /> : <BookOpen />}
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FFF2F6] text-sm font-semibold text-[#E00046]">
+                {index + 1}
               </span>
               <div>
                 <p className="text-sm font-semibold text-[#081433]">{title}</p>
