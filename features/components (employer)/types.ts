@@ -44,13 +44,33 @@ export type Job = {
   status: JobStatus;
   location: string;
   workMode: string;
+  employmentType?: string;
   salary: string;
+  description?: string;
+  requirements?: string;
+  deadline?: string;
+  createdBy?: string;
   skills: string[];
   screeningQuestion: string;
   applicants: number;
   shortlisted: number;
   hired: number;
   expiresIn: number;
+};
+
+export type TeamMemberStatus = "Active" | "Pending" | "Disabled";
+
+export type TeamMember = {
+  id: number;
+  name: string;
+  email: string;
+  role: CompanyRole;
+  status: TeamMemberStatus;
+  presence: "Online" | "Offline";
+  focus: string;
+  lastActive: string;
+  password: string;
+  invitedAt?: string;
 };
 
 export type ScoringWeights = {
@@ -133,4 +153,17 @@ export type RolePermission = {
   canApproach: boolean;
   canMarkHired: boolean;
   canRemoveWorkspace: boolean;
+};
+
+export type EmployerStore = {
+  company: Company;
+  currentUserEmail?: string;
+  members: TeamMember[];
+  jobs: Job[];
+  candidates: Candidate[];
+  settings: HiringSettings;
+  activityLog: ActivityEvent[];
+  createdAt: string;
+  updatedAt: string;
+  mode?: "registered" | "demo";
 };
