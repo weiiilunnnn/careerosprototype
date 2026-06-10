@@ -752,7 +752,7 @@ export default function EmployerOnboarding() {
         <OnboardingStep stepIndex={stepIndex} form={form} setForm={setForm} onNext={goNext} onBack={goBack} />
       )}
       {screen==="creating"  && (
-        <CreatingProfile onDone={()=>{ window.location.href="/?view=profile"; }} />
+        <CreatingProfile onDone={()=>{ window.location.href="/?view=employer-prototype"; }} />
       )}
     </main>
   );
