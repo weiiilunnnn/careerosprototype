@@ -1,3 +1,5 @@
+import type { CandidateLivingCv } from "@/lib/candidateLivingCvData";
+
 export type Page =
   | "personal"
   | "create-company"
@@ -134,6 +136,7 @@ export type Candidate = {
   livingCv: "Updated" | "Stale" | "Verified";
   tags: string[];
   evidence: string[];
+  livingCvDetails: CandidateLivingCv;
 };
 
 export type ActivityEvent = {

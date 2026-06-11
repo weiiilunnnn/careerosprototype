@@ -2882,6 +2882,12 @@ function CandidateProfilePage({
   const isApproachable = candidate.source === "Potential" && candidate.stage === "New";
   const isApproached = candidate.source === "Potential" && candidate.stage === "Approached";
   const canShortlist = candidate.appliedToJob && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
+  const livingCv = candidate.livingCvDetails;
+  const skillGroups = [
+    ["Technical", livingCv.skills.technical],
+    ["Tools", livingCv.skills.tools],
+    ["Soft skills", livingCv.skills.soft],
+  ] as const;
 
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
@@ -2902,18 +2908,19 @@ function CandidateProfilePage({
         </div>
         <div className="relative px-5 pb-6 lg:px-7">
           <div className="absolute left-5 top-0 flex size-28 -translate-y-1/2 items-center justify-center rounded-3xl border-4 border-white bg-[linear-gradient(135deg,#df0746,#f4537c)] text-3xl font-semibold text-white shadow-md lg:left-7">
-            {candidate.name.split(" ").map((part) => part[0]).join("")}
+            {livingCv.name.split(" ").map((part) => part[0]).join("")}
           </div>
           <div className="grid gap-4 pt-20 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
             <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-3xl font-semibold tracking-normal">{candidate.name}</h1>
+                  <h1 className="text-3xl font-semibold tracking-normal">{livingCv.name}</h1>
                   {candidateLabels(candidate, scoreWeights).map((label) => (
                     <CandidateLabel key={label} label={label} />
                   ))}
                 </div>
-                <p className="mt-1 text-zinc-600">{candidate.title}</p>
-                <p className="mt-1 text-sm text-zinc-500">{candidate.location}</p>
+                <p className="mt-1 text-zinc-600">{livingCv.title}</p>
+                <p className="mt-1 text-sm text-zinc-500">{livingCv.location}</p>
+                <p className="mt-2 text-sm font-medium text-pink-700">{livingCv.trajectory}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {isApproachable ? (
@@ -2966,28 +2973,117 @@ function CandidateProfilePage({
                 Living CV summary
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm leading-6 text-zinc-700">
-              <p>{candidate.evidence[0]}</p>
-              <p>{candidate.evidence[1]}</p>
-              <div className="flex flex-wrap gap-2 pt-2">
-                {candidate.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+            <CardContent className="space-y-4 text-sm leading-6 text-zinc-700">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">Career direction</p>
+                <h2 className="mt-1 text-xl font-semibold text-zinc-950">{livingCv.direction}</h2>
+                <p className="mt-3">{livingCv.summary}</p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="career-list-row rounded-2xl p-3">
+                  <p className="text-xs text-zinc-500">Experience</p>
+                  <p className="font-semibold text-zinc-900">{livingCv.experienceLabel}</p>
+                </div>
+                <div className="career-list-row rounded-2xl p-3">
+                  <p className="text-xs text-zinc-500">Education</p>
+                  <p className="font-semibold text-zinc-900">{livingCv.educationLabel}</p>
+                </div>
+                <div className="career-list-row rounded-2xl p-3">
+                  <p className="text-xs text-zinc-500">Profile strength</p>
+                  <p className="font-semibold text-zinc-900">{livingCv.profileStrength}%</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {candidate.evidence.map((item) => <Badge key={item} variant="secondary">{item}</Badge>)}
               </div>
             </CardContent>
           </Card>
 
           <Card className="career-panel-muted rounded-2xl">
             <CardHeader>
-              <CardTitle>Experience and projects</CardTitle>
+              <CardTitle>Skills from Living CV</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              {skillGroups.map(([group, values]) => (
+                <div key={group} className="career-list-row rounded-2xl p-4">
+                  <p className="text-sm font-semibold">{group}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {values.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="career-panel-muted rounded-2xl">
+            <CardHeader>
+              <CardTitle>Experience from Living CV</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {[
-                ["Marketplace growth system", "Led candidate/recruiter matching experiments and pricing discovery."],
-                ["Hiring workflow redesign", "Improved recruiter review quality with structured scorecards."],
-                ["Cross-functional leadership", "Worked with product, sales, and analytics teams on hiring outcomes."],
-              ].map(([title, body]) => (
-                <div key={title} className="career-list-row rounded-2xl p-4">
-                  <p className="font-semibold">{title}</p>
-                  <p className="mt-1 text-sm text-zinc-600">{body}</p>
+              {livingCv.experience.map((item) => (
+                <div key={`${item.company}-${item.title}`} className="career-list-row rounded-2xl p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{item.title}</p>
+                      <p className="mt-1 text-sm text-zinc-600">{item.company} · {item.period}</p>
+                    </div>
+                    <Badge variant="secondary">{item.duration}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-600">{item.description}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="career-panel-muted rounded-2xl">
+            <CardHeader>
+              <CardTitle>Projects and evidence</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {livingCv.projects.map((project) => (
+                <div key={project.title} className="career-list-row rounded-2xl p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">{project.type}</p>
+                      <p className="mt-1 font-semibold">{project.title}</p>
+                    </div>
+                    <span className="text-sm text-zinc-500">{project.date}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-600">{project.description}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {project.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="career-panel-muted rounded-2xl">
+            <CardHeader>
+              <CardTitle>Education, certifications, and links</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-2">
+              {livingCv.education.map((item) => (
+                <div key={item.qualification} className="career-list-row rounded-2xl p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">Education</p>
+                  <p className="mt-1 font-semibold">{item.qualification}</p>
+                  <p className="mt-1 text-sm text-zinc-600">{item.institution} · {item.period}</p>
+                  <p className="mt-2 text-sm text-zinc-600">{item.description}</p>
+                </div>
+              ))}
+              {livingCv.certifications.map((item) => (
+                <div key={item.name} className="career-list-row rounded-2xl p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">Certification</p>
+                  <p className="mt-1 font-semibold">{item.name}</p>
+                  <p className="mt-1 text-sm text-zinc-600">{item.issuer} · {item.date}</p>
+                </div>
+              ))}
+              {livingCv.portfolioLinks.map((item) => (
+                <div key={item.label} className="career-list-row rounded-2xl p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">Portfolio link</p>
+                  <p className="mt-1 font-semibold">{item.label}</p>
+                  <p className="mt-1 text-sm text-zinc-600">{item.url}</p>
+                  <p className="mt-2 text-sm text-zinc-600">{item.description}</p>
                 </div>
               ))}
             </CardContent>
@@ -3007,6 +3103,25 @@ function CandidateProfilePage({
               <ScoreBar label="Project relevance" value={candidate.projectRelevance} compact />
               <ScoreBar label="Experience" value={candidate.experience} compact />
               <ScoreBar label="Trajectory" value={candidate.trajectory} compact />
+            </CardContent>
+          </Card>
+          <Card className="career-clear-card rounded-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FilePlus2 className="size-5 text-pink-600" />
+                Uploaded files
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {livingCv.uploads.map((upload) => (
+                <div key={upload.fileName} className="rounded-2xl bg-zinc-50 p-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-semibold text-zinc-900">{upload.label}</span>
+                    <Badge variant="secondary">{upload.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-zinc-600">{upload.fileName}</p>
+                </div>
+              ))}
             </CardContent>
           </Card>
           <Card className="career-clear-card rounded-2xl">
@@ -4454,6 +4569,8 @@ function CandidateEvidence({
   onToggle: () => void;
   onNavigate: (page: Page) => void;
 }) {
+  const livingCv = candidate.livingCvDetails;
+
   return (
     <aside className="w-full min-w-0 space-y-4 lg:w-[360px] lg:shrink-0 lg:grow-0 lg:basis-[360px]">
       <Card className="career-section-band rounded-2xl">
@@ -4492,8 +4609,8 @@ function CandidateEvidence({
         </CardHeader>
         {open && <CardContent className="space-y-4">
           <div>
-            <h2 className="text-xl font-semibold">{candidate.name}</h2>
-            <p className="text-sm text-zinc-600">{candidate.title}</p>
+            <h2 className="text-xl font-semibold">{livingCv.name}</h2>
+            <p className="text-sm text-zinc-600">{livingCv.title}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {candidateLabels(candidate, scoreWeights).map((label) => (
                 <CandidateLabel key={label} label={label} />
@@ -4510,7 +4627,7 @@ function CandidateEvidence({
             </div>
           </div>
           <ul className="space-y-2">
-            {candidate.evidence.map((item) => (
+            {livingCv.employerEvidence.map((item) => (
               <li key={item} className="flex gap-2 text-sm leading-5">
                 <Check className="mt-0.5 size-4 shrink-0 text-pink-600" />
                 <span className="text-zinc-700">{item}</span>

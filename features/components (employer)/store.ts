@@ -1,3 +1,4 @@
+import { getCandidateLivingCv } from "@/lib/candidateLivingCvData";
 import {
   initialActivity,
   initialCandidates,
@@ -6,7 +7,7 @@ import {
   initialJobs,
   initialMembers,
 } from "./data";
-import type { Company, EmployerStore, TeamMember } from "./types";
+import type { Candidate, Company, EmployerStore, TeamMember } from "./types";
 
 export const EMPLOYER_STORE_KEY = "careeros-employer-store";
 export const EMPLOYER_SESSION_KEY = "careeros-employer-session";
@@ -101,6 +102,20 @@ export function createDemoEmployerStore() {
   });
 }
 
+function normalizeCandidate(candidate: Candidate): Candidate {
+  const livingCvDetails = candidate.livingCvDetails ?? getCandidateLivingCv(candidate.id);
+
+  return {
+    ...candidate,
+    name: livingCvDetails.name,
+    title: livingCvDetails.title,
+    location: livingCvDetails.location,
+    tags: candidate.tags?.length ? candidate.tags : livingCvDetails.skills.technical.slice(0, 4),
+    evidence: candidate.evidence?.length ? candidate.evidence : livingCvDetails.employerEvidence,
+    livingCvDetails,
+  };
+}
+
 function normalizeStore(store: EmployerStore): EmployerStore {
   const timestamp = nowLabel();
   const members = store.members?.length ? store.members : initialMembers;
@@ -117,7 +132,7 @@ function normalizeStore(store: EmployerStore): EmployerStore {
       lastActive: member.lastActive ?? "Not active yet",
     })),
     jobs: store.jobs ?? [],
-    candidates: store.candidates ?? [],
+    candidates: (store.candidates ?? []).map((candidate) => normalizeCandidate(candidate)),
     settings: store.settings ?? initialHiringSettings,
     activityLog: store.activityLog ?? [],
     createdAt: store.createdAt ?? timestamp,
