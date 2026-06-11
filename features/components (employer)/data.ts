@@ -1,3 +1,4 @@
+import { getCandidateLivingCv } from "@/lib/candidateLivingCvData";
 import type { ActivityEvent, Candidate, Company, CompanyRole, HiringSettings, Job, Page, RolePermission, TeamMember } from "./types";
 
 export const rolePermissions: Record<CompanyRole, RolePermission> = {
@@ -138,9 +139,9 @@ export const initialCandidates: Candidate[] = [
   {
     id: 1,
     jobId: 1,
-    name: "Maya Tan",
-    title: "Product Lead, Fintech Marketplace",
-    location: "Kuala Lumpur",
+    name: getCandidateLivingCv(1).name,
+    title: getCandidateLivingCv(1).title,
+    location: getCandidateLivingCv(1).location,
     source: "Applied",
     stage: "Shortlisted",
     type: "Shortlisted",
@@ -152,12 +153,9 @@ export const initialCandidates: Candidate[] = [
     experience: 92,
     trajectory: 90,
     livingCv: "Verified",
-    tags: ["Marketplace", "B2B", "Pricing"],
-    evidence: [
-      "Scaled a two-sided marketplace from 11k to 84k monthly active users.",
-      "Has led hiring loops for product managers and analysts.",
-      "Compensation is aligned with the current band.",
-    ],
+    tags: [...getCandidateLivingCv(1).skills.technical.slice(0, 4), getCandidateLivingCv(1).direction],
+    evidence: getCandidateLivingCv(1).employerEvidence,
+    livingCvDetails: getCandidateLivingCv(1),
   },
   {
     id: 2,
@@ -177,11 +175,8 @@ export const initialCandidates: Candidate[] = [
     trajectory: 86,
     livingCv: "Updated",
     tags: ["HR Tech", "AI workflows", "Enterprise"],
-    evidence: [
-      "Built AI-assisted recruiter workflows with measurable time-to-hire gains.",
-      "Strong enterprise fluency, less direct consumer growth ownership.",
-      "Needs relocation and package discussion before panel.",
-    ],
+    evidence: getCandidateLivingCv(2).employerEvidence,
+    livingCvDetails: getCandidateLivingCv(2),
   },
   {
     id: 3,
@@ -201,11 +196,8 @@ export const initialCandidates: Candidate[] = [
     trajectory: 92,
     livingCv: "Verified",
     tags: ["Activation", "Design systems", "Research"],
-    evidence: [
-      "Lifted profile completion by 22% through activation redesign.",
-      "Was shortlisted by this company before but has not applied to this job.",
-      "Portfolio shows strong candidate and recruiter workflow instincts.",
-    ],
+    evidence: getCandidateLivingCv(3).employerEvidence,
+    livingCvDetails: getCandidateLivingCv(3),
   },
   {
     id: 4,
@@ -225,11 +217,8 @@ export const initialCandidates: Candidate[] = [
     trajectory: 83,
     livingCv: "Stale",
     tags: ["0-1", "Discovery", "PLG"],
-    evidence: [
-      "Crisp written case study and strong discovery craft.",
-      "Less evidence around regulated marketplace constraints.",
-      "Available quickly and motivated by the mission.",
-    ],
+    evidence: getCandidateLivingCv(4).employerEvidence,
+    livingCvDetails: getCandidateLivingCv(4),
   },
 ];
 

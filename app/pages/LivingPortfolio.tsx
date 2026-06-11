@@ -1,11 +1,9 @@
 "use client";
 
 import {
-  BarChart3,
   BriefcaseBusiness,
   CalendarDays,
   ChevronRight,
-  FileText,
   GraduationCap,
   Lightbulb,
   MapPin,
@@ -18,7 +16,7 @@ import {
   UserRound,
   LucideIcon,
 } from "lucide-react";
-import Navbar from "@/components/navbar/Navbar";
+import { candidateLivingCv } from "@/lib/candidateLivingCvData";
 
 const theme = {
   navy: "#081433",
@@ -35,99 +33,13 @@ const theme = {
   dark: "#0f0f0f",
 } as const;
 
-const profile = {
-  name: "Jason Tan",
-  title: "Final Year Computer Science Student",
-  direction: "Data & Analytics Professional",
-  summary:
-    "Analytics leaning computer science student with strong interest in data analysis, dashboard development, and business reporting. The portfolio reflects practical evidence from work experience, projects, certificates, and skills that support a future path in analytics.",
-  experience: "1 year 5 months",
-  education: "BSc Computer Science",
-  location: "Kuala Lumpur",
-  profileStrength: 82,
-};
+const profile = candidateLivingCv;
+const careerPaths = candidateLivingCv.careerPaths;
+const skills = candidateLivingCv.skills;
+const projects = candidateLivingCv.projects;
+const timeline = candidateLivingCv.experience;
 
-const careerPaths = [
-  {
-    title: "Data Analyst",
-    match: 82,
-    label: "Best Fit",
-  },
-  {
-    title: "Business Intelligence Analyst",
-    match: 76,
-  },
-  {
-    title: "Data Scientist",
-    match: 58,
-  },
-  {
-    title: "Analytics Engineer",
-    match: 45,
-  },
-];
-
-const skills = {
-  technical: [
-    "Python",
-    "SQL",
-    "Data Analysis",
-    "Power BI",
-    "Excel",
-    "Machine Learning",
-  ],
-  tools: ["Jupyter", "Tableau", "Power Query", "Google Sheets"],
-  soft: ["Communication", "Problem Solving", "Critical Thinking", "Teamwork"],
-};
-
-const projects = [
-  {
-    icon: PanelsTopLeft,
-    title: "Sales Performance Dashboard",
-    type: "Featured Project",
-    date: "May 2025",
-    description:
-      "Built a Power BI dashboard that visualizes regional sales trends and KPIs to support data driven business decisions.",
-    tags: ["Power BI", "DAX", "Data Visualization"],
-  },
-  {
-    icon: Target,
-    title: "Customer Segmentation Analysis",
-    type: "Analytics Project",
-    date: "Feb 2025",
-    description:
-      "Analyzed customer data using Python and clustering techniques to identify high value customer segments.",
-    tags: ["Python", "Pandas", "Scikit Learn"],
-  },
-  {
-    icon: Trophy,
-    title: "Hackathon Analytics Challenge",
-    type: "Achievement",
-    date: "Nov 2024",
-    description:
-      "Completed an analytics challenge by preparing insights from messy datasets and presenting findings to judges.",
-    tags: ["Analytics", "Presentation", "Problem Solving"],
-  },
-];
-
-const timeline = [
-  {
-    title: "Junior Data Analyst Intern",
-    company: "Grab",
-    period: "Jun 2025 - Aug 2025",
-    duration: "3 months",
-    description:
-      "Built dashboards and automated reports to monitor key business metrics.",
-  },
-  {
-    title: "Business Intelligence Intern",
-    company: "Maybank",
-    period: "Jan 2025 - Apr 2025",
-    duration: "4 months",
-    description:
-      "Supported data cleaning, analysis, and visualization for internal reporting.",
-  },
-];
+const projectIcons: LucideIcon[] = [PanelsTopLeft, Target, Trophy];
 
 function SectionCard({
   title,
@@ -570,12 +482,12 @@ export default function LivingPortfolio() {
                   <InfoPill
                     icon={BriefcaseBusiness}
                     label="Experience"
-                    value={profile.experience}
+                    value={profile.experienceLabel}
                   />
                   <InfoPill
                     icon={GraduationCap}
                     label="Education"
-                    value={profile.education}
+                    value={profile.educationLabel}
                   />
                   <InfoPill
                     icon={MapPin}
@@ -655,10 +567,10 @@ export default function LivingPortfolio() {
 
           <SectionCard title="Projects and Achievements" icon={Trophy}>
             <div className="grid gap-4">
-              {projects.map((project) => (
+              {projects.map((project, index) => (
                 <ProjectCard
                   key={project.title}
-                  icon={project.icon}
+                  icon={projectIcons[index] ?? PanelsTopLeft}
                   title={project.title}
                   type={project.type}
                   date={project.date}
