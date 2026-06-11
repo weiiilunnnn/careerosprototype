@@ -61,13 +61,13 @@ function Navbar() {
       }}
     >
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" style={{ textDecoration: "none" }}>
+        <a href="/" style={{ textDecoration: "none" }}>
           <div className="text-2xl font-black tracking-tight" style={{ color: theme.deepNavy }}>
             Career<span style={{ color: theme.rose2 }}>OS</span>
           </div>
-        </Link>
+        </a>
         <div className="flex items-center gap-3">
-          <Link
+          <a
             href="/?view=login"
             className="inline-flex items-center rounded-full border px-6 py-3 text-sm font-extrabold"
             style={{
@@ -89,9 +89,9 @@ function Navbar() {
             }}
           >
             Log in
-          </Link>
+          </a>
           <a
-            href="/employer/register"
+            href="/?view=employer-onboarding"
             className="inline-flex items-center rounded-full px-6 py-3 text-sm font-extrabold text-white"
             style={{
               backgroundColor: theme.rose2,
@@ -675,6 +675,7 @@ function OnboardingStep({
   const canvasOffsetRef = useRef(0);
 
   useEffect(() => {
+    setMounted(false);
     const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, [stepIndex]);

@@ -8,9 +8,8 @@ export default function NavbarWrapper() {
   const pathname = usePathname();
   const view = searchParams.get("view");
 
-  // Pages that should NOT show the global navbar
   const hiddenViews = [
-    null, // Landing Page (/)
+    null,
     "login",
     "signup",
     "forgot-password",

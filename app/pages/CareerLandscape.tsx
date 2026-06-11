@@ -14,6 +14,7 @@ import {
   Star,
   Target,
   UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -103,6 +104,44 @@ const matchSignals = [
     text: "Looked at career transitions and role progression patterns.",
   },
 ];
+
+function SectionCard({
+  title,
+  icon: Icon,
+  children,
+  action,
+}: {
+  title: string;
+  icon: LucideIcon;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section
+      className="overflow-hidden rounded-2xl border bg-white shadow-sm"
+      style={{ borderColor: theme.border }}
+    >
+      <div className="flex min-h-[76px] flex-col gap-4 rounded-t-2xl border-b border-[#F1F3F7] bg-white px-7 py-4 shadow-[0_8px_14px_rgba(21,34,56,0.035)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.soft }}
+          >
+            <Icon className="h-5 w-5" style={{ color: theme.rose2 }} />
+          </div>
+
+          <h2 className="text-lg font-semibold leading-none text-[#152238]">
+            {title}
+          </h2>
+        </div>
+
+        {action}
+      </div>
+
+      <div className="px-7 py-5">{children}</div>
+    </section>
+  );
+}
 
 function ProgressRing({ value }: { value: number }) {
   const radius = 42;
@@ -390,18 +429,11 @@ export default function CareerLandscape() {
           </div>
         </div>
 
-        <div className="mt-6">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold text-[#081433]">
-                    Recommended Career Trajectories
-                  </h2>
-                </div>
-                <p className="mt-1 text-sm text-[#46536D]">
-                  Paths are ranked by match quality and trajectory confidence.
-                </p>
-              </div>
+        <div className="mt-6 space-y-5">
+          <SectionCard
+            title="Recommended Career Trajectories"
+            icon={Target}
+            action={
               <label className="relative block w-full sm:w-56">
                 <span className="sr-only">Sort career trajectories</span>
                 <select
@@ -417,7 +449,11 @@ export default function CareerLandscape() {
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#46536D]" />
               </label>
-            </div>
+            }
+          >
+            <p className="mb-5 text-sm text-[#46536D]">
+              Paths are ranked by match quality and trajectory confidence.
+            </p>
 
             <div className="space-y-4">
               {trajectories.map((trajectory) => (
@@ -433,6 +469,7 @@ export default function CareerLandscape() {
               Recommendations are based on historical data and AI analysis.
               You&apos;re in control of your career journey.
             </p>
+          </SectionCard>
 
             <div
               className="career-fade-up mt-8 overflow-hidden rounded-2xl p-8 text-white shadow-[0_18px_40px_rgba(21,34,56,0.18)]"

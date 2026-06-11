@@ -1,5 +1,5 @@
-import { EmployerPrototype } from "@/features/components (employer)/EmployerPrototype";
+import EmployerClient from "./EmployerClient";
 
 export default function EmployerPage() {
-  return <EmployerPrototype />;
+  return <EmployerClient />;
 }

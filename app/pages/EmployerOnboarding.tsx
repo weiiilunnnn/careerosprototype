@@ -520,7 +520,7 @@ function OnboardingStep({ stepIndex, form, setForm, onNext, onBack }: {
                         ))}
                       </div>
                   }
-                  <div className="mt-4 flex gap-1.5">
+                  <div className="mt-7 flex gap-1.5">
                     {steps.map((s,i)=>(
                       <div key={s.key} className="h-1.5 rounded-full transition-all duration-300"
                         style={{ flex:i===stepIndex?2:1, background:i<=stepIndex?theme.rose2:"rgba(255,255,255,.15)" }} />
@@ -665,7 +665,7 @@ function CreatingProfile({ onDone }: { onDone:()=>void }) {
             const isPending=stageIndex<i;
             return (
               <div key={stage.label}
-                className="relative overflow-hidden rounded-2xl border px-5 py-4 text-left transition-all duration-500"
+                className="relative overflow-hidden rounded-2xl border px-5 pb-7 pt-4 text-left transition-all duration-500"
                 style={{ borderColor:isDone?"rgba(240,77,122,0.45)":isActive?"rgba(240,77,122,0.28)":"rgba(255,255,255,0.07)", background:isDone?"rgba(224,0,70,0.1)":isActive?"rgba(255,255,255,0.07)":"rgba(255,255,255,0.03)", opacity:isPending?0.4:1, transform:isPending?"translateY(6px)":"translateY(0)" }}
               >
                 {isActive && <div className="pointer-events-none absolute inset-0" style={{ background:"linear-gradient(90deg,transparent,rgba(240,77,122,0.07),transparent)", animation:"slide-x 1.6s ease infinite" }} />}
@@ -700,10 +700,10 @@ function CreatingProfile({ onDone }: { onDone:()=>void }) {
                       ))}
                     </div>
                   )}
-                  {isActive && (
-                    <div className="absolute bottom-0 left-0 h-0.5 rounded-full" style={{ background:`linear-gradient(90deg,${theme.rose2},${theme.rose1})`, animation:`progress-bar ${creationStages[i].duration}ms linear forwards`, width:0 }} />
-                  )}
                 </div>
+                {isActive && (
+                  <div className="absolute bottom-3 left-5 right-5 h-0.5 rounded-full" style={{ background:`linear-gradient(90deg,${theme.rose2},${theme.rose1})`, animation:`progress-bar ${creationStages[i].duration}ms linear forwards`, width:0 }} />
+                )}
               </div>
             );
           })}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight, BadgeCheck, BriefcaseBusiness,
@@ -416,9 +415,9 @@ export default function LandingPage() {
             Career<span style={{ color: theme.rose2 }}>OS</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/?view=login" className="login-btn inline-flex items-center rounded-full border px-6 py-3 text-sm font-extrabold" style={{ borderColor: theme.border, color: theme.rose2, backgroundColor: "white", textDecoration: "none" }}>Log in</Link>
+            <a href="/?view=login" className="login-btn inline-flex items-center rounded-full border px-6 py-3 text-sm font-extrabold" style={{ borderColor: theme.border, color: theme.rose2, backgroundColor: "white", textDecoration: "none" }}>Log in</a>
             <CtaButton
-              href="/employer/register"
+              href="/?view=employer-onboarding"
               trigger={trigger}
               transitioning={transitioning}
               className="inline-flex items-center rounded-full px-6 py-3 text-sm font-extrabold text-white shadow-lg"
@@ -472,7 +471,7 @@ export default function LandingPage() {
                 >
                   Get Started <ArrowRight className="h-5 w-5" />
                 </CtaButton>
-                <Link href="/?view=login" className="text-sm font-bold underline-offset-4 hover:underline" style={{ color: theme.muted, textDecoration: "none" }}>Already have an account?</Link>
+                <a href="/?view=login" className="text-sm font-bold underline-offset-4 hover:underline" style={{ color: theme.muted, textDecoration: "none" }}>Already have an account?</a>
               </div>
             </div>
 

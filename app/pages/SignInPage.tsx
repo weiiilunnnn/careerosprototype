@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import { authenticateEmployer } from "@/features/components (employer)/store";
 
@@ -42,34 +41,18 @@ function GoogleLogo() {
 }
 
 export default function SignInPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("jason.tan@email.com");
-  const [password, setPassword] = useState("careeros");
-  const [error, setError] = useState("");
-
-  function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalizedEmail = email.trim().toLowerCase();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
 
-    if (!normalizedEmail || !password.trim()) {
-      setError("Enter your email and password to continue.");
+    if (authenticateEmployer(email, password)) {
+      window.location.href = "/employer";
       return;
     }
 
-    const employerAccount = authenticateEmployer(normalizedEmail, password);
-    if (employerAccount) {
-      router.push("/employer");
-      return;
-    }
-
-    const looksLikeEmployerEmail =
-      normalizedEmail.endsWith("@talentbank.com") || normalizedEmail.endsWith("@company.com");
-    if (looksLikeEmployerEmail) {
-      setError("Employer access not found. Ask your Super Admin to add this email first.");
-      return;
-    }
-
-    router.push("/?view=profile");
+    window.location.href = "/?view=profile";
   }
 
   return (
@@ -146,12 +129,9 @@ export default function SignInPage() {
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A8499]" />
                 <input
+                  name="email"
                   type="email"
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    setError("");
-                  }}
+                  defaultValue="jason.tan@email.com"
                   className="w-full rounded-xl border bg-white py-3 pl-11 pr-4 text-sm font-semibold text-[#152238] outline-none transition placeholder:text-[#9AA3B8] focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]"
                   style={{ borderColor: "#DDE2EC" }}
                 />
@@ -165,12 +145,9 @@ export default function SignInPage() {
               <div className="relative">
                 <LockKeyhole className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A8499]" />
                 <input
+                  name="password"
                   type="password"
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
-                    setError("");
-                  }}
+                  defaultValue="careeros"
                   className="w-full rounded-xl border bg-white py-3 pl-11 pr-11 text-sm font-semibold text-[#152238] outline-none transition placeholder:text-[#9AA3B8] focus:border-[#E00046] focus:ring-1 focus:ring-[#E00046]"
                   style={{ borderColor: "#DDE2EC" }}
                 />
@@ -195,12 +172,6 @@ export default function SignInPage() {
                 Forgot password?
               </Link>
             </div>
-
-            {error && (
-              <p className="rounded-xl border border-[#F5CBD6] bg-[#FFF2F6] px-4 py-3 text-sm font-bold text-[#D81B3F]">
-                {error}
-              </p>
-            )}
 
             <button
               type="submit"
@@ -233,16 +204,6 @@ export default function SignInPage() {
               style={{ color: theme.rose2 }}
             >
               Sign up
-            </Link>
-          </p>
-          <p className="mt-3 text-center text-sm font-semibold text-[#7A8499]">
-            Registering a company?{" "}
-            <Link
-              href="/employer/register"
-              className="font-extrabold transition hover:opacity-75"
-              style={{ color: theme.rose2 }}
-            >
-              Create employer profile
             </Link>
           </p>
         </div>

@@ -2720,19 +2720,20 @@ function CandidateReviewPage({
   onOpenProfile: (id: number) => void;
   onNavigate: (page: Page) => void;
 }) {
-  const [filter, setFilter] = useState<"Applied" | "Potential" | "Shortlisted" | null>(null);
+  const [filter, setFilter] = useState<"All" | "Applied" | "Potential" | "Shortlisted">("All");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const appliedReviewCount = candidates.filter((candidate) => candidate.source === "Applied" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired").length;
   const potentialReviewCount = candidates.filter((candidate) => candidate.source === "Potential" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired").length;
   const shortlistReviewCount = candidates.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited").length;
   const visibleCandidates = candidates.filter((candidate) => {
-    if (!filter) return true;
+    if (filter === "All") return true;
     if (filter === "Applied") return candidate.source === "Applied" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
     if (filter === "Potential") return candidate.source === "Potential" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
     return candidate.stage === "Shortlisted" || candidate.stage === "Invited";
   });
   const candidateTabs = [
+    { label: "All", value: candidates.length, type: "All" as const },
     { label: "Applied", value: appliedReviewCount, type: "Applied" as const },
     { label: "Potential", value: potentialReviewCount, type: "Potential" as const },
     { label: "Shortlisted", value: shortlistReviewCount, type: "Shortlisted" as const },
@@ -2762,8 +2763,8 @@ function CandidateReviewPage({
   }
 
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-4 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
-      <div className="space-y-4">
+    <section className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 py-6 lg:flex-row lg:items-start lg:px-8">
+      <div className="w-full min-w-0 flex-1 space-y-4">
         <WorkflowGuide
           trail={["Jobs", "Job workspace"]}
           current="Candidate review"
@@ -2791,9 +2792,9 @@ function CandidateReviewPage({
             {candidateTabs.map(({ label, value, type }) => (
               <button
                 key={type}
-                onClick={() => setFilter((current) => (current === type ? null : type))}
+                onClick={() => setFilter(type)}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium ring-1 transition",
+                  "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium ring-1 transition",
                   filter === type
                     ? "bg-zinc-950 text-white ring-zinc-950 shadow-sm"
                     : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50 hover:text-zinc-950"
@@ -2813,7 +2814,7 @@ function CandidateReviewPage({
             </Button>
           </div>
         </div>
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
           {visibleCandidates.length === 0 ? (
             <EmptyState
               icon={Search}
@@ -2821,7 +2822,7 @@ function CandidateReviewPage({
               description="Clear the search or switch filters to review the full talent pool."
               actionLabel="Clear filter"
               onAction={() => {
-                setFilter(null);
+                setFilter("All");
                 onSearch("");
               }}
             />
@@ -4353,10 +4354,10 @@ function CandidateCard({
       whileHover={{ y: -3 }}
       whileTap={tactileTap}
       className={cn(
-      "career-list-row rounded-3xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200",
+      "career-list-row min-w-0 rounded-3xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200",
       active && "career-list-row-active"
     )}>
-      <button className="w-full text-left" onClick={() => onSelect(candidate.id)}>
+      <button className="w-full min-w-0 text-left" onClick={() => onSelect(candidate.id)}>
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -4454,7 +4455,7 @@ function CandidateEvidence({
   onNavigate: (page: Page) => void;
 }) {
   return (
-    <aside className="space-y-4">
+    <aside className="w-full min-w-0 space-y-4 lg:w-[360px] lg:shrink-0 lg:grow-0 lg:basis-[360px]">
       <Card className="career-section-band rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

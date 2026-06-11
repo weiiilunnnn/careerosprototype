@@ -31,8 +31,6 @@ export default async function Home({
   if (view === "track-application") return <TrackApplication />;
   if (view === "login") return <SignInPage />;
   if (view === "forgot-password") return <ForgotPasswordPage />;
-  if (view === "onboarding") return <Onboarding />;
 
-  // Default page when visiting "/"
   return <LandingPage />;
 }
