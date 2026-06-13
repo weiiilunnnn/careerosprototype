@@ -34,7 +34,7 @@ const theme = {
 const trajectories = [
   {
     rank: "#1",
-    title: "Data Analytics Track",
+    title: "BI Analyst Track",
     description: "Turn data into impact and drive business decisions.",
     match: 92,
     profiles: 742,
@@ -44,8 +44,8 @@ const trajectories = [
     steps: [
       ["Current Profile", "Data Enthusiast"],
       ["Entry Role", "Junior Data Analyst"],
-      ["Next Role", "Data Analyst"],
-      ["Growth Direction", "Senior Data Analyst / Data Scientist"],
+      ["Next Role", "BI Analyst"],
+      ["Growth Direction", "Senior Data Analyst / BI Specialist"],
     ],
   },
   {
