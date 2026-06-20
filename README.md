@@ -1,5 +1,20 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+
+## Run with Docker
+
+## Option 1
+Build docker image and run the image:
+1. run `docker build -t careeros:1.0' . `
+2. run `docker run -p 3100:3000 careeros1.0`
+
+## Option 2 (Efficient for future development)
+Build and start the production container:
+1. run `docker compose up --build`
+2. Open [https://localhost:3100] to view the app
+3. To stop the app, press `Ctrl+C`, then run:
+`docker compose down`
+
 ## Getting Started
 
 First, run the development server:
