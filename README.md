@@ -5,7 +5,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Option 1
 Build docker image and run the image:
-1. run `docker build -t careeros:1.0' . `
+1. run `docker build -t careeros:1.0 . `
 2. run `docker run -p 3100:3000 careeros1.0`
 
 ## Option 2 (Efficient for future development)

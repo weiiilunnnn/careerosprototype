@@ -120,18 +120,21 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  html {
+    @apply font-sans;
+    overflow-x: hidden;
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   }
   body {
     @apply bg-background text-foreground;
     cursor: default;
+    overflow-x: hidden;
     background:
       radial-gradient(circle at 12% 8%, rgba(244, 83, 124, 0.065), transparent 22rem),
       radial-gradient(circle at 92% 18%, rgba(124, 58, 237, 0.055), transparent 28rem),
       linear-gradient(180deg, #fff 0%, #fbfafc 28rem, #f6f6f7 100%);
-    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  }
-  html {
-    @apply font-sans;
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   }
 
