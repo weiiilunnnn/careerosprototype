@@ -65,6 +65,8 @@ export const initialJobs: Job[] = [
     shortlisted: 2,
     hired: 0,
     expiresIn: 18,
+    supervisorName: "Shihong Wong",
+    supervisorAnimal: "lion",
   },
   {
     id: 2,
@@ -85,6 +87,8 @@ export const initialJobs: Job[] = [
     shortlisted: 0,
     hired: 0,
     expiresIn: 30,
+    supervisorName: "Sarah Lee",
+    supervisorAnimal: "dolphin",
   },
 ];
 
@@ -99,6 +103,7 @@ export const initialMembers: TeamMember[] = [
     focus: "Workspace owner",
     lastActive: "Now",
     password: "careeros",
+    workAnimal: "lion",
   },
   {
     id: 2,
@@ -110,6 +115,7 @@ export const initialMembers: TeamMember[] = [
     focus: "Hiring operations",
     lastActive: "2h ago",
     password: "careeros",
+    workAnimal: "dolphin",
   },
   {
     id: 3,
@@ -121,6 +127,7 @@ export const initialMembers: TeamMember[] = [
     focus: "Candidate review",
     lastActive: "18m ago",
     password: "careeros",
+    workAnimal: "ant",
   },
   {
     id: 4,
@@ -132,6 +139,7 @@ export const initialMembers: TeamMember[] = [
     focus: "Leadership visibility",
     lastActive: "Yesterday",
     password: "careeros",
+    workAnimal: "eagle",
   },
 ];
 

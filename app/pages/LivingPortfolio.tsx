@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   BriefcaseBusiness,
   CalendarDays,
@@ -17,6 +18,11 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { candidateLivingCv } from "@/lib/candidateLivingCvData";
+import {
+  getAnimalRoleInTrio,
+  getBlendInterpretation,
+  getWorkAnimal,
+} from "@/lib/workAnimals";
 
 const theme = {
   navy: "#081433",
@@ -34,12 +40,35 @@ const theme = {
 } as const;
 
 const profile = candidateLivingCv;
+const workAnimal = getWorkAnimal(profile.workAnimal);
+const secondaryWorkAnimal = getWorkAnimal(profile.secondaryWorkAnimal);
+const shadowWorkAnimal = getWorkAnimal(profile.shadowWorkAnimal);
+const blend = getBlendInterpretation({
+  primary: profile.workAnimal,
+  secondary: profile.secondaryWorkAnimal,
+  shadow: profile.shadowWorkAnimal,
+});
 const careerPaths = candidateLivingCv.careerPaths;
 const skills = candidateLivingCv.skills;
 const projects = candidateLivingCv.projects;
 const timeline = candidateLivingCv.experience;
 
 const projectIcons: LucideIcon[] = [PanelsTopLeft, Target, Trophy];
+
+const dimensionPoles = [
+  { key: "pace", label: "Pace", left: "Deliberate", right: "Decisive" },
+  { key: "purpose", label: "Purpose", left: "Maintainer", right: "Builder" },
+  { key: "people", label: "People", left: "Independent", right: "Relational" },
+  { key: "perspective", label: "Perspective", left: "Concrete", right: "Visionary" },
+] as const;
+
+function getDimensionLean(value: number) {
+  const distance = Math.abs(value - 50);
+
+  if (distance >= 30) return "Most lean strongly";
+  if (distance >= 18) return "Most lean clearly";
+  return "Most lean slightly";
+}
 
 function SectionCard({
   title,
@@ -57,8 +86,8 @@ function SectionCard({
       className="overflow-hidden rounded-2xl border bg-white shadow-sm"
       style={{ borderColor: theme.border }}
     >
-      <div className="flex min-h-[76px] items-center justify-between gap-4 rounded-t-2xl border-b border-[#F1F3F7] bg-white px-7 py-4 shadow-[0_8px_14px_rgba(21,34,56,0.035)]">
-        <div className="flex items-center gap-3">
+      <div className="flex min-h-[76px] flex-col items-start justify-between gap-4 rounded-t-2xl border-b border-[#F1F3F7] bg-white px-5 py-4 shadow-[0_8px_14px_rgba(21,34,56,0.035)] sm:flex-row sm:items-center sm:px-7">
+        <div className="flex min-w-0 items-center gap-3">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-full"
             style={{ backgroundColor: theme.soft }}
@@ -66,7 +95,7 @@ function SectionCard({
             <Icon className="h-5 w-5" style={{ color: theme.rose2 }} />
           </div>
 
-          <h2 className="text-lg font-semibold leading-none text-[#152238]">
+          <h2 className="text-lg font-semibold leading-tight text-[#152238]">
             {title}
           </h2>
         </div>
@@ -82,7 +111,7 @@ function SectionCard({
         )}
       </div>
 
-      <div className="px-7 py-5">{children}</div>
+      <div className="px-5 py-5 sm:px-7">{children}</div>
     </section>
   );
 }
@@ -363,6 +392,8 @@ function TimelineItem({
 }
 
 export default function LivingPortfolio() {
+  const [showTraitSummary, setShowTraitSummary] = useState(false);
+
   return (
     <div
       className="min-h-screen bg-[#fbfbfc] text-[#152238]"
@@ -442,7 +473,7 @@ export default function LivingPortfolio() {
                     </span>
                   </div>
                   <p className="text-base font-semibold text-white">
-                    {profile.profileStrength}% Strong
+                    {profile.workAnimalTestCompleted ? `${profile.profileStrength}% Strong` : "Incomplete"}
                   </p>
                 </div>
               </div>
@@ -499,6 +530,204 @@ export default function LivingPortfolio() {
               </div>
 
               <StrengthRing value={profile.profileStrength} />
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Menagerie Method" icon={Sparkles}>
+            <div
+              className="rounded-xl border bg-white p-5"
+              style={{ borderColor: profile.workAnimalTestCompleted ? theme.line : theme.border }}
+            >
+              {profile.workAnimalTestCompleted && workAnimal ? (
+                <div className="grid gap-5 lg:grid-cols-[1fr_.9fr]">
+                  <div className="rounded-2xl bg-[#101727] p-6 text-white">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-4xl">
+                        {workAnimal.emoji}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                          Your work animal
+                        </p>
+                        <h3 className="mt-1 text-3xl font-semibold text-white">
+                          The {workAnimal.name}
+                        </h3>
+                        <p className="mt-1 text-sm font-medium text-white/70">
+                          {workAnimal.archetype} · prototype saved result
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 space-y-3">
+                      {dimensionPoles.map((dimension) => {
+                        const value = workAnimal.dimensions[dimension.key];
+                        return (
+                        <div key={dimension.key} className="rounded-2xl border border-white/10 bg-white/[0.05] p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-white/78">{dimension.label}</span>
+                            <span className="text-xs font-semibold text-white/45">{getDimensionLean(value)}</span>
+                          </div>
+                          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/12">
+                            <div
+                              className="h-full rounded-full bg-[#F04D7A]"
+                              style={{ width: `${value}%` }}
+                            />
+                          </div>
+                          <div className="mt-2 flex justify-between text-xs font-semibold text-white/55">
+                            <span>{dimension.left}</span>
+                            <span>{dimension.right}</span>
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      {[
+                        { label: "Primary" as const, animal: workAnimal },
+                        { label: "Secondary" as const, animal: secondaryWorkAnimal },
+                        { label: "Shadow" as const, animal: shadowWorkAnimal },
+                      ].map(({ label, animal }) => (
+                        <div key={label} className="rounded-2xl border border-white/12 bg-white/[0.07] p-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                            {label}
+                          </p>
+                          <p className="mt-2 text-base font-semibold text-white">
+                            {animal ? `${animal.emoji} ${animal.name}` : "Unknown"}
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-white/55">
+                            {getAnimalRoleInTrio(label)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-5 rounded-xl border border-white/12 bg-white/[0.07] px-4 py-3 text-sm leading-6 text-white/65">
+                      This result is read-only in the Living Portfolio. Retake or update the Menagerie Method from your Profile.
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4">
+                    <p className="text-sm leading-7" style={{ color: theme.muted }}>
+                      {workAnimal.short}
+                    </p>
+
+                    <div className="rounded-xl border bg-white p-4" style={{ borderColor: theme.border }}>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.rose2 }}>
+                        Blend interpretation
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold" style={{ color: theme.navy }}>
+                        {blend.title}
+                      </h3>
+                      <p className="mt-3 text-sm leading-7" style={{ color: theme.muted }}>
+                        {blend.summary}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowTraitSummary((value) => !value)}
+                        className="mt-4 inline-flex rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:bg-[#FDE7EE]"
+                        style={{
+                          borderColor: theme.line,
+                          backgroundColor: theme.soft,
+                          color: theme.rose2,
+                        }}
+                      >
+                        {showTraitSummary ? "Hide full trait summary" : "View full trait summary"}
+                      </button>
+                      {showTraitSummary && (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <p className="text-sm font-semibold text-emerald-700">What this gives you</p>
+                            <div className="mt-2 space-y-2">
+                              {blend.strengths.map((item) => (
+                                <p key={item} className="rounded-lg bg-emerald-50 px-3 py-2 text-sm leading-5" style={{ color: theme.navy }}>
+                                  {item}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-rose-700">What to watch</p>
+                            <div className="mt-2 space-y-2">
+                              {blend.watchouts.map((item) => (
+                                <p key={item} className="rounded-lg bg-rose-50 px-3 py-2 text-sm leading-5" style={{ color: theme.navy }}>
+                                  {item}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-xl border bg-[#F8FFF9] p-4" style={{ borderColor: "#BBF7D0" }}>
+                        <p className="text-sm font-semibold text-emerald-700">You would thrive in</p>
+                        <div className="mt-3 space-y-2">
+                          {workAnimal.roles.slice(0, 3).map((role) => (
+                            <p key={role} className="rounded-lg bg-white px-3 py-2 text-sm font-semibold" style={{ color: theme.navy }}>
+                              {role}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border bg-[#FFF7F7] p-4" style={{ borderColor: "#FECACA" }}>
+                        <p className="text-sm font-semibold text-rose-700">You may struggle in</p>
+                        <div className="mt-3 space-y-2">
+                          {["HR Partner", "Head of People", "Public Speaker"].map((role) => (
+                            <p key={role} className="rounded-lg bg-white px-3 py-2 text-sm font-semibold" style={{ color: theme.navy }}>
+                              {role}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-[#FFF2F6] p-4">
+                      <p className="text-sm font-semibold" style={{ color: theme.navy }}>
+                        CareerOS interpretation
+                      </p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {[
+                          ["Core strength", "Patient judgement under complexity"],
+                          ["Best-fit work", "Research and analysis"],
+                          ["Growth area", "Show the thinking earlier"],
+                          ["Used for", "Job fit, blind spots, team compatibility, and supervisor preparation"],
+                        ].map(([label, value]) => (
+                          <div key={label} className="rounded-lg bg-white px-3 py-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.muted }}>
+                              {label}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.navy }}>
+                              {value}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 lg:grid-cols-[1fr_220px] lg:items-center">
+                  <div>
+                    <h3 className="text-xl font-semibold" style={{ color: theme.navy }}>
+                      Animal trait unknown
+                    </h3>
+                    <p className="mt-3 text-sm leading-7" style={{ color: theme.muted }}>
+                      Your Living Portfolio is incomplete until the Menagerie Method test is finished. CareerOS will use it to explain role fit, working-style gaps, and supervisor preparation.
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-[#FFF2F6] p-4 text-center">
+                    <p className="text-3xl font-semibold" style={{ color: theme.rose2 }}>
+                      76%
+                    </p>
+                    <p className="mt-1 text-sm font-semibold" style={{ color: theme.navy }}>
+                      Profile complete
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </SectionCard>
 

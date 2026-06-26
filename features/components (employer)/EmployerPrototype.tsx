@@ -18,6 +18,7 @@ import {
   FilePlus2,
   LockKeyhole,
   MailPlus,
+  Menu,
   MapPin,
   MessageSquareText,
   PenLine,
@@ -46,6 +47,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  getWorkAnimal,
+  supervisorGuide,
+  topAnimalsForJob,
+  workAnimals,
+} from "@/lib/workAnimals";
+import type { WorkAnimalSlug } from "@/lib/workAnimals";
 import {
   initialHiringSettings,
   navItems,
@@ -306,6 +314,8 @@ export function EmployerPrototype() {
     deadline: string;
     skills: string[];
     screeningQuestion: string;
+    supervisorName: string;
+    supervisorAnimal: WorkAnimalSlug | "";
   }) {
     const title = draft.title.trim();
     const department = draft.department.trim().toLowerCase();
@@ -349,6 +359,8 @@ export function EmployerPrototype() {
       shortlisted: 0,
       hired: 0,
       expiresIn: draft.deadline ? Math.max(0, Math.ceil((new Date(draft.deadline).getTime() - Date.now()) / 86400000)) : 30,
+      supervisorName: draft.supervisorName.trim(),
+      supervisorAnimal: draft.supervisorAnimal || undefined,
     };
 
     setJobs((currentJobs) => [newJob, ...currentJobs]);
@@ -1041,14 +1053,14 @@ function DashboardPage({
                       ))}
                     </div>
                   </div>
-                  <div className="grid min-w-[260px] grid-cols-3 gap-2">
+                  <div className="grid w-full grid-cols-3 gap-2 md:w-auto md:min-w-[260px]">
                     <JobSignal label="Applicants" value={String(job.applicants)} />
                     <JobSignal label="Shortlist" value={String(job.shortlisted)} />
                     <JobSignal label="Hired" value={String(job.hired)} />
                   </div>
                 </div>
-                <div className="mt-5 flex items-center justify-between">
-                  <div className="h-2 w-40 overflow-hidden rounded-full bg-zinc-100">
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="h-2 w-full max-w-40 overflow-hidden rounded-full bg-zinc-100">
                     <AnimatedProgress value={Math.min(100, Math.max(18, job.applicants * 3))} delay={index * 0.06} />
                   </div>
                   <span className="flex items-center text-sm font-medium text-pink-600">
@@ -2273,6 +2285,15 @@ function JobDetailPage({
   const applied = candidates.filter((candidate) => candidate.appliedToJob).length;
   const reengagement = candidates.filter((candidate) => candidate.pastSecondStage && !candidate.appliedToJob).length;
   const shortlisted = candidates.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited").length;
+  const topAnimalMatches = topAnimalsForJob({
+    title: job.title,
+    skills: job.skills,
+    historicalAnimalSlugs: candidates
+      .map((candidate) => candidate.livingCvDetails.workAnimal)
+      .filter(Boolean) as WorkAnimalSlug[],
+  });
+  const managerAnimal = getWorkAnimal(job.supervisorAnimal);
+  const managerGuide = supervisorGuide(job.supervisorAnimal);
 
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
@@ -2352,6 +2373,56 @@ function JobDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card className="career-form-panel rounded-2xl">
+          <CardHeader>
+            <CardTitle>Menagerie role signal</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {topAnimalMatches.map((match) => (
+              <div key={match.animal.slug} className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold">
+                    <span className="mr-1">{match.animal.emoji}</span>
+                    {match.animal.name}
+                  </p>
+                  <span className="text-sm font-semibold text-pink-700">{match.score}%</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-pink-50">
+                  <div className="h-full rounded-full bg-pink-500" style={{ width: `${match.score}%` }} />
+                </div>
+                <p className="mt-1 text-xs text-zinc-500">{match.animal.archetype}</p>
+              </div>
+            ))}
+            <div className="rounded-2xl border border-pink-100 bg-pink-50 p-3 text-sm leading-5 text-pink-900">
+              AI converts this role and historical successful candidates into a 100% animal-trait breakdown, then highlights the top 3 shares.
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="career-form-panel rounded-2xl">
+          <CardHeader>
+            <CardTitle>Reporting manager</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm leading-6 text-zinc-600">
+            <p className="font-semibold text-zinc-950">{job.supervisorName || "Not set"}</p>
+            <p>
+              {managerAnimal ? `${managerAnimal.emoji} ${managerAnimal.name}, ${managerAnimal.archetype}` : "Animal trait not set"}
+            </p>
+            <div className="space-y-2">
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                <p className="font-medium text-zinc-900">Candidate guidance</p>
+                <p className="mt-1">{managerGuide.candidateResponse}</p>
+              </div>
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                <p className="font-medium text-zinc-900">Why it works</p>
+                <p className="mt-1">{managerGuide.whyItWorks}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </section>
   );
 }
@@ -2378,6 +2449,8 @@ function PostJobPage({
     deadline: string;
     skills: string[];
     screeningQuestion: string;
+    supervisorName: string;
+    supervisorAnimal: WorkAnimalSlug | "";
   }) => boolean;
   onBack: () => void;
 }) {
@@ -2393,6 +2466,8 @@ function PostJobPage({
   const [skillInput, setSkillInput] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [screeningQuestion, setScreeningQuestion] = useState("");
+  const [supervisorName, setSupervisorName] = useState("");
+  const [supervisorAnimal, setSupervisorAnimal] = useState<WorkAnimalSlug | "">("");
   const [publishAttempted, setPublishAttempted] = useState(false);
 
   const normalizedTitle = title.trim();
@@ -2403,6 +2478,7 @@ function PostJobPage({
   const normalizedDescription = description.trim();
   const normalizedRequirements = requirements.trim();
   const normalizedQuestion = screeningQuestion.trim();
+  const normalizedSupervisorName = supervisorName.trim();
   const cleanSkills = skills.map((skill) => skill.trim()).filter(Boolean);
 
   const duplicateTitle = jobs.some((job) =>
@@ -2469,6 +2545,11 @@ function PostJobPage({
       complete: normalizedQuestion.length > 0,
     },
     {
+      label: "Reporting manager animal added",
+      detail: "Add who the role reports to and their Menagerie Method animal.",
+      complete: normalizedSupervisorName.length > 0 && Boolean(supervisorAnimal),
+    },
+    {
       label: "No duplicate active job title",
       detail: "This title already exists in the same department.",
       complete: !(settings.validation.duplicateTitle && duplicateTitle),
@@ -2504,6 +2585,8 @@ function PostJobPage({
       deadline,
       skills: cleanSkills,
       screeningQuestion: normalizedQuestion,
+      supervisorName: normalizedSupervisorName,
+      supervisorAnimal,
     });
   }
 
@@ -2661,6 +2744,40 @@ function PostJobPage({
                   className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
                 />
               </Field>
+            </StepBlock>
+            <StepBlock step="6" title="Reporting manager fit">
+              <div className="grid gap-3 md:grid-cols-[1fr_1.4fr]">
+                <Field label="Reports to *">
+                  <Input
+                    value={supervisorName}
+                    onChange={(event) => setSupervisorName(event.target.value)}
+                    placeholder="e.g. Sarah Lee"
+                  />
+                </Field>
+                <Field label="Manager work animal *">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {workAnimals.map((animal) => (
+                      <button
+                        key={animal.slug}
+                        type="button"
+                        onClick={() => setSupervisorAnimal(animal.slug)}
+                        className={cn(
+                          "min-h-12 rounded-xl px-3 text-left text-sm font-medium ring-1 transition",
+                          supervisorAnimal === animal.slug
+                            ? "bg-pink-600 text-white ring-pink-600 shadow-lg shadow-pink-500/15"
+                            : "bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50"
+                        )}
+                      >
+                        <span className="mr-1">{animal.emoji}</span>
+                        {animal.name}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-zinc-500">
+                Candidates will see how to prepare for this supervisor&apos;s working style before applying.
+              </p>
             </StepBlock>
             {publishAttempted && !canPublish && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -2883,6 +3000,7 @@ function CandidateProfilePage({
   const isApproached = candidate.source === "Potential" && candidate.stage === "Approached";
   const canShortlist = candidate.appliedToJob && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
   const livingCv = candidate.livingCvDetails;
+  const candidateAnimal = getWorkAnimal(livingCv.workAnimal);
   const skillGroups = [
     ["Technical", livingCv.skills.technical],
     ["Tools", livingCv.skills.tools],
@@ -2993,8 +3111,33 @@ function CandidateProfilePage({
                   <p className="font-semibold text-zinc-900">{livingCv.profileStrength}%</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {candidate.evidence.map((item) => <Badge key={item} variant="secondary">{item}</Badge>)}
+              <div className="rounded-2xl border border-pink-100 bg-pink-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">Menagerie Method</p>
+                {livingCv.workAnimalTestCompleted && candidateAnimal ? (
+                  <>
+                    <h3 className="mt-2 text-lg font-semibold text-zinc-950">
+                      {candidateAnimal.emoji} {candidateAnimal.name}, {candidateAnimal.archetype}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-zinc-700">{candidateAnimal.short}</p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-zinc-700">
+                    Animal trait is unknown. This candidate profile is incomplete until the test is finished.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2 pt-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">
+                  Employer evidence
+                </p>
+                {candidate.evidence.map((item) => (
+                  <div key={item} className="flex gap-2 rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                    <Check className="mt-0.5 size-4 shrink-0 text-pink-600" />
+                    <p className="min-w-0 text-sm leading-6 text-zinc-700">
+                      {item}
+                    </p>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -3182,6 +3325,7 @@ function ShortlistPage({
   const featured =
     shortlisted.find((candidate) => candidate.id === selectedShortlistId) ??
     shortlisted[0];
+  const featuredAnimal = getWorkAnimal(featured?.livingCvDetails.workAnimal);
   const activeShortlist = shortlisted.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited" || candidate.stage === "Hired");
   const filteredShortlist = activeShortlist.filter((candidate) => candidate.status === statusFilter);
   const waitingCandidates = shortlisted.filter((candidate) => candidate.status === "Waiting");
@@ -3388,9 +3532,9 @@ function ShortlistPage({
                 </div>
                 <p className="mt-3 text-sm leading-6 text-zinc-600">{candidate.evidence[0]}</p>
             </div>
-              <div className="min-w-[220px] space-y-3">
+              <div className="w-full space-y-3 md:w-[220px] md:shrink-0">
                 <ScoreBar label="Match" value={candidateScore(candidate, scoreWeights)} compact />
-                <div className="flex flex-wrap gap-2">
+                <div className="grid gap-2 sm:flex sm:flex-wrap">
               <Button variant="outline" disabled={isClosed} onClick={(event) => {
                 event.stopPropagation();
                 confirmRemove([candidate]);
@@ -3428,6 +3572,11 @@ function ShortlistPage({
                   <div>
                     <p className="font-semibold">{featured.name}</p>
                     <p className="text-sm text-zinc-500">{featured.title}</p>
+                    {featuredAnimal && (
+                      <p className="mt-2 inline-flex rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700 ring-1 ring-pink-100">
+                        {featuredAnimal.emoji} {featuredAnimal.name}
+                      </p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <MiniStat label="Skill" value={`${featured.skillFit}%`} />
@@ -4272,6 +4421,7 @@ function CompanyNav({
   onNavigate: (page: Page) => void;
   onLogOut: () => void;
 }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const activeSection =
     active === "job-detail" || active === "candidates" || active === "candidate-profile" || active === "shortlist" || active === "invite" || active === "hire-email"
       ? "jobs"
@@ -4283,112 +4433,188 @@ function CompanyNav({
     profile: Building2,
     settings: ShieldCheck,
   } as const;
+  const activeItem = navItems.find((item) => item.page === activeSection);
+
+  function handleNavigate(nextPage: Page) {
+    setMobileMenuOpen(false);
+    onNavigate(nextPage);
+  }
 
   return (
-    <motion.aside
-      initial={{ x: -18, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.34, ease: smoothEase }}
-      style={
-        {
-          "--sidebar-top": `${topOffset}px`,
-        } as React.CSSProperties
-      }
-      className={cn(
-        "z-30 border-b bg-white/95 backdrop-blur transition-[width,top,height] duration-300 lg:fixed lg:left-0 lg:top-[var(--sidebar-top)] lg:h-[calc(100vh-var(--sidebar-top))] lg:overflow-y-auto lg:border-b-0 lg:border-r lg:shadow-[10px_0_35px_rgba(24,24,27,0.05)]",
-        collapsed ? "lg:w-24" : "lg:w-72"
-      )}
-    >
-      <div className={cn("mx-auto flex w-full max-w-7xl flex-col items-start gap-3 px-5 py-3 lg:min-h-full lg:pb-6 lg:pt-4", collapsed ? "lg:px-3" : "lg:px-4")}>
-        <div
-          className={cn(
-            "w-full rounded-3xl border border-pink-100 bg-[linear-gradient(135deg,#fff,#fff7fb)] transition-all",
-            collapsed ? "p-3" : "p-4"
-          )}
-        >
-          <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-3")}>
-            <div className={cn("min-w-0", collapsed && "sr-only")}>
-              <p className="truncate text-2xl font-semibold tracking-normal text-pink-600">CareerOS</p>
-              <span className="mt-2 inline-flex rounded-full bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-700 ring-1 ring-pink-100">
-                Employer
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onCollapsedChange(!collapsed)}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <ChevronRight className={cn("size-4 transition", !collapsed && "rotate-180")} />
-            </button>
+    <>
+      <div className="sticky top-0 z-40 border-b border-zinc-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold tracking-normal text-pink-600">CareerOS Employer</p>
+            <p className="mt-0.5 truncate text-xs font-medium text-zinc-500">
+              {activeItem?.label ?? "Dashboard"} · {rolePermissions[role].label}
+            </p>
           </div>
-
-          {collapsed ? (
-            <div className="mt-3 flex justify-center">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
-                OS
-              </span>
-            </div>
-          ) : (
-            null
-          )}
-        </div>
-
-        <motion.div
-          layout
-          className={cn("grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-col", collapsed && "lg:grid-cols-1")}
-        >
-          {navItems.map((item) => (
-            <SidebarButton
-              key={item.page}
-              active={activeSection === item.page}
-              icon={navIcon[item.page as keyof typeof navIcon]}
-              label={item.label}
-              collapsed={collapsed}
-              onClick={() => onNavigate(item.page)}
-            />
-          ))}
-        </motion.div>
-
-        {collapsed ? (
           <button
             type="button"
-            onClick={() => onCollapsedChange(false)}
-            className="mt-auto flex w-full items-center justify-center rounded-2xl border bg-white p-3 text-xs font-semibold text-pink-700 shadow-sm ring-1 ring-pink-100 transition hover:bg-pink-50"
-            title={`${role}: ${rolePermissions[role].label}`}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-800 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
+            aria-label={mobileMenuOpen ? "Close employer navigation" : "Open employer navigation"}
+            aria-expanded={mobileMenuOpen}
           >
-            {role.slice(0, 1)}
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-        ) : (
-          <div className="w-full lg:mt-auto">
-            <div className="career-clear-card w-full rounded-2xl p-3">
-            <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
-            <select
-              value={role}
-              onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
-              className="mt-2 h-10 w-full rounded-xl border bg-white px-3 text-sm"
-              aria-label="Preview role"
+        </div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: smoothEase }}
+              className="mt-3 overflow-hidden rounded-3xl border border-zinc-200 bg-white p-3 shadow-xl shadow-zinc-950/10"
             >
-              {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
-            </select>
-            <p className="mt-2 text-xs leading-5 text-zinc-500">
-              Use this to test what each company role can access.
-            </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-3 w-full justify-start gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-              onClick={onLogOut}
-            >
-              <LogOut className="size-4" />
-              Log out
-            </Button>
-          </div>
-        )}
+              <div className="grid gap-2">
+                {navItems.map((item) => (
+                  <SidebarButton
+                    key={item.page}
+                    active={activeSection === item.page}
+                    icon={navIcon[item.page as keyof typeof navIcon]}
+                    label={item.label}
+                    collapsed={false}
+                    onClick={() => handleNavigate(item.page)}
+                  />
+                ))}
+              </div>
+              <div className="mt-3 rounded-2xl bg-zinc-50 p-3 ring-1 ring-zinc-100">
+                <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
+                <select
+                  value={role}
+                  onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
+                  className="mt-2 h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                  aria-label="Preview role"
+                >
+                  {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
+                </select>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full justify-center gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onLogOut();
+                }}
+              >
+                <LogOut className="size-4" />
+                Log out
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </motion.aside>
+
+      <motion.aside
+        initial={{ x: -18, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.34, ease: smoothEase }}
+        style={
+          {
+            "--sidebar-top": `${topOffset}px`,
+          } as React.CSSProperties
+        }
+        className={cn(
+          "z-30 hidden border-b bg-white/95 backdrop-blur transition-[width,top,height] duration-300 lg:fixed lg:left-0 lg:top-[var(--sidebar-top)] lg:block lg:h-[calc(100vh-var(--sidebar-top))] lg:overflow-y-auto lg:border-b-0 lg:border-r lg:shadow-[10px_0_35px_rgba(24,24,27,0.05)]",
+          collapsed ? "lg:w-24" : "lg:w-72"
+        )}
+      >
+        <div className={cn("mx-auto flex w-full max-w-7xl flex-col items-start gap-3 px-5 py-3 lg:min-h-full lg:pb-6 lg:pt-4", collapsed ? "lg:px-3" : "lg:px-4")}>
+          <div
+            className={cn(
+              "w-full rounded-3xl border border-pink-100 bg-[linear-gradient(135deg,#fff,#fff7fb)] transition-all",
+              collapsed ? "p-3" : "p-4"
+            )}
+          >
+            <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-3")}>
+              <div className={cn("min-w-0", collapsed && "sr-only")}>
+                <p className="truncate text-2xl font-semibold tracking-normal text-pink-600">CareerOS</p>
+                <span className="mt-2 inline-flex rounded-full bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-700 ring-1 ring-pink-100">
+                  Employer
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onCollapsedChange(!collapsed)}
+                className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <ChevronRight className={cn("size-4 transition", !collapsed && "rotate-180")} />
+              </button>
+            </div>
+
+            {collapsed ? (
+              <div className="mt-3 flex justify-center">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
+                  OS
+                </span>
+              </div>
+            ) : (
+              null
+            )}
+          </div>
+
+          <motion.div
+            layout
+            className={cn("grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-col", collapsed && "lg:grid-cols-1")}
+          >
+            {navItems.map((item) => (
+              <SidebarButton
+                key={item.page}
+                active={activeSection === item.page}
+                icon={navIcon[item.page as keyof typeof navIcon]}
+                label={item.label}
+                collapsed={collapsed}
+                onClick={() => onNavigate(item.page)}
+              />
+            ))}
+          </motion.div>
+
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={() => onCollapsedChange(false)}
+              className="mt-auto flex w-full items-center justify-center rounded-2xl border bg-white p-3 text-xs font-semibold text-pink-700 shadow-sm ring-1 ring-pink-100 transition hover:bg-pink-50"
+              title={`${role}: ${rolePermissions[role].label}`}
+            >
+              {role.slice(0, 1)}
+            </button>
+          ) : (
+            <div className="w-full lg:mt-auto">
+              <div className="career-clear-card w-full rounded-2xl p-3">
+              <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
+              <select
+                value={role}
+                onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
+                className="mt-2 h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                aria-label="Preview role"
+              >
+                {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
+              </select>
+              <p className="mt-2 text-xs leading-5 text-zinc-500">
+                Use this to test what each company role can access.
+              </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full justify-start gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                onClick={onLogOut}
+              >
+                <LogOut className="size-4" />
+                Log out
+              </Button>
+            </div>
+          )}
+        </div>
+      </motion.aside>
+    </>
   );
 }
 
@@ -4570,6 +4796,7 @@ function CandidateEvidence({
   onNavigate: (page: Page) => void;
 }) {
   const livingCv = candidate.livingCvDetails;
+  const animal = getWorkAnimal(livingCv.workAnimal);
 
   return (
     <aside className="w-full min-w-0 space-y-4 lg:w-[360px] lg:shrink-0 lg:grow-0 lg:basis-[360px]">
@@ -4626,11 +4853,19 @@ function CandidateEvidence({
                 <AnimatedProgress value={candidateScore(candidate, scoreWeights)} />
             </div>
           </div>
+          <div className="rounded-2xl bg-pink-50 p-3 ring-1 ring-pink-100">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-700">Work animal</p>
+            <p className="mt-1 text-sm font-semibold text-zinc-950">
+              {livingCv.workAnimalTestCompleted && animal
+                ? `${animal.emoji} ${animal.name}, ${animal.archetype}`
+                : "Unknown - profile incomplete"}
+            </p>
+          </div>
           <ul className="space-y-2">
             {livingCv.employerEvidence.map((item) => (
               <li key={item} className="flex gap-2 text-sm leading-5">
                 <Check className="mt-0.5 size-4 shrink-0 text-pink-600" />
-                <span className="text-zinc-700">{item}</span>
+                <span className="min-w-0 text-zinc-700">{item}</span>
               </li>
             ))}
           </ul>

@@ -1,3 +1,5 @@
+import type { WorkAnimalSlug } from "@/lib/workAnimals";
+
 export type CareerPathAlignment = {
   title: string;
   match: number;
@@ -56,6 +58,10 @@ export type CandidateLivingCv = {
   educationLabel: string;
   location: string;
   profileStrength: number;
+  workAnimal?: WorkAnimalSlug;
+  secondaryWorkAnimal?: WorkAnimalSlug;
+  shadowWorkAnimal?: WorkAnimalSlug;
+  workAnimalTestCompleted: boolean;
   careerPaths: CareerPathAlignment[];
   skills: {
     technical: string[];
@@ -83,6 +89,10 @@ export const candidateLivingCv: CandidateLivingCv = {
   educationLabel: "BSc Computer Science",
   location: "Kuala Lumpur",
   profileStrength: 82,
+  workAnimal: "owl",
+  secondaryWorkAnimal: "fox",
+  shadowWorkAnimal: "peacock",
+  workAnimalTestCompleted: true,
   careerPaths: [
     {
       title: "Data Analyst",
@@ -241,6 +251,7 @@ export const candidateLivingCvById: Record<number, CandidateLivingCv> = {
     location: "Singapore",
     experienceLabel: "6 years",
     educationLabel: "BSc Information Systems",
+    workAnimal: "fox",
     skills: {
       technical: ["Product Strategy", "HR Tech", "AI Workflows", "Enterprise SaaS", "Analytics"],
       tools: ["Jira", "Figma", "Amplitude", "Looker"],
@@ -263,6 +274,7 @@ export const candidateLivingCvById: Record<number, CandidateLivingCv> = {
     location: "Kuala Lumpur",
     experienceLabel: "4 years",
     educationLabel: "BA Design",
+    workAnimal: "peacock",
     skills: {
       technical: ["UX Research", "Activation", "Design Systems", "Prototyping", "Experimentation"],
       tools: ["Figma", "FigJam", "Maze", "Notion"],
@@ -285,6 +297,7 @@ export const candidateLivingCvById: Record<number, CandidateLivingCv> = {
     location: "Remote",
     experienceLabel: "9 years",
     educationLabel: "BBA Business Analytics",
+    workAnimal: "eagle",
     skills: {
       technical: ["Product Discovery", "PLG", "0-1 Product", "Strategy", "User Research"],
       tools: ["Linear", "Figma", "Mixpanel", "Miro"],

@@ -7,7 +7,10 @@ import {
   Building2,
   ChevronRight,
   MapPin,
+  Sparkles,
 } from "lucide-react";
+import { candidateLivingCv } from "@/lib/candidateLivingCvData";
+import { getWorkAnimal } from "@/lib/workAnimals";
 
 const theme = {
   navy: "#081433",
@@ -21,6 +24,7 @@ const theme = {
 } as const;
 
 export default function MyApplications() {
+  const candidateAnimal = getWorkAnimal(candidateLivingCv.workAnimal);
   const applications = [
     {
       title: "BI Analyst",
@@ -76,7 +80,7 @@ export default function MyApplications() {
         fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
       }}
     >
-      <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
 
         {/* Header */}
         <div
@@ -90,7 +94,7 @@ export default function MyApplications() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#081433]/95 via-[#081433]/82 to-[#081433]/45" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#081433]/70 via-transparent to-transparent" />
 
-          <div className="relative z-10 p-8">
+          <div className="relative z-10 p-5 sm:p-8">
             <div className="mb-5 flex flex-wrap gap-2">
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
                 Application tracker
@@ -100,7 +104,7 @@ export default function MyApplications() {
               </span>
             </div>
             <h1
-              className="text-4xl font-semibold tracking-normal text-white md:text-5xl"
+              className="text-3xl font-semibold tracking-normal text-white sm:text-4xl md:text-5xl"
             >
               My Applications
             </h1>
@@ -147,7 +151,7 @@ export default function MyApplications() {
 
           {/* Applications */}
           <section
-            className="rounded-2xl border bg-white p-6 shadow-sm"
+            className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6"
             style={{ borderColor: theme.border }}
           >
             <div className="mb-5 flex items-center justify-between">
@@ -175,18 +179,18 @@ export default function MyApplications() {
                     className="block rounded-xl border p-4 transition hover:border-[#F04D7A] hover:bg-[#FFF7FA]"
                     style={{ borderColor: theme.border }}
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-                    <div className="flex gap-4">
+                    <div className="flex min-w-0 gap-4">
 
                       <div
-                        className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white"
                         style={{ backgroundColor: theme.rose2 }}
                       >
                         <Building2 size={22} />
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
                         <h3
                           className="text-lg font-semibold"
                           style={{ color: theme.navy }}
@@ -219,10 +223,17 @@ export default function MyApplications() {
                         >
                           Applied {job.applied}
                         </p>
+
+                        {candidateAnimal && (
+                          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#FFF2F6] px-3 py-1.5 text-xs font-semibold text-[#E00046]">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Your trait: {candidateAnimal.emoji} {candidateAnimal.name}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between gap-3 sm:justify-start">
 
                       <span
                         className="rounded-lg px-3 py-2 text-xs font-semibold"
@@ -248,7 +259,7 @@ export default function MyApplications() {
 
           {/* Saved Jobs */}
           <section
-            className="rounded-2xl border bg-white p-6 shadow-sm"
+            className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6"
             style={{ borderColor: theme.border }}
           >
             <div className="mb-5 flex items-center justify-between">
@@ -275,18 +286,18 @@ export default function MyApplications() {
                   className="rounded-xl border p-4 transition hover:border-[#F04D7A] hover:bg-[#FFF7FA]"
                   style={{ borderColor: theme.border }}
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-                    <div className="flex gap-4">
+                    <div className="flex min-w-0 gap-4">
 
                       <div
-                        className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white"
                         style={{ backgroundColor: theme.rose2 }}
                       >
                         <Building2 size={22} />
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
                         <h3
                           className="text-lg font-semibold"
                           style={{ color: theme.navy }}
@@ -319,15 +330,22 @@ export default function MyApplications() {
                         >
                           Saved {job.saved}
                         </p>
+
+                        {candidateAnimal && (
+                          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#FFF2F6] px-3 py-1.5 text-xs font-semibold text-[#E00046]">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Your trait: {candidateAnimal.emoji} {candidateAnimal.name}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="grid gap-2 sm:flex">
 
 
                       <Link
                         href="/?view=jobapplication"
-                        className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(224,0,70,0.18)]"
+                        className="rounded-lg px-4 py-2 text-center text-sm font-semibold text-white shadow-[0_10px_22px_rgba(224,0,70,0.18)]"
                         style={{ backgroundColor: theme.rose2 }}
                       >
                         Apply Now
