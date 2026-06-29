@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Edit3,
+  Eye,
   ExternalLink,
   FileText,
   GraduationCap,
@@ -18,6 +19,12 @@ import {
   LucideIcon,
 } from "lucide-react";
 import Navbar from "@/components/navbar/Navbar";
+import {
+  getAnimalRoleInTrio,
+  getBlendInterpretation,
+  getWorkAnimal,
+  type WorkAnimalSlug,
+} from "@/lib/workAnimals";
 
 const theme = {
   navy: "#081433",
@@ -543,6 +550,40 @@ function isPdfFile(file: File) {
   );
 }
 
+function getLikelyStruggleRoles(animalSlug?: WorkAnimalSlug) {
+  const struggleRoles: Partial<Record<WorkAnimalSlug, string[]>> = {
+    lion: ["Consensus Coordinator", "Back-office Clerk", "Pure Research Assistant"],
+    eagle: ["Routine Administrator", "Compliance Processor", "Ticket Support Agent"],
+    wolf: ["Front Desk Host", "Community Associate", "Group Facilitator"],
+    owl: ["HR Partner", "Head of People", "Public Speaker"],
+    dolphin: ["Solo Analyst", "Forensic Auditor", "Night Operations Monitor"],
+    peacock: ["Data Entry Clerk", "Quality Inspector", "Silent Researcher"],
+    elephant: ["Crisis Trader", "Growth Hacker", "Cold Sales Hunter"],
+    horse: ["0-1 Founder", "Brand Evangelist", "Venture Scout"],
+    ant: ["Celebrity Host", "Improvisational Sales Lead", "Vision Evangelist"],
+    cheetah: ["Long-cycle Archivist", "Governance Reviewer", "Policy Maintainer"],
+    fox: ["Routine Processor", "Scripted Support Agent", "Manual QA Clerk"],
+    octopus: ["Single-task Operator", "Static Compliance Clerk", "Legacy System Custodian"],
+  };
+
+  return animalSlug ? struggleRoles[animalSlug] ?? [] : ["Role fit locked", "Clash patterns locked", "Blind spots locked"];
+}
+
+const dimensionPoles = [
+  { key: "pace", label: "Pace", left: "Deliberate", right: "Decisive" },
+  { key: "purpose", label: "Purpose", left: "Maintainer", right: "Builder" },
+  { key: "people", label: "People", left: "Independent", right: "Relational" },
+  { key: "perspective", label: "Perspective", left: "Concrete", right: "Visionary" },
+] as const;
+
+function getDimensionLean(value: number) {
+  const distance = Math.abs(value - 50);
+
+  if (distance >= 30) return "Most lean strongly";
+  if (distance >= 18) return "Most lean clearly";
+  return "Most lean slightly";
+}
+
 export default function UserProfile() {
   const [modal, setModal] = useState<ModalType>(null);
   const [editingExperienceIndex, setEditingExperienceIndex] = useState<
@@ -631,6 +672,7 @@ export default function UserProfile() {
   ]);
 
   const [githubLink, setGithubLink] = useState("github.com/jasontan");
+  const workAnimal: WorkAnimalSlug = "owl";
 
   const [aboutDraft, setAboutDraft] = useState(about);
   const [detailsDraft, setDetailsDraft] = useState<ProfileDetails>(details);
@@ -724,6 +766,17 @@ export default function UserProfile() {
     setModal("edit-github");
   };
 
+  const currentAnimal = getWorkAnimal(workAnimal ?? undefined);
+  const secondaryAnimal = getWorkAnimal("fox");
+  const shadowAnimal = getWorkAnimal("peacock");
+  const blend = getBlendInterpretation({
+    primary: workAnimal,
+    secondary: "fox",
+    shadow: "peacock",
+  });
+  const [showTraitSummary, setShowTraitSummary] = useState(false);
+  const profileCompleteness = currentAnimal ? 100 : 76;
+
   return (
     <div
       className="min-h-screen bg-[#fbfbfc] text-[#152238]"
@@ -732,7 +785,7 @@ export default function UserProfile() {
       }}
     >
 
-      <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
         {/* Top Profile + About Section */}
         <section
           className="mb-5 overflow-hidden rounded-2xl border bg-white shadow-sm"
@@ -740,9 +793,9 @@ export default function UserProfile() {
         >
           <div className="grid lg:grid-cols-[360px_1fr]">
             {/* Left profile section */}
-            <div className="border-r border-[#E6E6E6] border-l-4 border-l-[#E00046] bg-white px-8 py-8 shadow-[8px_0_18px_rgba(15,15,15,0.035)]">
+            <div className="border-l-4 border-l-[#E00046] bg-white px-5 py-7 shadow-[8px_0_18px_rgba(15,15,15,0.035)] sm:px-8 lg:border-r lg:border-[#E6E6E6]">
               <div className="flex flex-col items-center text-center">
-                <div className="h-44 w-44 overflow-hidden rounded-full border-8 border-[#FFF2F6] shadow-sm">
+                <div className="h-36 w-36 overflow-hidden rounded-full border-8 border-[#FFF2F6] shadow-sm sm:h-44 sm:w-44">
                   <img
                     src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?auto=format&fit=crop&w=700&q=80"
                     alt="Jason Tan profile"
@@ -766,18 +819,19 @@ export default function UserProfile() {
                   <ExternalLink className="h-4 w-4" />
                   View Portfolio
                 </Link>
+
               </div>
             </div>
 
             {/* Right section */}
-            <div className="bg-white px-8 py-8">
+            <div className="bg-white px-5 py-6 sm:px-8 sm:py-8">
               <div
-                className="rounded-[1.5rem] px-8 py-7 text-white shadow-[0_16px_34px_rgba(15,15,15,0.16)]"
+                className="rounded-[1.5rem] px-5 py-6 text-white shadow-[0_16px_34px_rgba(15,15,15,0.16)] sm:px-8 sm:py-7"
                 style={{ backgroundColor: theme.detailDark }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="max-w-4xl">
-                    <p className="text-2xl font-bold leading-none text-white">
+                    <p className="text-2xl font-bold leading-tight text-white">
                       About
                     </p>
 
@@ -789,7 +843,7 @@ export default function UserProfile() {
                   <EditIconButton onClick={openEditAbout} dark />
                 </div>
 
-                <div className="mt-7 grid gap-4 md:grid-cols-3">
+                <div className="mt-7 grid gap-4 md:grid-cols-4">
                   <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
                     <div className="mb-3 flex items-center gap-2 text-white/55">
                       <MapPin className="h-4 w-4" />
@@ -825,6 +879,18 @@ export default function UserProfile() {
                       {details.phone}
                     </p>
                   </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
+                    <div className="mb-3 flex items-center gap-2 text-white/55">
+                      <Eye className="h-4 w-4" />
+                      <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                        Completeness
+                      </span>
+                    </div>
+                    <p className="text-base font-semibold text-white">
+                      {profileCompleteness}% {currentAnimal ? "Complete" : "Incomplete"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -835,6 +901,223 @@ export default function UserProfile() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
           {/* Bottom Left */}
           <section className="space-y-5">
+            <ProfileSection title="Work Animal Assessment">
+              <div className="grid gap-5 xl:grid-cols-[1.05fr_.95fr]">
+                <div className="relative overflow-hidden rounded-2xl border bg-[#101727] p-6 text-white shadow-[0_18px_38px_rgba(15,23,42,0.18)]">
+                  <div className="absolute right-[-80px] top-[-80px] h-48 w-48 rounded-full bg-[#E00046]/20 blur-3xl" />
+                  <div className="relative">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-4xl shadow-sm">
+                        {currentAnimal?.emoji ?? "?"}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                          Your work animal
+                        </p>
+                        <h3 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">
+                          {currentAnimal ? `The ${currentAnimal.name}` : "Unknown"}
+                        </h3>
+                        <p className="mt-1 text-sm font-medium text-white/70">
+                          {currentAnimal ? `${currentAnimal.archetype} · ${currentAnimal.category}` : "Take the test to complete your profile"}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-white/45">
+                          {currentAnimal ? "Profile trait ready for job matching" : "Required before trait matching can be trusted"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 space-y-3">
+                      {dimensionPoles.map((dimension) => {
+                        const value = currentAnimal?.dimensions[dimension.key] ?? 0;
+                        return (
+                        <div key={dimension.key} className="rounded-2xl border border-white/10 bg-white/[0.05] p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-white/78">{dimension.label}</span>
+                            <span className="text-xs font-semibold text-white/45">{getDimensionLean(value)}</span>
+                          </div>
+                          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/12">
+                            <div
+                              className="h-full rounded-full bg-[#F04D7A]"
+                              style={{ width: `${value}%` }}
+                            />
+                          </div>
+                          <div className="mt-2 flex justify-between text-xs font-semibold text-white/55">
+                            <span>{dimension.left}</span>
+                            <span>{dimension.right}</span>
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6 grid gap-3">
+                      {[
+                        { label: "Primary" as const, animal: currentAnimal },
+                        { label: "Secondary" as const, animal: secondaryAnimal },
+                        { label: "Shadow" as const, animal: shadowAnimal },
+                      ].map(({ label, animal }) => (
+                        <div key={label} className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-2xl">
+                              {animal?.emoji ?? "?"}
+                            </span>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                                {label}
+                              </p>
+                              <p className="mt-1 text-lg font-semibold text-white">
+                                {animal ? `${animal.name} · ${animal.archetype}` : "Unknown"}
+                              </p>
+                              <p className="mt-2 text-xs leading-5 text-white/60">
+                                {getAnimalRoleInTrio(label)}
+                              </p>
+                              {animal && (
+                                <p className="mt-2 text-xs leading-5 text-white/72">
+                                  {animal.short}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="mt-5 text-sm leading-6 text-white/68">
+                      {currentAnimal
+                        ? `Prototype saved result: ${currentAnimal.short}`
+                        : "Your animal trait status is unknown, so CareerOS cannot yet explain where your working style matches a job, differs from it, or how to prepare for a supervisor."}
+                    </p>
+
+                    <a
+                      href="https://www.yourworkanimal.com/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#E00046] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_26px_rgba(224,0,70,0.24)] transition hover:bg-[#D81B3F] sm:w-auto"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Retake test
+                    </a>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  <div className="rounded-2xl border bg-white p-5" style={{ borderColor: theme.border }}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#E00046]">
+                      Blend interpretation
+                    </p>
+                    <h3 className="mt-2 text-xl font-semibold text-[#152238]">
+                      {blend.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-7 text-[#46536D]">
+                      {blend.summary}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowTraitSummary((value) => !value)}
+                      className="mt-5 inline-flex rounded-xl border border-[#F5CBD6] bg-[#FFF2F6] px-4 py-2.5 text-sm font-semibold text-[#E00046] transition hover:bg-[#FDE7EE]"
+                    >
+                      {showTraitSummary ? "Hide full trait summary" : "View full trait summary"}
+                    </button>
+                    {showTraitSummary && (
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-700">What this gives you</p>
+                          <div className="mt-3 space-y-2">
+                            {blend.strengths.map((item) => (
+                              <p key={item} className="rounded-xl bg-emerald-50 px-3 py-2 text-sm leading-5 text-[#152238]">
+                                {item}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-rose-700">What to watch</p>
+                          <div className="mt-3 space-y-2">
+                            {blend.watchouts.map((item) => (
+                              <p key={item} className="rounded-xl bg-rose-50 px-3 py-2 text-sm leading-5 text-[#152238]">
+                                {item}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border bg-[#F8FFF9] p-5" style={{ borderColor: "#BBF7D0" }}>
+                      <p className="text-sm font-semibold text-emerald-700">You would thrive in</p>
+                      <div className="mt-4 space-y-2">
+                        {(currentAnimal?.roles.slice(0, 3) ?? ["Complete test to unlock", "Role fit analysis", "Best working environment"]).map((role) => (
+                          <p key={role} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#152238] shadow-sm">
+                            {role}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border bg-[#FFF7F7] p-5" style={{ borderColor: "#FECACA" }}>
+                      <p className="text-sm font-semibold text-rose-700">You may struggle in</p>
+                      <div className="mt-4 space-y-2">
+                        {getLikelyStruggleRoles(currentAnimal?.slug).map((role) => (
+                          <p key={role} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#152238] shadow-sm">
+                            {role}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border bg-white p-5" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-[#152238]">CareerOS interpretation</p>
+                      <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">
+                        Generated from traits
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Core strength</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Patient judgement under complexity
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          This means you are strongest when a problem needs careful thinking, evidence, and a decision that holds up.
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Best-fit work</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Research and analysis
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          This is a suggested work direction based on the Owl primary trait and Fox strategic influence.
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Growth area</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Show the thinking earlier
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          Peacock as shadow suggests visibility and self-promotion may need deliberate practice.
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Used for</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Matching and preparation
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          CareerOS uses this to explain job fit, blind spots, team compatibility, and supervisor communication.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ProfileSection>
+
             <ProfileSection
               title="Experience"
               showAdd
@@ -1310,6 +1593,7 @@ export default function UserProfile() {
           />
         </Modal>
       )}
+
     </div>
   );
 }

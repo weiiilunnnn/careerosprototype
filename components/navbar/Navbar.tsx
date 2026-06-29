@@ -139,10 +139,10 @@ export default function Navbar() {
         fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
       }}
     >
-      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
+      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-8">
 
         {/* Left */}
-        <div className="flex items-center gap-8">
+        <div className="min-w-0 flex items-center gap-3 sm:gap-8">
 
           <button
             type="button"
@@ -158,7 +158,7 @@ export default function Navbar() {
             )}
           </button>
 
-          <h1 className="cursor-default select-none text-2xl font-semibold tracking-normal text-[#081433]">
+          <h1 className="cursor-default select-none text-xl font-semibold tracking-normal text-[#081433] sm:text-2xl">
             Career
             <span className="text-[#f0184f]">
               OS
@@ -209,7 +209,7 @@ export default function Navbar() {
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
 
           {/* Notifications */}
           <div
@@ -247,7 +247,7 @@ export default function Navbar() {
                   transition={{
                     duration: 0.2,
                   }}
-                  className="absolute right-0 top-14 z-50 w-[380px] overflow-hidden rounded-2xl border border-[#E5E8F0] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
+                  className="absolute right-0 top-14 z-50 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#E5E8F0] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
                 >
                   <div className="border-b border-[#E5E8F0] px-5 py-4">
                     <h3 className="font-black text-[#081433]">
@@ -418,6 +418,45 @@ export default function Navbar() {
 
         </div>
       </nav>
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden border-t border-black/5 bg-white lg:hidden"
+          >
+            <div className="mx-auto grid max-w-7xl gap-2 px-4 py-3 sm:px-8">
+              {navItems.map((item, index) => {
+                const active = index === activeIndex;
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                      active
+                        ? "bg-[#fff1f5] text-[#f0184f]"
+                        : "text-black/75 hover:bg-black/[0.03] hover:text-black"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <Link
+                href="/"
+                onClick={() => setIsMenuOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-50"
+              >
+                Log Out
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

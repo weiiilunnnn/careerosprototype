@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { topAnimalsForJob, type WorkAnimalSlug } from "@/lib/workAnimals";
 
 const theme = {
   navy: "#081433",
@@ -59,8 +60,24 @@ const skillGaps = [
 ];
 
 const jobs = [
-  ["BI Analyst", "Fintech Company", "Kuala Lumpur", "Hybrid", "81% Match"],
-  ["Junior BI Analyst", "Consulting Firm", "Kuala Lumpur", "On-site", "77% Match"],
+  {
+    role: "BI Analyst",
+    company: "Fintech Company",
+    location: "Kuala Lumpur",
+    mode: "Hybrid",
+    match: "81% Match",
+    skills: ["SQL", "Analytics Experience", "Fintech Exposure", "Power BI"],
+    historicalAnimalSlugs: ["owl", "ant", "fox"] as WorkAnimalSlug[],
+  },
+  {
+    role: "Junior BI Analyst",
+    company: "Consulting Firm",
+    location: "Kuala Lumpur",
+    mode: "On-site",
+    match: "77% Match",
+    skills: ["SQL", "Dashboarding", "Stakeholder Communication"],
+    historicalAnimalSlugs: ["ant", "horse", "dolphin"] as WorkAnimalSlug[],
+  },
 ];
 
 const nextSteps = [
@@ -114,7 +131,7 @@ export default function Home() {
         fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
       }}
     >
-      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
       <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-sm font-medium text-[#46536D]">
           <Link
@@ -126,11 +143,11 @@ export default function Home() {
           <ChevronRight size={14} />
           <span className="text-[#081433]">BI Analyst</span>
         </div>
-        <div className="flex gap-3">
-          <button className="flex h-11 items-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
+        <div className="grid w-full grid-cols-2 gap-3 sm:w-auto">
+          <button className="flex h-11 items-center justify-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
             <Bookmark size={16} /> Save
           </button>
-          <button className="flex h-11 items-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
+          <button className="flex h-11 items-center justify-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
             <Share2 size={16} /> Share
           </button>
         </div>
@@ -145,26 +162,26 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#081433]/95 via-[#081433]/84 to-[#081433]/48" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#081433]/70 via-transparent to-transparent" />
 
-        <div className="relative z-10 p-8 text-white">
+        <div className="relative z-10 p-5 text-white sm:p-8">
           <div className="mb-5 flex flex-wrap gap-2">
             <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">Deep Dive</span>
             <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">Career intelligence</span>
           </div>
-          <h2 className="text-4xl font-semibold tracking-normal md:text-5xl">BI Analyst</h2>
+          <h2 className="text-3xl font-semibold tracking-normal sm:text-4xl md:text-5xl">BI Analyst</h2>
           <p className="mt-5 max-w-md text-sm leading-7 text-white/75 md:text-base">
             People with similar profiles commonly transition into this role.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4">
             {[["85%", "Match"], ["Medium", "Difficulty"], ["12-18 months", "Est. Transition"]].map(([value, label]) => (
-              <div key={label} className="rounded-2xl border border-white/15 bg-white/[0.12] px-6 py-4 text-center backdrop-blur-md">
+              <div key={label} className="min-w-[8.5rem] flex-1 rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 text-center backdrop-blur-md sm:flex-none sm:px-6">
                 <p className="text-xl font-semibold text-white">{value}</p>
                 <p className="mt-1 text-xs font-medium text-white/65">{label}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 flex w-[472px] max-w-full items-center rounded-2xl border border-white/15 bg-white/[0.12] px-6 py-5 shadow-sm backdrop-blur-md">
+          <div className="mt-8 flex w-full max-w-[472px] items-center rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-5 shadow-sm backdrop-blur-md sm:px-6">
             <span className="flex items-center gap-4">
               <UsersRound className="shrink-0 text-white" size={24} />
               <span className="text-sm font-semibold">
@@ -174,16 +191,16 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative z-10 m-5 rounded-2xl border border-white/15 bg-white/[0.12] p-8 text-white shadow-sm backdrop-blur-md">
+        <div className="relative z-10 m-4 rounded-2xl border border-white/15 bg-white/[0.12] p-5 text-white shadow-sm backdrop-blur-md sm:m-5 sm:p-8">
           <SectionTitle title="Typical Career Path" icon={LineChart} light />
-          <div className="mt-8 grid grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-center gap-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-center lg:gap-3">
             {careerPath.map((step, index) => {
               const Icon = step.icon;
               return (
                 <div key={step.label} className="contents">
-                  <div className="text-center">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left lg:border-0 lg:bg-transparent lg:p-0 lg:text-center">
                     <div
-                      className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${
+                      className={`flex h-14 w-14 items-center justify-center rounded-full lg:mx-auto lg:h-16 lg:w-16 ${
                         step.active
                           ? "bg-[#E00046] text-white shadow-[0_0_35px_rgba(224,0,70,0.35)]"
                           : "bg-white/12 text-white/75"
@@ -195,7 +212,7 @@ export default function Home() {
                       {step.label}
                     </p>
                   </div>
-                  {index < careerPath.length - 1 ? <ChevronRight className="text-white/45" size={20} /> : null}
+                  {index < careerPath.length - 1 ? <ChevronRight className="hidden text-white/45 lg:block" size={20} /> : null}
                 </div>
               );
             })}
@@ -211,27 +228,34 @@ export default function Home() {
 
 
       <section className="mt-9 rounded-2xl border bg-white shadow-sm" style={{ borderColor: theme.border }}>
-        <div className="flex items-center justify-between border-b border-[#F1F3F7] px-6 py-5">
+        <div className="flex flex-col gap-3 border-b border-[#F1F3F7] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <SectionTitle title="Top Matching Job Openings" icon={Building2} />
           <button className="text-sm font-semibold text-[#E00046]">View all jobs</button>
         </div>
-        {jobs.map(([role, company, location, mode, match]) => (
+        {jobs.map((job) => {
+          const animalMatches = topAnimalsForJob({
+            title: job.role,
+            skills: job.skills,
+            historicalAnimalSlugs: job.historicalAnimalSlugs,
+          });
+
+          return (
           <Link
-          key={role}
+          key={job.role}
           href="/?view=jobapplication"
           scroll={false}
           replace={false}
           prefetch={true}
-          className="grid gap-4 border-b border-[#F1F3F7] px-6 py-6 transition-colors hover:bg-[#FFF7FA] md:grid-cols-[1fr_1.2fr_.9fr_auto] md:items-center"
+          className="grid gap-4 border-b border-[#F1F3F7] px-5 py-6 transition-colors hover:bg-[#FFF7FA] md:grid-cols-[1fr_1.1fr_1fr_auto] md:items-center md:px-6"
         >
             <div className="flex gap-4">
               <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#E00046] text-white">
                 <Building2 size={27} />
               </span>
               <div>
-                <p className="font-semibold text-[#081433]">{role}</p>
-                <p className="text-sm text-[#46536D]">{company}</p>
-                <p className="mt-2 text-xs text-[#46536D]">{location} - {mode}</p>
+                <p className="font-semibold text-[#081433]">{job.role}</p>
+                <p className="text-sm text-[#46536D]">{job.company}</p>
+                <p className="mt-2 text-xs text-[#46536D]">{job.location} - {job.mode}</p>
               </div>
             </div>
             <div>
@@ -243,12 +267,18 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold text-[#081433]">Potential gap</p>
-              <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">Power BI Reporting</span>
+              <p className="mb-2 text-xs font-semibold text-[#081433]">Top work animals</p>
+              <div className="flex flex-wrap gap-2">
+                {animalMatches.map((match) => (
+                  <span key={match.animal.slug} className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">
+                    {match.animal.emoji} {match.animal.name} {match.score}%
+                  </span>
+                ))}
+              </div>
             </div>
-            <span className="rounded-lg bg-[#FFF2F6] px-4 py-2 text-center text-sm font-semibold text-[#E00046]">{match}</span>
+            <span className="w-full rounded-lg bg-[#FFF2F6] px-4 py-2 text-center text-sm font-semibold text-[#E00046] md:w-auto">{job.match}</span>
           </Link>
-        ))}
+        )})}
       </section>
       
       <section className="mt-10 rounded-2xl border bg-white p-6 shadow-sm" style={{ borderColor: theme.border }}>
@@ -270,10 +300,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-9 overflow-hidden rounded-2xl p-8 text-white shadow-[0_24px_60px_rgba(18,24,40,0.18)]" style={{ background: `linear-gradient(135deg, ${theme.navy}, ${theme.deepNavy})` }}>
+      <section className="mt-9 overflow-hidden rounded-2xl p-5 text-white shadow-[0_24px_60px_rgba(18,24,40,0.18)] sm:p-8" style={{ background: `linear-gradient(135deg, ${theme.navy}, ${theme.deepNavy})` }}>
         <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr_.8fr]">
           <div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <SectionTitle title="Why this matches you" icon={Sparkles} light />
               <span className="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold">Based on your profile</span>
             </div>
@@ -401,8 +431,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-9 mb-4 flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-[#FFF2F6] px-8 py-7">
-        <div className="flex items-center gap-5">
+      <section className="mt-9 mb-4 flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-[#FFF2F6] px-5 py-7 sm:px-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#E00046]">
             <UsersRound size={30} />
           </span>
@@ -413,7 +443,7 @@ export default function Home() {
         </div>
         <Link
           href="/?view=profile"
-          className="rounded-xl bg-[#E00046] px-7 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(224,0,70,0.22)] transition hover:bg-[#D81B3F]"
+          className="w-full rounded-xl bg-[#E00046] px-7 py-3 text-center text-sm font-semibold text-white shadow-[0_12px_28px_rgba(224,0,70,0.22)] transition hover:bg-[#D81B3F] sm:w-auto"
         >
           Upload New Achievement
         </Link>

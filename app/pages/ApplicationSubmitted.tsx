@@ -19,26 +19,26 @@ export default function ApplicationSubmitted() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 text-center">
+      <div className="relative z-10 w-full max-w-xl text-center">
 
-        <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-[#fff1f5] shadow-[0_0_80px_rgba(240,24,79,0.18)]">
+        <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-[#fff1f5] shadow-[0_0_80px_rgba(240,24,79,0.18)] sm:h-40 sm:w-40">
           <CheckCircle2
-            size={100}
+            size={80}
             className="text-[#f0184f]"
           />
         </div>
 
-        <h1 className="mt-10 text-5xl font-black tracking-tight">
+        <h1 className="mt-8 text-3xl font-black tracking-tight sm:mt-10 sm:text-5xl">
           Application Submitted
         </h1>
 
-        <p className="mt-4 text-lg text-black/60">
+        <p className="mt-4 text-base text-black/60 sm:text-lg">
           Your application has been successfully submitted.
         </p>
 
 
 
-        <div className="mt-14 flex flex-wrap justify-center gap-4">
+        <div className="mt-10 grid gap-4 sm:mt-14 sm:grid-cols-2">
           <Link
             href="/?view=my-applications"
             className="rounded-xl border border-black/10 bg-white/80 px-8 py-4 font-bold backdrop-blur-sm transition hover:border-[#f0184f]/30"

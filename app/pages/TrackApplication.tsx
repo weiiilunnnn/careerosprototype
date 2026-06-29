@@ -73,7 +73,7 @@ export default function TrackApplication() {
 
   return (
     <div className="min-h-screen bg-[#FBFBFC]">
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
 
         {/* Back */}
         <Link
@@ -87,14 +87,14 @@ export default function TrackApplication() {
         {/* Header */}
         <section className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
 
-          <div className="flex items-start gap-5">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
 
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[#E00046] text-white">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#E00046] text-white sm:h-20 sm:w-20 sm:rounded-3xl">
               <Building2 size={36} />
             </div>
 
             <div>
-              <h1 className="text-4xl font-black text-[#081433]">
+              <h1 className="text-3xl font-black text-[#081433] sm:text-4xl">
                 BI Analyst
               </h1>
 
@@ -123,11 +123,11 @@ export default function TrackApplication() {
 
           </div>
 
-          <div className="flex items-stretch gap-3">
+          <div className="flex w-full items-stretch gap-3 sm:w-auto">
 
 
 
-        <div className="flex h-14 min-w-[190px] flex-col items-center justify-center rounded-xl border border-[#DCE7FF] bg-[#F7FAFF] px-6">
+        <div className="flex h-14 w-full flex-col items-center justify-center rounded-xl border border-[#DCE7FF] bg-[#F7FAFF] px-6 sm:min-w-[190px]">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-[#64748B]">
             Current Status
         </p>
@@ -147,9 +147,9 @@ export default function TrackApplication() {
           <div className="space-y-6">
 
             {/* Progress */}
-            <div className="rounded-3xl border border-[#E5E8F0] bg-white p-7 shadow-sm">
+            <div className="rounded-3xl border border-[#E5E8F0] bg-white p-5 shadow-sm sm:p-7">
 
-              <div className="mb-10 flex items-center justify-between">
+              <div className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
 
                 <h2 className="text-2xl font-black text-[#081433]">
                   Application Progress
@@ -161,7 +161,7 @@ export default function TrackApplication() {
 
               </div>
 
-            <div className="relative">
+            <div className="relative hidden sm:block">
 
             {/* Track */}
             <div
@@ -215,12 +215,44 @@ export default function TrackApplication() {
                 ))}
             </div>
 
+            <div className="space-y-4 sm:hidden">
+                {stages.map((stage, index) => (
+                <div
+                    key={stage.title}
+                    className="grid grid-cols-[40px_minmax(0,1fr)] gap-3"
+                >
+                    <div className="relative flex justify-center">
+                    {index < stages.length - 1 && (
+                        <span className="absolute top-10 h-[calc(100%+1rem)] w-0.5 bg-[#E8EDF5]" />
+                    )}
+                    <div
+                        className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 bg-white ${
+                        stage.completed
+                            ? "border-[#E00046]"
+                            : "border-[#CBD5E1]"
+                        }`}
+                    >
+                        {stage.completed ? (
+                        <Check size={16} className="text-[#E00046]" />
+                        ) : (
+                        <div className="h-3 w-3 rounded-full bg-[#CBD5E1]" />
+                        )}
+                    </div>
+                    </div>
+                    <div className="rounded-2xl border border-[#E5E8F0] p-4">
+                    <p className="font-bold text-[#081433]">{stage.title}</p>
+                    <p className="mt-1 text-sm text-[#64748B]">{stage.date}</p>
+                    </div>
+                </div>
+                ))}
+            </div>
+
             </div>
 
             </div>
 
             {/* Timeline */}
-            <div className="rounded-3xl border border-[#E5E8F0] bg-white p-7 shadow-sm">
+            <div className="rounded-3xl border border-[#E5E8F0] bg-white p-5 shadow-sm sm:p-7">
 
               <h2 className="mb-8 text-2xl font-black text-[#081433]">
                 Application Timeline
@@ -270,7 +302,7 @@ export default function TrackApplication() {
                     />
 
                     <div className="flex-1">
-                      <div className="flex justify-between">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                         <h3 className="font-bold text-[#081433]">
                           {item.title}
                         </h3>
@@ -296,7 +328,7 @@ export default function TrackApplication() {
           </div>
 
           {/* RIGHT */}
-          <div className="rounded-3xl border border-[#E5E8F0] bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-[#E5E8F0] bg-white p-5 shadow-sm sm:p-6">
 
             <div className="mb-6 flex items-center gap-3">
               <FolderOpen
@@ -316,19 +348,19 @@ export default function TrackApplication() {
                   key={doc.title}
                   className="flex w-full items-center justify-between rounded-2xl border border-[#E5E8F0] p-4 transition hover:border-[#E00046]/30 hover:bg-[#FFF8FA]"
                 >
-                  <div className="flex items-stretch gap-3">
+                  <div className="min-w-0 flex items-stretch gap-3">
 
                     <FileText
                       size={18}
                       className="text-[#E00046]"
                     />
 
-                    <div className="text-left">
+                    <div className="min-w-0 text-left">
                       <p className="font-bold text-[#081433]">
                         {doc.title}
                       </p>
 
-                      <p className="text-sm text-[#64748B]">
+                      <p className="break-words text-sm text-[#64748B]">
                         {doc.subtitle}
                       </p>
                     </div>

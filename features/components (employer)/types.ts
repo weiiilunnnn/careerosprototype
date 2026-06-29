@@ -1,4 +1,5 @@
 import type { CandidateLivingCv } from "@/lib/candidateLivingCvData";
+import type { WorkAnimalSlug } from "@/lib/workAnimals";
 
 export type Page =
   | "personal"
@@ -58,6 +59,8 @@ export type Job = {
   shortlisted: number;
   hired: number;
   expiresIn: number;
+  supervisorName?: string;
+  supervisorAnimal?: WorkAnimalSlug;
 };
 
 export type TeamMemberStatus = "Active" | "Pending" | "Disabled";
@@ -72,6 +75,7 @@ export type TeamMember = {
   focus: string;
   lastActive: string;
   password: string;
+  workAnimal?: WorkAnimalSlug;
   invitedAt?: string;
 };
 
