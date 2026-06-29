@@ -30,6 +30,10 @@ const navItems = [
     href: "/?view=living-portfolio",
   },
   {
+    label: "Life Chapter Designer",
+    href: "/?view=life-chapter-designer",
+  },
+  {
     label: "Applications",
     href: "/?view=my-applications",
   },
@@ -70,16 +74,20 @@ export default function Navbar() {
       return 1;
     }
 
+    if (view === "life-chapter-designer") {
+      return 2;
+    }
+
     if (
       view === "my-applications" ||
       view === "application-submitted" ||
       view === "jobapplication" ||
       view === "track-application"
     ) {
-      return 2;
+      return 3;
     }
 
-    return 3;
+    return 4;
   }, [view]);
 
   useLayoutEffect(() => {
