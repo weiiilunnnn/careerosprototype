@@ -18,7 +18,6 @@ import {
   X,
   LucideIcon,
 } from "lucide-react";
-import Navbar from "@/components/navbar/Navbar";
 import {
   getAnimalRoleInTrio,
   getBlendInterpretation,
@@ -48,9 +47,10 @@ type ModalType =
   | "edit-experience"
   | "add-education"
   | "edit-education"
+  | "add-project"
+  | "edit-project"
   | "add-skills"
   | "edit-skills"
-  | "update-resume"
   | "add-certificate"
   | "edit-certificates"
   | "edit-github"
@@ -72,6 +72,14 @@ interface Education {
   programme: string;
   period: string;
   detail: string;
+}
+
+interface ProjectAchievement {
+  title: string;
+  type: string;
+  date: string;
+  description: string;
+  tags: string;
 }
 
 interface Certificate {
@@ -455,6 +463,64 @@ function EducationItem({
   );
 }
 
+function ProjectAchievementItem({
+  item,
+  onEdit,
+}: {
+  item: ProjectAchievement;
+  onEdit: () => void;
+}) {
+  const tags = item.tags
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  return (
+    <div
+      className="rounded-xl border bg-white p-5"
+      style={{ borderColor: theme.border }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E00046]">
+            {item.type}
+          </p>
+          <h3 className="mt-2 text-base font-semibold text-[#152238]">
+            {item.title}
+          </h3>
+          <p className="mt-1 text-sm font-medium text-[#46536D]">
+            {item.date}
+          </p>
+        </div>
+
+        <EditIconButton onClick={onEdit} />
+      </div>
+
+      <p className="mt-3 text-sm leading-6 text-[#46536D]">
+        {item.description}
+      </p>
+
+      {tags.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+              style={{
+                borderColor: theme.line,
+                backgroundColor: theme.soft,
+                color: theme.rose2,
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PinkAccentItem({ children }: { children: ReactNode }) {
   return (
     <div
@@ -592,6 +658,9 @@ export default function UserProfile() {
   const [editingEducationIndex, setEditingEducationIndex] = useState<
     number | null
   >(null);
+  const [editingProjectIndex, setEditingProjectIndex] = useState<number | null>(
+    null
+  );
 
   const [about, setAbout] = useState(
     "They say AI is going to replace humans pretty soon.... Well guess jokes on them cause they ain't replacing me any time soon. If me myself does not even know what I'm doing right now, how on earth is AI going to replace me. Visca Barca Visca Catalunya."
@@ -645,6 +714,33 @@ export default function UserProfile() {
     },
   ]);
 
+  const [projects, setProjects] = useState<ProjectAchievement[]>([
+    {
+      title: "Sales Performance Dashboard",
+      type: "Featured Project",
+      date: "May 2025",
+      description:
+        "Built a Power BI dashboard that visualizes regional sales trends and KPIs to support data driven business decisions.",
+      tags: "Power BI, DAX, Data Visualization",
+    },
+    {
+      title: "Customer Segmentation Analysis",
+      type: "Analytics Project",
+      date: "Feb 2025",
+      description:
+        "Analyzed customer data using Python and clustering techniques to identify high value customer segments.",
+      tags: "Python, Pandas, Scikit Learn",
+    },
+    {
+      title: "Hackathon Analytics Challenge",
+      type: "Achievement",
+      date: "Nov 2024",
+      description:
+        "Completed an analytics challenge by preparing insights from messy datasets and presenting findings to judges.",
+      tags: "Analytics, Presentation, Problem Solving",
+    },
+  ]);
+
   const [skills, setSkills] = useState([
     "Python",
     "SQL",
@@ -654,11 +750,6 @@ export default function UserProfile() {
     "Machine Learning",
     "Dashboard Design",
   ]);
-
-  const [resume, setResume] = useState({
-    name: "Jason_Tan_Resume.pdf",
-    meta: "PDF · 231 KB",
-  });
 
   const [certificates, setCertificates] = useState<Certificate[]>([
     {
@@ -680,8 +771,10 @@ export default function UserProfile() {
     experiences[0]
   );
   const [educationDraft, setEducationDraft] = useState<Education>(education[0]);
+  const [projectDraft, setProjectDraft] = useState<ProjectAchievement>(
+    projects[0]
+  );
   const [skillsDraft, setSkillsDraft] = useState(skills.join(", "));
-  const [resumeDraft, setResumeDraft] = useState(resume);
   const [certificateDraft, setCertificateDraft] = useState<Certificate>({
     name: "",
     meta: "PDF",
@@ -736,6 +829,24 @@ export default function UserProfile() {
     setModal("edit-education");
   };
 
+  const openAddProject = () => {
+    setEditingProjectIndex(null);
+    setProjectDraft({
+      title: "",
+      type: "Project",
+      date: "",
+      description: "",
+      tags: "",
+    });
+    setModal("add-project");
+  };
+
+  const openEditProject = (index: number) => {
+    setEditingProjectIndex(index);
+    setProjectDraft(projects[index]);
+    setModal("edit-project");
+  };
+
   const openAddSkills = () => {
     setSkillsDraft("");
     setModal("add-skills");
@@ -744,11 +855,6 @@ export default function UserProfile() {
   const openEditSkills = () => {
     setSkillsDraft(skills.join(", "));
     setModal("edit-skills");
-  };
-
-  const openResumeUpdate = () => {
-    setResumeDraft(resume);
-    setModal("update-resume");
   };
 
   const openAddCertificate = () => {
@@ -775,7 +881,45 @@ export default function UserProfile() {
     shadow: "peacock",
   });
   const [showTraitSummary, setShowTraitSummary] = useState(false);
-  const profileCompleteness = currentAnimal ? 100 : 76;
+  const completenessItems = [
+    {
+      label: "Work animal trait",
+      complete: Boolean(currentAnimal),
+      detail: currentAnimal ? `Completed as ${currentAnimal.name}` : "Complete the work animal trait assessment.",
+    },
+    {
+      label: "Personal information",
+      complete: Boolean(about.trim() && details.location.trim() && details.email.trim() && details.phone.trim()),
+      detail: "Add about, location, email, and phone number.",
+    },
+    {
+      label: "Experience",
+      complete: experiences.length > 0,
+      detail: experiences.length > 0 ? `${experiences.length} experience record added` : "Add at least one work, internship, or leadership experience.",
+    },
+    {
+      label: "Education background",
+      complete: education.length > 0,
+      detail: education.length > 0 ? `${education.length} education record added` : "Add at least one education background record.",
+    },
+    {
+      label: "Skills",
+      complete: skills.length > 0,
+      detail: skills.length > 0 ? `${skills.length} skills added` : "Add the skills you want the system to match against jobs.",
+    },
+    {
+      label: "Certificates",
+      complete: certificates.length > 0,
+      detail: certificates.length > 0 ? `${certificates.length} certificate evidence added` : "Add certificate evidence or learning proof.",
+    },
+    {
+      label: "Projects and achievements",
+      complete: projects.length > 0,
+      detail: projects.length > 0 ? `${projects.length} project or achievement record added` : "Add at least one project or achievement.",
+    },
+  ];
+  const completedProfileItems = completenessItems.filter((item) => item.complete).length;
+  const profileCompleteness = Math.round((completedProfileItems / completenessItems.length) * 100);
 
   return (
     <div
@@ -880,16 +1024,61 @@ export default function UserProfile() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
+                  <div className="group relative rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm outline-none ring-white/35 transition hover:border-white/25 focus-within:ring-2">
                     <div className="mb-3 flex items-center gap-2 text-white/55">
                       <Eye className="h-4 w-4" />
                       <span className="text-xs font-medium uppercase tracking-[0.18em]">
                         Completeness
                       </span>
                     </div>
-                    <p className="text-base font-semibold text-white">
-                      {profileCompleteness}% {currentAnimal ? "Complete" : "Incomplete"}
-                    </p>
+                    <button type="button" className="text-left outline-none">
+                      <p className="text-base font-semibold text-white">
+                        {profileCompleteness}% {profileCompleteness === 100 ? "Complete" : "Incomplete"}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-white/45">
+                        Hover for breakdown
+                      </p>
+                    </button>
+
+                    <div className="pointer-events-none absolute right-0 top-full z-30 mt-3 w-80 max-w-[calc(100vw-3rem)] -translate-y-2 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                      <div className="rounded-2xl border border-[#E5E8F0] bg-white p-4 text-[#152238] shadow-[0_20px_45px_rgba(15,23,42,0.24)]">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-[#152238]">
+                              Completeness breakdown
+                            </p>
+                            <p className="mt-1 text-xs font-medium leading-5 text-[#667085]">
+                              {completedProfileItems} of {completenessItems.length} profile signals are ready.
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-bold text-[#E00046]">
+                            {profileCompleteness}%
+                          </span>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          {completenessItems.map((item) => (
+                            <div key={item.label} className="flex gap-3 rounded-xl bg-[#F8FAFC] p-3">
+                              <span
+                                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                                  item.complete ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-[#E00046]"
+                                }`}
+                              >
+                                {item.complete ? <ShieldCheck className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-[#152238]">
+                                  {item.label}
+                                </p>
+                                <p className="mt-0.5 text-xs leading-5 text-[#667085]">
+                                  {item.detail}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1134,6 +1323,22 @@ export default function UserProfile() {
               </div>
             </ProfileSection>
 
+            <ProfileSection
+              title="Projects and Achievements"
+              showAdd
+              onAdd={openAddProject}
+            >
+              <div className="grid gap-4 lg:grid-cols-2">
+                {projects.map((item, index) => (
+                  <ProjectAchievementItem
+                    key={`${item.title}-${index}`}
+                    item={item}
+                    onEdit={() => openEditProject(index)}
+                  />
+                ))}
+              </div>
+            </ProfileSection>
+
             <ProfileSection title="Education" showAdd onAdd={openAddEducation}>
               <div className="space-y-5">
                 {education.map((item, index) => (
@@ -1145,6 +1350,20 @@ export default function UserProfile() {
                 ))}
               </div>
             </ProfileSection>
+
+          </section>
+
+          {/* Bottom Right */}
+          <aside className="space-y-5">
+            <SideDocumentCard
+              title="Certificates"
+              icon={ShieldCheck}
+              button="Add"
+              showEditButton
+              items={certificates}
+              onAction={openAddCertificate}
+              onEdit={openEditCertificates}
+            />
 
             <ProfileSection
               title="Skills"
@@ -1169,27 +1388,6 @@ export default function UserProfile() {
                 ))}
               </div>
             </ProfileSection>
-          </section>
-
-          {/* Bottom Right */}
-          <aside className="space-y-5">
-            <SideDocumentCard
-              title="Resume / CV"
-              icon={FileText}
-              button="Update"
-              items={[resume]}
-              onAction={openResumeUpdate}
-            />
-
-            <SideDocumentCard
-              title="Certificates"
-              icon={ShieldCheck}
-              button="Add"
-              showEditButton
-              items={certificates}
-              onAction={openAddCertificate}
-              onEdit={openEditCertificates}
-            />
 
             <section
               className="overflow-hidden rounded-2xl border bg-white shadow-sm"
@@ -1406,6 +1604,72 @@ export default function UserProfile() {
         </Modal>
       )}
 
+      {(modal === "add-project" || modal === "edit-project") && (
+        <Modal
+          title={
+            modal === "add-project"
+              ? "Add Project or Achievement"
+              : "Edit Project or Achievement"
+          }
+          description="Add or update the project and achievement evidence that appears in your Living Portfolio."
+          onClose={closeModal}
+          onSave={() => {
+            if (modal === "add-project") {
+              setProjects((old) => [...old, projectDraft]);
+            } else if (editingProjectIndex !== null) {
+              setProjects((old) =>
+                old.map((item, index) =>
+                  index === editingProjectIndex ? projectDraft : item
+                )
+              );
+            }
+
+            closeModal();
+          }}
+        >
+          <TextInput
+            label="Title"
+            value={projectDraft.title}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, title: value }))
+            }
+            placeholder="Sales Performance Dashboard"
+          />
+          <TextInput
+            label="Type"
+            value={projectDraft.type}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, type: value }))
+            }
+            placeholder="Featured Project, Analytics Project, Achievement"
+          />
+          <TextInput
+            label="Date"
+            value={projectDraft.date}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, date: value }))
+            }
+            placeholder="May 2025"
+          />
+          <TextAreaInput
+            label="Description"
+            value={projectDraft.description}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, description: value }))
+            }
+            placeholder="Describe what you built, achieved, or proved."
+          />
+          <TextInput
+            label="Tags"
+            value={projectDraft.tags}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, tags: value }))
+            }
+            placeholder="Power BI, DAX, Data Visualization"
+          />
+        </Modal>
+      )}
+
       {(modal === "add-skills" || modal === "edit-skills") && (
         <Modal
           title={modal === "add-skills" ? "Add Skills" : "Edit Skills"}
@@ -1432,46 +1696,6 @@ export default function UserProfile() {
             onChange={setSkillsDraft}
             placeholder="Python, SQL, Power BI"
           />
-        </Modal>
-      )}
-
-      {modal === "update-resume" && (
-        <Modal
-          title="Update Resume / CV"
-          description="Upload an updated PDF resume and save it to your profile."
-          onClose={closeModal}
-          onSave={() => {
-            setResume(resumeDraft);
-            closeModal();
-          }}
-          saveLabel="Save update"
-        >
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-[#152238]">
-              Upload updated resume
-            </span>
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              className="block w-full cursor-pointer rounded-xl border bg-white px-4 py-3 text-sm font-medium text-[#152238] file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#E00046] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
-              style={{ borderColor: "#CBD5E1" }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-
-                if (!isPdfFile(file)) {
-                  alert("Please upload a PDF file only.");
-                  e.target.value = "";
-                  return;
-                }
-
-                setResumeDraft({
-                  name: file.name,
-                  meta: `PDF · ${Math.max(1, Math.round(file.size / 1024))} KB`,
-                });
-              }}
-            />
-          </label>
         </Modal>
       )}
 

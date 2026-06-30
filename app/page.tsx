@@ -5,6 +5,7 @@ import Onboarding from "./pages/Onboarding";
 import UserProfile from "./pages/UserProfile";
 import LivingPortfolio from "./pages/LivingPortfolio";
 import LifeChapterDesigner from "./pages/LifeChapterDesigner";
+import AICareerCoach from "./pages/AICareerCoach";
 import JobApplicationPage from "./pages/jobapplication";
 import ApplicationSubmitted from "./pages/ApplicationSubmitted";
 import MyApplications from "./pages/MyApplications";
@@ -27,6 +28,7 @@ export default async function Home({
   if (view === "profile") return <UserProfile />;
   if (view === "living-portfolio") return <LivingPortfolio />;
   if (view === "life-chapter-designer") return <LifeChapterDesigner />;
+  if (view === "ai-career-coach") return <AICareerCoach />;
   if (view === "jobapplication") return <JobApplicationPage />;
   if (view === "application-submitted") return <ApplicationSubmitted />;
   if (view === "my-applications") return <MyApplications />;
