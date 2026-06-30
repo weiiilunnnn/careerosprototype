@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BarChart3,
   Bookmark,
@@ -22,6 +24,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import CompanyLogo from "@/components/CompanyLogo";
 import { topAnimalsForJob, type WorkAnimalSlug } from "@/lib/workAnimals";
 
 const theme = {
@@ -62,7 +66,7 @@ const skillGaps = [
 const jobs = [
   {
     role: "BI Analyst",
-    company: "Fintech Company",
+    company: "Grab",
     location: "Kuala Lumpur",
     mode: "Hybrid",
     match: "81% Match",
@@ -71,12 +75,39 @@ const jobs = [
   },
   {
     role: "Junior BI Analyst",
-    company: "Consulting Firm",
+    company: "Accenture",
     location: "Kuala Lumpur",
     mode: "On-site",
     match: "77% Match",
     skills: ["SQL", "Dashboarding", "Stakeholder Communication"],
     historicalAnimalSlugs: ["ant", "horse", "dolphin"] as WorkAnimalSlug[],
+  },
+  {
+    role: "Reporting Analyst",
+    company: "Maybank",
+    location: "Subang Jaya",
+    mode: "Hybrid",
+    match: "74% Match",
+    skills: ["Excel", "SQL", "Dashboard Storytelling"],
+    historicalAnimalSlugs: ["owl", "fox", "dolphin"] as WorkAnimalSlug[],
+  },
+  {
+    role: "Analytics Associate",
+    company: "Shopee",
+    location: "Kuala Lumpur",
+    mode: "Remote",
+    match: "72% Match",
+    skills: ["Data Visualization", "Python", "Business Reporting"],
+    historicalAnimalSlugs: ["ant", "owl", "peacock"] as WorkAnimalSlug[],
+  },
+  {
+    role: "Junior Business Analyst",
+    company: "CIMB",
+    location: "Kuala Lumpur",
+    mode: "On-site",
+    match: "69% Match",
+    skills: ["Stakeholder Communication", "Process Mapping", "SQL"],
+    historicalAnimalSlugs: ["fox", "dolphin", "horse"] as WorkAnimalSlug[],
   },
 ];
 
@@ -124,6 +155,34 @@ function SectionTitle({
 }
 
 export default function Home() {
+  const [isSaved, setIsSaved] = useState(false);
+  const [shareStatus, setShareStatus] = useState("Share");
+  const [showAllJobs, setShowAllJobs] = useState(false);
+  const visibleJobs = showAllJobs ? jobs : jobs.slice(0, 2);
+
+  async function handleShare() {
+    const shareUrl = `${window.location.origin}/?view=deep-dive`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "CareerOS BI Analyst path",
+          text: "View this CareerOS BI Analyst career path.",
+          url: shareUrl,
+        });
+        setShareStatus("Shared");
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      setShareStatus("Link copied");
+    } catch {
+      setShareStatus("Share");
+    }
+
+    window.setTimeout(() => setShareStatus("Share"), 1800);
+  }
+
   return (
     <div
       className="min-h-screen bg-[#fbfbfc] text-[#152238]"
@@ -144,11 +203,23 @@ export default function Home() {
           <span className="text-[#081433]">BI Analyst</span>
         </div>
         <div className="grid w-full grid-cols-2 gap-3 sm:w-auto">
-          <button className="flex h-11 items-center justify-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
-            <Bookmark size={16} /> Save
+          <button
+            type="button"
+            onClick={() => setIsSaved((current) => !current)}
+            className={`flex h-11 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046] ${
+              isSaved ? "bg-[#FFF2F6] text-[#E00046]" : "bg-white"
+            }`}
+            style={{ borderColor: isSaved ? theme.line : theme.border }}
+          >
+            <Bookmark size={16} /> {isSaved ? "Saved" : "Save"}
           </button>
-          <button className="flex h-11 items-center justify-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]" style={{ borderColor: theme.border }}>
-            <Share2 size={16} /> Share
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border bg-white px-5 text-sm font-semibold shadow-sm transition hover:border-[#F04D7A] hover:text-[#E00046]"
+            style={{ borderColor: theme.border }}
+          >
+            <Share2 size={16} /> {shareStatus}
           </button>
         </div>
       </div>
@@ -230,9 +301,15 @@ export default function Home() {
       <section className="mt-9 rounded-2xl border bg-white shadow-sm" style={{ borderColor: theme.border }}>
         <div className="flex flex-col gap-3 border-b border-[#F1F3F7] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <SectionTitle title="Top Matching Job Openings" icon={Building2} />
-          <button className="text-sm font-semibold text-[#E00046]">View all jobs</button>
+          <button
+            type="button"
+            onClick={() => setShowAllJobs((current) => !current)}
+            className="text-sm font-semibold text-[#E00046]"
+          >
+            {showAllJobs ? "Show fewer jobs" : "View all jobs"}
+          </button>
         </div>
-        {jobs.map((job) => {
+        {visibleJobs.map((job) => {
           const animalMatches = topAnimalsForJob({
             title: job.role,
             skills: job.skills,
@@ -249,9 +326,7 @@ export default function Home() {
           className="grid gap-4 border-b border-[#F1F3F7] px-5 py-6 transition-colors hover:bg-[#FFF7FA] md:grid-cols-[1fr_1.1fr_1fr_auto] md:items-center md:px-6"
         >
             <div className="flex gap-4">
-              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#E00046] text-white">
-                <Building2 size={27} />
-              </span>
+              <CompanyLogo company={job.company} size="lg" />
               <div>
                 <p className="font-semibold text-[#081433]">{job.role}</p>
                 <p className="text-sm text-[#46536D]">{job.company}</p>

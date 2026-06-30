@@ -18,6 +18,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { candidateLivingCv } from "@/lib/candidateLivingCvData";
+import CompanyLogo from "@/components/CompanyLogo";
 import {
   getAnimalRoleInTrio,
   getBlendInterpretation,
@@ -342,15 +343,7 @@ function TimelineItem({
   return (
     <div className="relative flex gap-5">
       <div className="flex flex-col items-center">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-full"
-          style={{ backgroundColor: theme.soft }}
-        >
-          <BriefcaseBusiness
-            className="h-5 w-5"
-            style={{ color: theme.rose2 }}
-          />
-        </div>
+        <CompanyLogo company={company} size="sm" />
 
         {!isLast && <div className="mt-3 h-full w-px bg-[#E5E8F0]" />}
       </div>
