@@ -932,7 +932,7 @@ export default function UserProfile() {
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
         {/* Top Profile + About Section */}
         <section
-          className="mb-5 overflow-hidden rounded-2xl border bg-white shadow-sm"
+          className="mb-5 rounded-2xl border bg-white shadow-sm"
           style={{ borderColor: theme.border }}
         >
           <div className="grid lg:grid-cols-[360px_1fr]">
@@ -1024,7 +1024,7 @@ export default function UserProfile() {
                     </p>
                   </div>
 
-                  <div className="group relative rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm outline-none ring-white/35 transition hover:border-white/25 focus-within:ring-2">
+                  <div className="group relative isolate z-20 overflow-visible rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm outline-none ring-white/35 transition hover:border-white/25 focus-within:ring-2">
                     <div className="mb-3 flex items-center gap-2 text-white/55">
                       <Eye className="h-4 w-4" />
                       <span className="text-xs font-medium uppercase tracking-[0.18em]">
@@ -1040,7 +1040,7 @@ export default function UserProfile() {
                       </p>
                     </button>
 
-                    <div className="pointer-events-none absolute right-0 top-full z-30 mt-3 w-80 max-w-[calc(100vw-3rem)] -translate-y-2 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                    <div className="pointer-events-none absolute right-0 top-full z-[999] mt-3 w-80 max-w-[calc(100vw-3rem)] -translate-y-2 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
                       <div className="rounded-2xl border border-[#E5E8F0] bg-white p-4 text-[#152238] shadow-[0_20px_45px_rgba(15,23,42,0.24)]">
                         <div className="flex items-start justify-between gap-3">
                           <div>
