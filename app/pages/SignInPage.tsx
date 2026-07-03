@@ -67,13 +67,13 @@ export default function SignInPage() {
 
   return (
     <main
-      className="grid h-screen min-h-screen overflow-hidden bg-white text-[#081433] lg:grid-cols-[65%_35%]"
+      className="grid min-h-screen bg-white text-[#081433] lg:grid-cols-[65%_35%]"
       style={{
         fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
       }}
     >
       {/* Left image panel */}
-      <aside className="relative hidden h-screen overflow-hidden lg:block">
+      <aside className="sticky top-0 hidden h-screen overflow-hidden lg:block">
         <img
           src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80"
           alt="Professionals collaborating during a career planning session"
@@ -112,7 +112,7 @@ export default function SignInPage() {
       </aside>
 
       {/* Right sign in form */}
-      <section className="flex h-screen items-center justify-center bg-white px-6 py-10 sm:px-10 lg:px-12">
+      <section className="flex min-h-screen items-center justify-center overflow-y-auto bg-white px-6 py-10 sm:px-10 lg:px-12">
         <div className="w-full max-w-[420px]">
           <div className="mb-9 text-center">
             <div
