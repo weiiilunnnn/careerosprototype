@@ -9,6 +9,7 @@ import {
   Sparkles,
   TrendingUp,
   FileCheck,
+  BotMessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -28,6 +29,14 @@ const navItems = [
   {
     label: "Living Portfolio",
     href: "/?view=living-portfolio",
+  },
+  {
+    label: "Life Chapter Designer",
+    href: "/?view=life-chapter-designer",
+  },
+  {
+    label: "AI Career Coach",
+    href: "/?view=ai-career-coach",
   },
   {
     label: "Applications",
@@ -61,7 +70,8 @@ export default function Navbar() {
   const activeIndex = useMemo(() => {
     if (
       view === "career-landscape" ||
-      view === "deep-dive"
+      view === "deep-dive" ||
+      view === "career-path-simulator"
     ) {
       return 0;
     }
@@ -70,16 +80,25 @@ export default function Navbar() {
       return 1;
     }
 
+    if (view === "life-chapter-designer") {
+      return 2;
+    }
+
+    if (view === "ai-career-coach") {
+      return 3;
+    }
+
     if (
       view === "my-applications" ||
       view === "application-submitted" ||
       view === "jobapplication" ||
-      view === "track-application"
+      view === "track-application" ||
+      view === "company-profile"
     ) {
-      return 2;
+      return 4;
     }
 
-    return 3;
+    return 5;
   }, [view]);
 
   useLayoutEffect(() => {
@@ -131,10 +150,10 @@ export default function Navbar() {
         fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
       }}
     >
-      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
+      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-8">
 
         {/* Left */}
-        <div className="flex items-center gap-8">
+        <div className="min-w-0 flex items-center gap-3 sm:gap-8">
 
           <button
             type="button"
@@ -150,7 +169,7 @@ export default function Navbar() {
             )}
           </button>
 
-          <h1 className="cursor-default select-none text-2xl font-semibold tracking-normal text-[#081433]">
+          <h1 className="cursor-default select-none text-xl font-semibold tracking-normal text-[#081433] sm:text-2xl">
             Career
             <span className="text-[#f0184f]">
               OS
@@ -159,7 +178,7 @@ export default function Navbar() {
 
           <div
             ref={navRef}
-            className="relative hidden items-center gap-8 lg:flex"
+            className="relative hidden items-center gap-5 xl:gap-8 lg:flex"
           >
             {navItems.map((item, index) => {
               const active =
@@ -201,7 +220,7 @@ export default function Navbar() {
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
 
           {/* Notifications */}
           <div
@@ -239,7 +258,7 @@ export default function Navbar() {
                   transition={{
                     duration: 0.2,
                   }}
-                  className="absolute right-0 top-14 z-50 w-[380px] overflow-hidden rounded-2xl border border-[#E5E8F0] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
+                  className="absolute right-0 top-14 z-50 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#E5E8F0] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
                 >
                   <div className="border-b border-[#E5E8F0] px-5 py-4">
                     <h3 className="font-black text-[#081433]">
@@ -248,6 +267,32 @@ export default function Navbar() {
                   </div>
 
                   <div className="divide-y divide-[#F2F4F8]">
+
+                    <div className="flex gap-4 p-4 hover:bg-[#fafafa]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF2F6]">
+                        <BotMessageSquare
+                          size={18}
+                          className="text-[#f0184f]"
+                        />
+                      </div>
+
+                      <div>
+                        <p className="font-bold text-[#081433]">
+                          Coach Check-In Ready
+                        </p>
+
+                        <p className="mt-1 text-sm text-[#46536D]">
+                          Your career coach has a
+                          next-step plan based on
+                          your latest portfolio
+                          signals.
+                        </p>
+
+                        <p className="mt-2 text-xs text-slate-400">
+                          Just now
+                        </p>
+                      </div>
+                    </div>
 
                     <div className="flex gap-4 p-4 hover:bg-[#fafafa]">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF2F6]">
@@ -410,6 +455,45 @@ export default function Navbar() {
 
         </div>
       </nav>
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden border-t border-black/5 bg-white lg:hidden"
+          >
+            <div className="mx-auto grid max-w-7xl gap-2 px-4 py-3 sm:px-8">
+              {navItems.map((item, index) => {
+                const active = index === activeIndex;
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                      active
+                        ? "bg-[#fff1f5] text-[#f0184f]"
+                        : "text-black/75 hover:bg-black/[0.03] hover:text-black"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <Link
+                href="/"
+                onClick={() => setIsMenuOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-50"
+              >
+                Log Out
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

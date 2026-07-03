@@ -11,13 +11,15 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  CircleAlert,
   ClipboardList,
-  Crown,
   Gauge,
   Eye,
   FilePlus2,
-  LockKeyhole,
+  FolderOpen,
   MailPlus,
+  Medal,
+  Menu,
   MapPin,
   MessageSquareText,
   PenLine,
@@ -46,6 +48,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  getWorkAnimal,
+  supervisorGuide,
+  topAnimalsForJob,
+  workAnimals,
+} from "@/lib/workAnimals";
+import type { WorkAnimalSlug } from "@/lib/workAnimals";
 import {
   initialHiringSettings,
   navItems,
@@ -152,7 +161,6 @@ export function EmployerPrototype() {
   const [selectedCandidateId, setSelectedCandidateId] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [stageType, setStageType] = useState("Online interview");
-  const [noHireYet, setNoHireYet] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activityLog, setActivityLog] = useState<ActivityEvent[]>(() => initialStore?.activityLog ?? []);
   const [toast, setToast] = useState<{ title: string; body?: string; tone?: ActivityTone } | null>(null);
@@ -174,7 +182,7 @@ export function EmployerPrototype() {
     saveEmployerStore(store);
   }, [activityLog, candidates, company, currentUser?.email, currentUserEmail, hasCompany, initialStore?.createdAt, initialStore?.mode, jobs, members, settings]);
 
-  const role = currentUser?.role ?? rolePreview;
+  const role = rolePreview;
   const permissions = rolePermissions[role];
   const activeJob = jobs.find((job) => job.id === activeJobId) ?? jobs[0];
   const activeJobCandidates = useMemo(
@@ -306,6 +314,8 @@ export function EmployerPrototype() {
     deadline: string;
     skills: string[];
     screeningQuestion: string;
+    supervisorName: string;
+    supervisorAnimal: WorkAnimalSlug | "";
   }) {
     const title = draft.title.trim();
     const department = draft.department.trim().toLowerCase();
@@ -349,6 +359,8 @@ export function EmployerPrototype() {
       shortlisted: 0,
       hired: 0,
       expiresIn: draft.deadline ? Math.max(0, Math.ceil((new Date(draft.deadline).getTime() - Date.now()) / 86400000)) : 30,
+      supervisorName: draft.supervisorName.trim(),
+      supervisorAnimal: draft.supervisorAnimal || undefined,
     };
 
     setJobs((currentJobs) => [newJob, ...currentJobs]);
@@ -418,11 +430,11 @@ export function EmployerPrototype() {
       return;
     }
     updateCandidateWorkflow(
-      (candidate) => ({ ...candidate, stage: "New", type: candidate.source, status: "New", appliedToJob: candidate.source === "Applied" }),
+      (candidate) => ({ ...candidate, stage: "Rejected", type: "Rejected", status: "Not selected", appliedToJob: candidate.source === "Applied" }),
       candidateId
     );
-    addActivity(`${candidates.find((candidate) => candidate.id === candidateId)?.name ?? "Candidate"} removed from shortlist`, "zinc");
-    notify("Removed from shortlist", "The candidate returned to review.", "zinc");
+    addActivity(`${candidates.find((candidate) => candidate.id === candidateId)?.name ?? "Candidate"} marked not selected`, "zinc");
+    notify("Candidate not selected", "The candidate was removed from the active shortlist.", "zinc");
   }
 
   function sendInvite(candidateIds?: number[]) {
@@ -465,6 +477,12 @@ export function EmployerPrototype() {
       notify("Job is closed", "Closed jobs are read-only. Hiring updates are disabled.", "amber");
       return;
     }
+    const targetCandidate = candidates.find((candidate) => candidate.id === candidateId);
+    const interviewComplete = targetCandidate?.stage === "Invited" || targetCandidate?.stage === "Interview scheduled" || targetCandidate?.status === "Invited";
+    if (!interviewComplete) {
+      notify("Interview required first", "Invite the candidate to interview before marking them hired.", "amber");
+      return;
+    }
     setCandidates((currentCandidates) => {
       const nextCandidates = currentCandidates.map((candidate) =>
         candidate.id === candidateId
@@ -489,13 +507,12 @@ export function EmployerPrototype() {
       );
       return nextCandidates;
     });
-    setNoHireYet(false);
     addActivity(`${candidates.find((candidate) => candidate.id === candidateId)?.name ?? "Candidate"} marked hired`, "emerald");
     notify("Hire recorded", "The hired count and candidate status were updated.", "emerald");
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#fff7fb_0%,#fafafa_22%,#f4f4f5_100%)] text-zinc-950">
+    <main className="min-h-screen overflow-x-hidden bg-[#f6f7f9] text-zinc-950">
       {hasCompany && (
         <CompanyNav
           active={page}
@@ -509,7 +526,7 @@ export function EmployerPrototype() {
         />
       )}
 
-      <div className={cn(hasCompany && (sidebarCollapsed ? "lg:pl-24" : "lg:pl-72"))}>
+      <div className={cn(hasCompany && (sidebarCollapsed ? "xl:pl-24" : "xl:pl-72"))}>
       <AnimatePresence mode="wait">
       <motion.div key={`${hasCompany ? "company" : "personal"}-${page}`} {...pageMotion}>
       {!hasCompany && page === "personal" && (
@@ -672,7 +689,6 @@ export function EmployerPrototype() {
           onSettingsChange={setSettings}
           stageType={stageType}
           onStageTypeChange={setStageType}
-          onSend={sendInvite}
           onBack={() => go("shortlist")}
           onNavigate={go}
           onNotify={notify}
@@ -686,10 +702,6 @@ export function EmployerPrototype() {
           company={company}
           settings={settings}
           onSettingsChange={setSettings}
-          onSend={() => {
-            markHired(selectedCandidate.id);
-            go("shortlist");
-          }}
           onBack={() => go("shortlist")}
           onNavigate={go}
           onNotify={notify}
@@ -700,11 +712,7 @@ export function EmployerPrototype() {
         <ResultPage
           candidates={activeJobCandidates}
           permissions={permissions}
-          noHireYet={noHireYet}
           activeJob={activeJob}
-          promptResultUpdate={settings.expiry.promptResult}
-          onNoHire={() => setNoHireYet(true)}
-          onMarkHired={markHired}
           onCloseJob={closeActiveJob}
           onNavigate={go}
         />
@@ -824,15 +832,15 @@ function CreateCompanyPage({
   );
 }
 
+type RolePerformanceMetric = "applicants" | "averageMatch" | "shortlistConversion" | "inviteConversion";
+
 function DashboardPage({
   company,
   activeJob,
   candidates,
   jobs,
-  activityLog,
   nextAction,
   scoreWeights,
-  showCountdown,
   onSelectJob,
   onNavigate,
 }: {
@@ -850,64 +858,275 @@ function DashboardPage({
   const primaryJob = activeJob ?? jobs[0];
   const hasJobs = jobs.length > 0;
   const hasTalent = candidates.length > 0;
-  const hasActivity = activityLog.length > 0;
-  const shortlisted = candidates.filter((candidate) => candidate.stage === "Shortlisted").length;
-  const invited = candidates.filter((candidate) => candidate.stage === "Invited").length;
-  const hired = candidates.filter((candidate) => candidate.stage === "Hired").length;
-  const reengagement = candidates.filter((candidate) => candidate.source === "Potential" && candidate.stage !== "Hired").length;
   const openJobs = jobs.filter((job) => job.status !== "Closed");
-  const nextExpiry = openJobs.length > 0 ? Math.min(...openJobs.map((job) => job.expiresIn)) : null;
-  const totalApplicants = jobs.reduce((sum, job) => sum + job.applicants, 0);
   const bestCandidate = hasTalent ? [...candidates].sort((a, b) => candidateScore(b, scoreWeights) - candidateScore(a, scoreWeights))[0] : null;
-  const radarCandidates = bestCandidate
-    ? candidates.filter((candidate) => candidate.id !== bestCandidate.id).slice(0, 3)
-    : [];
-  const visibleActivity = activityLog.slice(0, 4);
-  const jobStageLabel = openJobs.length === 1 ? "1 open" : `${openJobs.length} open`;
-  const applicantCount = primaryJob?.applicants ?? totalApplicants;
   const actionCopy =
     !hasJobs
       ? {
           label: "Post your first job",
-          detail: "Create the first role to unlock candidate review, shortlist, interview email, and hiring outcomes.",
+          detail: "Create the first role to unlock funnel analytics, candidate quality signals, and hiring outcomes.",
           page: "post-job" as Page,
         }
       : !hasTalent
         ? {
             label: "Pipeline ready",
-            detail: `${primaryJob?.title ?? "The active role"} is live. Applicants and sourced talent will appear here once candidates enter the pipeline.`,
+            detail: `${primaryJob?.title ?? "The active role"} is live. Applicants and sourced talent will appear once candidates enter the pipeline.`,
             page: "jobs" as Page,
           }
-        : invited === 0
-          ? {
-              label: "Review new applicants",
-              detail: `Pipeline clear. Review ${applicantCount} applicants for ${primaryJob?.title ?? "the active role"}.`,
-              page: "candidates" as Page,
-            }
-          : nextAction;
-  const displayJobs = jobs
-    .slice(0, 3);
+        : nextAction;
+  const analytics = {
+    applicants: 120,
+    shortlisted: 42,
+    invited: 18,
+    hired: 5,
+    averageMatch: 84,
+    responseRate: 91,
+    timeToShortlist: "2.4d",
+    newApplicants: 27,
+    reengage: 14,
+    openJobs: Math.max(openJobs.length, 4),
+  };
+  const [hoveredFunnelIndex, setHoveredFunnelIndex] = useState(1);
+  const [hoveredQualityBand, setHoveredQualityBand] = useState("80-89");
+  const [trendRange, setTrendRange] = useState<"7d" | "30d">("7d");
+  const [hoveredTrendIndex, setHoveredTrendIndex] = useState(3);
+  const [roleMetric, setRoleMetric] = useState<RolePerformanceMetric>("applicants");
+  const funnelStages: Array<{
+    label: string;
+    value: number;
+    rate: number;
+    previousRate: number;
+    dropOff: number;
+    detail: string;
+    interpretation: string;
+    page: Page;
+    icon: React.ElementType;
+  }> = [
+    {
+      label: "Applicants",
+      value: analytics.applicants,
+      rate: 100,
+      previousRate: 100,
+      dropOff: 0,
+      detail: "+27 this week",
+      interpretation: "Healthy applicant volume. The role is visible enough to produce a broad candidate pool.",
+      page: "candidates",
+      icon: UsersRound,
+    },
+    {
+      label: "Shortlisted",
+      value: analytics.shortlisted,
+      rate: 35,
+      previousRate: 35,
+      dropOff: analytics.applicants - analytics.shortlisted,
+      detail: "35% pass screening",
+      interpretation: "42 candidates passed screening, so the pipeline is broad but quality control is selective.",
+      page: "candidates",
+      icon: ClipboardList,
+    },
+    {
+      label: "Interview",
+      value: analytics.invited,
+      rate: 15,
+      previousRate: 43,
+      dropOff: analytics.shortlisted - analytics.invited,
+      detail: "43% of shortlist",
+      interpretation: "Interview invites are concentrated. This suggests the team is prioritising depth over volume.",
+      page: "shortlist",
+      icon: CalendarClock,
+    },
+    {
+      label: "Hired",
+      value: analytics.hired,
+      rate: 4,
+      previousRate: 28,
+      dropOff: analytics.invited - analytics.hired,
+      detail: "28% of interview",
+      interpretation: "The final-stage conversion is healthy for selective hiring, with 5 confirmed outcomes.",
+      page: "result",
+      icon: UserCheck,
+    },
+  ];
+  const dashboardKpis = [
+    { icon: UsersRound, label: "Applicants", value: String(analytics.applicants), detail: `${analytics.newApplicants} new applicants` },
+    { icon: ClipboardList, label: "Shortlisted", value: String(analytics.shortlisted), detail: "Ready for review" },
+    { icon: CalendarClock, label: "Interview", value: String(analytics.invited), detail: "Awaiting decision" },
+    { icon: ShieldCheck, label: "Hired", value: String(analytics.hired), detail: "Recorded outcomes", accent: true },
+    { icon: Gauge, label: "Avg match", value: `${analytics.averageMatch}%`, detail: "Candidate quality" },
+    { icon: MailPlus, label: "Response", value: `${analytics.responseRate}%`, detail: "Email engagement" },
+    { icon: Zap, label: "Shortlist time", value: analytics.timeToShortlist, detail: "Median decision speed" },
+    { icon: Sparkles, label: "Re-engage", value: String(analytics.reengage), detail: "Warm strong-fit talent", accent: true },
+  ];
+  const matchDistribution = [
+    {
+      label: "90-100",
+      value: 18,
+      tone: "bg-pink-600",
+      name: "Strong fit",
+      meaning: "Top-fit candidates with strong evidence alignment. This is the group most likely to progress quickly.",
+    },
+    {
+      label: "80-89",
+      value: 46,
+      tone: "bg-pink-400",
+      name: "Good fit",
+      meaning: "Most candidates are here, which means the role attracts relevant talent but still needs careful screening.",
+    },
+    {
+      label: "70-79",
+      value: 34,
+      tone: "bg-violet-400",
+      name: "Moderate fit",
+      meaning: "Candidates show partial alignment. This group may be useful for adjacent roles or re-engagement.",
+    },
+    {
+      label: "<70",
+      value: 22,
+      tone: "bg-zinc-300",
+      name: "Weak fit",
+      meaning: "Lower-fit profiles are present but not dominating the pool, which keeps screening workload manageable.",
+    },
+  ];
+  const applicationTrend = {
+    "7d": [
+      { day: "Mon", value: 12 },
+      { day: "Tue", value: 15 },
+      { day: "Wed", value: 18 },
+      { day: "Thu", value: 27 },
+      { day: "Fri", value: 22 },
+      { day: "Sat", value: 11 },
+      { day: "Sun", value: 15 },
+    ],
+    "30d": [
+      2, 3, 4, 2, 5, 3, 4, 5, 3, 4, 5, 4, 4, 3, 4, 5, 4, 4, 6, 5, 4, 4, 5, 6, 4, 4, 5, 3, 2, 4,
+    ].map((value, index) => ({ day: `D${index + 1}`, value })),
+  };
+  const jobPerformance = [
+    {
+      id: jobs[0]?.id ?? 1,
+      title: jobs[0]?.title ?? "Senior Product Lead",
+      status: jobs[0]?.status ?? "Open" as JobStatus,
+      applicants: 31,
+      shortlisted: 12,
+      invited: 6,
+      averageMatch: 88,
+      shortlistConversion: 39,
+      inviteConversion: 50,
+      pattern: "Strong quality with selective progression.",
+    },
+    {
+      id: jobs[1]?.id ?? 2,
+      title: jobs[1]?.title ?? "Growth Product Designer",
+      status: jobs[1]?.status ?? "Open" as JobStatus,
+      applicants: 28,
+      shortlisted: 9,
+      invited: 4,
+      averageMatch: 82,
+      shortlistConversion: 32,
+      inviteConversion: 44,
+      pattern: "Balanced pool with good portfolio alignment.",
+    },
+    {
+      id: 103,
+      title: "Product Manager",
+      status: "Open" as JobStatus,
+      applicants: 38,
+      shortlisted: 13,
+      invited: 6,
+      averageMatch: 84,
+      shortlistConversion: 34,
+      inviteConversion: 46,
+      pattern: "Highest volume, slightly broader fit range.",
+    },
+    {
+      id: 104,
+      title: "Data Analyst",
+      status: "Interviewing" as JobStatus,
+      applicants: 23,
+      shortlisted: 8,
+      invited: 2,
+      averageMatch: 79,
+      shortlistConversion: 35,
+      inviteConversion: 25,
+      pattern: "Useful volume, but interview conversion is thinner.",
+    },
+  ];
+  const activeJobCandidates = primaryJob
+    ? candidates.filter((candidate) => candidate.jobId === primaryJob.id)
+    : candidates;
+  const traitCandidates = activeJobCandidates.filter(
+    (candidate) => candidate.livingCvDetails.workAnimalTestCompleted && getWorkAnimal(candidate.livingCvDetails.workAnimal)
+  );
+  const traitCounts = workAnimals
+    .map((animal) => {
+      const matchingCandidates = traitCandidates.filter(
+        (candidate) => candidate.livingCvDetails.workAnimal === animal.slug
+      );
+      const totalScore = matchingCandidates.reduce(
+        (sum, candidate) => sum + candidateScore(candidate, scoreWeights),
+        0
+      );
+
+      return {
+        animal,
+        count: matchingCandidates.length,
+        percent: traitCandidates.length
+          ? Math.round((matchingCandidates.length / traitCandidates.length) * 100)
+          : 0,
+        averageScore: matchingCandidates.length ? Math.round(totalScore / matchingCandidates.length) : 0,
+      };
+    })
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count || b.averageScore - a.averageScore)
+    .slice(0, 4);
+  const roleTraitMatches = primaryJob
+    ? topAnimalsForJob({
+        title: primaryJob.title,
+        skills: primaryJob.skills,
+        historicalAnimalSlugs: traitCandidates
+          .map((candidate) => candidate.livingCvDetails.workAnimal)
+          .filter(Boolean) as WorkAnimalSlug[],
+      })
+    : [];
+  const missingTraitProfiles = Math.max(activeJobCandidates.length - traitCandidates.length, 0);
+  const reengagementOpportunities = [
+    { label: "Past finalist pool", count: 7, detail: "Strong culture fit, available again" },
+    { label: "Silver-medal applicants", count: 4, detail: "Missed by narrow score margin" },
+    { label: "Portfolio improvers", count: 3, detail: "Uploaded fresh evidence" },
+  ];
+  const summaryInsights = [
+    {
+      title: "Pipeline signal",
+      detail: "The funnel is broad at the top and selective at screening, with the largest drop-off before shortlist.",
+    },
+    {
+      title: "Candidate quality signal",
+      detail: "64 candidates sit at 80%+ match, meaning the pool is relevant without being overly narrow.",
+    },
+    {
+      title: "Role performance pattern",
+      detail: "Product Manager has the strongest applicant volume, while Senior Product Lead carries the strongest quality score.",
+    },
+  ];
 
   return (
     <section className="mx-auto w-full max-w-7xl overflow-hidden px-5 py-6 lg:px-8">
       <div className="career-command-shell relative max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-[2rem] p-5 lg:max-w-none lg:p-7">
-        <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.12fr)_410px]">
+        <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_420px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="bg-white text-pink-700 ring-1 ring-pink-200">
-                Company command center
+                Hiring analytics command centre
               </Badge>
               <Badge className="bg-violet-50 text-violet-700 ring-1 ring-violet-100">
                 {company.industry}
               </Badge>
             </div>
-            <h1 className="mt-5 w-full max-w-[18rem] break-words text-3xl font-semibold leading-tight tracking-normal sm:max-w-4xl sm:text-5xl lg:text-6xl">
-              Run hiring like a live talent market.
+            <h1 className="mt-5 max-w-4xl text-3xl font-semibold leading-tight tracking-normal sm:text-5xl lg:text-6xl">
+              Hiring Analytics Command Centre
             </h1>
-            <p className="mt-5 max-w-[17rem] text-sm leading-6 text-zinc-600 sm:max-w-2xl">
-              {company.name} can track open jobs, re-engage strong past
-              shortlists, review CVs, and push candidates into the next stage
-              without losing the thread.
+            <p className="mt-5 max-w-2xl text-sm leading-6 text-zinc-600">
+              Track applicant volume, funnel quality, shortlist speed, active role performance, and re-engagement opportunities in one calm hiring cockpit for {company.name}.
             </p>
 
             <motion.div
@@ -916,9 +1135,9 @@ function DashboardPage({
               animate="animate"
               className="mt-7 grid gap-3 sm:grid-cols-3"
             >
-              <DashboardStage label="Job posted" value={hasJobs ? jobStageLabel : "Not started"} active={hasJobs} />
-              <DashboardStage label="Candidate review" value={hasTalent ? `${applicantCount} applicants` : "No talent yet"} active={hasTalent} />
-              <DashboardStage label="Next-stage queue" value={invited > 0 ? `${invited} invited` : "Queue empty"} active={invited > 0} />
+              <DashboardStage label="Applicants" value={`${analytics.applicants} total`} active />
+              <DashboardStage label="Quality signal" value={`${analytics.averageMatch}% avg match`} active />
+              <DashboardStage label="Hiring outcome" value={`${analytics.hired} hires`} active />
             </motion.div>
           </div>
 
@@ -926,26 +1145,33 @@ function DashboardPage({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-normal text-pink-600">
-                  Next best action
+                  Pipeline intelligence
                 </p>
                 <h2 className="mt-3 text-2xl font-semibold tracking-normal">
-                  {actionCopy.label}
+                  Selective screen, healthy volume
                 </h2>
               </div>
               <span className="flex size-10 items-center justify-center rounded-2xl bg-pink-50 text-pink-600 shadow-sm ring-1 ring-pink-100">
                 <Sparkles className="size-5" />
               </span>
             </div>
-            <p className="mt-3 text-sm leading-6 text-zinc-600">{actionCopy.detail}</p>
-            <Button className="career-pink-action mt-5 h-11 w-full text-white" onClick={() => onNavigate(actionCopy.page)}>
-              Continue workflow
+            <p className="mt-3 text-sm leading-6 text-zinc-600">
+              {analytics.shortlisted} of {analytics.applicants} applicants reached shortlist. The largest signal is quality filtering, not candidate volume.
+            </p>
+            <Button variant="outline" className="mt-5 h-11 w-full" onClick={() => onNavigate(actionCopy.page)}>
+              Explore underlying profiles
               <ChevronRight />
             </Button>
-            <div className="mt-5 rounded-2xl border border-pink-100 bg-white p-3">
+            <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl border border-pink-100 bg-pink-50/40 p-3">
+              <JobSignal label="Open roles" value={String(analytics.openJobs)} />
+              <JobSignal label="Shortlist" value={String(analytics.shortlisted)} />
+              <JobSignal label="Invites" value={String(analytics.invited)} />
+            </div>
+            <div className="mt-3 rounded-2xl border border-zinc-100 bg-white p-3">
               {bestCandidate ? (
                 <>
                   <div className="flex items-center justify-between text-xs text-zinc-500">
-                    <span>Best match</span>
+                    <span>Current top match</span>
                     <span>{candidateScore(bestCandidate, scoreWeights)}%</span>
                   </div>
                   <div className="mt-2 flex items-center gap-3">
@@ -978,151 +1204,738 @@ function DashboardPage({
         variants={listContainerMotion}
         initial="initial"
         animate="animate"
-        className="mt-5 grid gap-3 md:grid-cols-5"
+        className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <DashboardMetricCard icon={BriefcaseBusiness} label="Open jobs" value={String(openJobs.length)} detail={nextExpiry ? `${nextExpiry} days to next expiry` : "Post a job to start hiring"} />
-        <DashboardMetricCard
-          icon={UsersRound}
-          label="Applicants"
-          value={String(applicantCount)}
-          detail={!hasJobs ? "Waiting for first role" : applicantCount > 0 ? "+12 new this week" : "No applicants yet"}
-        />
-        <DashboardMetricCard icon={ClipboardList} label="Shortlisted" value={String(shortlisted)} detail="Awaiting next stage" />
-        <DashboardMetricCard icon={Sparkles} label="Re-engage" value={String(reengagement)} detail="High-fit past shortlist" accent />
-        <DashboardMetricCard icon={ShieldCheck} label="Hired" value={String(hired)} detail="Recorded outcomes" />
+        {dashboardKpis.map((kpi) => (
+          <DashboardMetricCard
+            key={kpi.label}
+            icon={kpi.icon}
+            label={kpi.label}
+            value={kpi.value}
+            detail={kpi.detail}
+            accent={kpi.accent}
+          />
+        ))}
       </motion.div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="grid gap-4">
-          {displayJobs.length > 0 && (
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">Active jobs</h2>
-                <p className="mt-1 text-sm text-zinc-500">Open a job card to enter its workspace.</p>
-              </div>
-              <Button
-                variant="outline"
-                className="shrink-0"
-                onClick={() => onNavigate("jobs")}
-              >
-                More jobs
-                <ChevronRight />
-              </Button>
-            </div>
-          )}
-          {displayJobs.length > 0 ? (
-            displayJobs.map((job, index) => (
-              <motion.button
-                key={job.id}
-                variants={listItemMotion}
-                initial="initial"
-                animate="animate"
-                whileHover={{ y: -4 }}
-                whileTap={tactileTap}
-                transition={{ ...listItemMotion.transition, delay: index * 0.06 }}
-                onClick={() => onSelectJob(job.id)}
-                className="career-list-row group relative w-full overflow-hidden rounded-3xl p-5 text-left transition hover:-translate-y-1 hover:border-pink-200"
-              >
-                <div className="absolute right-5 top-5 h-1.5 w-16 rounded-full bg-pink-200/70 opacity-0 transition group-hover:opacity-100" />
-                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-xl font-semibold tracking-normal">{job.title}</h2>
-                      <StatusBadge status={job.status} />
-                      <Badge className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200">{job.department}</Badge>
-                      <JobCountdownBadge job={job} show={showCountdown} />
-                    </div>
-                    <p className="mt-2 text-sm text-zinc-500">{job.workMode} · {job.location} · {job.salary}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {job.skills.map((skill) => (
-                        <Badge key={skill} variant="secondary" className="bg-zinc-100/80">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid min-w-[260px] grid-cols-3 gap-2">
-                    <JobSignal label="Applicants" value={String(job.applicants)} />
-                    <JobSignal label="Shortlist" value={String(job.shortlisted)} />
-                    <JobSignal label="Hired" value={String(job.hired)} />
-                  </div>
-                </div>
-                <div className="mt-5 flex items-center justify-between">
-                  <div className="h-2 w-40 overflow-hidden rounded-full bg-zinc-100">
-                    <AnimatedProgress value={Math.min(100, Math.max(18, job.applicants * 3))} delay={index * 0.06} />
-                  </div>
-                  <span className="flex items-center text-sm font-medium text-pink-600">
-                    Open job workspace
-                    <ChevronRight className="ml-1 size-4 transition group-hover:translate-x-1" />
-                  </span>
-                </div>
-              </motion.button>
-            ))
-          ) : (
-            <EmptyState
-              icon={BriefcaseBusiness}
-              title="No jobs posted yet"
-              description="Post the first role to start collecting applicants, sourcing talent, and moving candidates through shortlist and hiring outcomes."
-              actionLabel="Post job"
-              onAction={() => onNavigate("post-job")}
-            />
-          )}
-        </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(340px,0.82fr)]">
+        <InteractiveHiringFunnel
+          stages={funnelStages}
+          activeIndex={hoveredFunnelIndex}
+          onActiveIndexChange={setHoveredFunnelIndex}
+          onNavigate={onNavigate}
+        />
+
+        <CandidateQualityDistribution
+          bands={matchDistribution}
+          total={analytics.applicants}
+          activeBand={hoveredQualityBand}
+          onActiveBandChange={setHoveredQualityBand}
+          averageMatch={analytics.averageMatch}
+        />
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <ApplicantActivityTrend
+          data={applicationTrend[trendRange]}
+          range={trendRange}
+          activeIndex={hoveredTrendIndex}
+          onRangeChange={setTrendRange}
+          onActiveIndexChange={setHoveredTrendIndex}
+        />
+
+        <TraitIntelligenceCard
+          jobTitle={primaryJob?.title ?? "Active role"}
+          traitCounts={traitCounts}
+          roleTraitMatches={roleTraitMatches}
+          missingTraitProfiles={missingTraitProfiles}
+          onReview={() => onNavigate("candidates")}
+        />
+      </div>
+
+      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]">
+        <RolePerformanceComparison
+          roles={jobPerformance}
+          selectedMetric={roleMetric}
+          onMetricChange={setRoleMetric}
+          onSelectJob={onSelectJob}
+          onManageJobs={() => onNavigate("jobs")}
+        />
 
         <div className="space-y-4">
           <Card className="career-panel-muted rounded-3xl">
             <CardHeader>
-              <CardTitle>Talent radar</CardTitle>
+              <CardTitle>Re-engagement opportunities</CardTitle>
+              <p className="mt-1 text-sm text-zinc-500">Warm talent that should not be lost between hiring cycles.</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              {radarCandidates.length > 0 ? (
-                radarCandidates.map((candidate) => (
-                  <div key={candidate.id} className="career-list-row flex items-center justify-between rounded-2xl p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-full bg-pink-100 text-sm font-semibold text-pink-700">
-                        {candidate.name.split(" ").map((part) => part[0]).join("")}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{candidate.name}</p>
-                        <p className="text-xs text-zinc-500">{candidate.source} · {candidate.stage}</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-white text-pink-700 ring-1 ring-pink-100">{candidateScore(candidate, scoreWeights)}%</Badge>
+              {reengagementOpportunities.map((item) => (
+                <div key={item.label} className="rounded-2xl bg-white p-4 ring-1 ring-zinc-100">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-zinc-950">{item.label}</p>
+                    <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-100">{item.count}</Badge>
                   </div>
-                ))
-              ) : (
-                <div className="rounded-2xl bg-white/80 p-4 text-sm text-zinc-600 ring-1 ring-zinc-100">
-                  <p className="font-medium text-zinc-950">No talent radar yet</p>
-                  <p className="mt-1 leading-6">
-                    Applied and sourced candidates will appear once a job is live.
-                  </p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">{item.detail}</p>
                 </div>
-              )}
+              ))}
             </CardContent>
           </Card>
 
           <Card className="career-clear-card rounded-3xl">
             <CardHeader>
-              <CardTitle>Recent hiring signals</CardTitle>
+              <CardTitle>Summary insights</CardTitle>
+              <p className="mt-1 text-sm text-zinc-500">High-level patterns from the current hiring cycle.</p>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {hasActivity ? (
-                visibleActivity.map((activity) => (
-                  <ActivityItem key={activity.id} label={activity.label} time={activity.time} tone={activity.tone} />
-                ))
-              ) : (
-                <div className="rounded-2xl bg-zinc-50 p-4 text-zinc-600">
-                  <p className="font-medium text-zinc-950">No recent activity</p>
-                  <p className="mt-1 leading-6">
-                    Hiring actions will appear here when the team posts jobs, shortlists candidates, sends email, or records outcomes.
-                  </p>
+            <CardContent className="space-y-3">
+              {summaryInsights.map((insight) => (
+                <div
+                  key={insight.title}
+                  className="rounded-2xl border border-zinc-200 bg-white p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-pink-600 ring-1 ring-pink-100">
+                      <Sparkles className="size-4" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-zinc-950">{insight.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">{insight.detail}</p>
+                    </div>
+                  </div>
                 </div>
-              )}
+              ))}
             </CardContent>
           </Card>
         </div>
       </div>
     </section>
+  );
+}
+
+function InteractiveHiringFunnel({
+  stages,
+  activeIndex,
+  onActiveIndexChange,
+  onNavigate,
+}: {
+  stages: Array<{
+    label: string;
+    value: number;
+    rate: number;
+    previousRate: number;
+    dropOff: number;
+    detail: string;
+    interpretation: string;
+    page: Page;
+    icon: React.ElementType;
+  }>;
+  activeIndex: number;
+  onActiveIndexChange: (index: number) => void;
+  onNavigate: (page: Page) => void;
+}) {
+  const activeStage = stages[activeIndex] ?? stages[0];
+  const largestDrop = stages
+    .slice(1)
+    .reduce((current, stage, index) => (stage.dropOff > current.stage.dropOff ? { stage, index: index + 1 } : current), {
+      stage: stages[1] ?? stages[0],
+      index: 1,
+    });
+
+  return (
+    <Card className="career-clear-card rounded-3xl">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle>Interactive hiring funnel</CardTitle>
+          <p className="mt-1 text-sm text-zinc-500">Applicants to confirmed hires, with conversion and drop-off signals.</p>
+        </div>
+        <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-100">
+          {stages[0]?.value ?? 0} applicants
+        </Badge>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          {stages.map((stage, index) => {
+            const Icon = stage.icon;
+            const active = index === activeIndex;
+            return (
+              <button
+                key={stage.label}
+                type="button"
+                onMouseEnter={() => onActiveIndexChange(index)}
+                onFocus={() => onActiveIndexChange(index)}
+                onClick={() => onNavigate(stage.page)}
+                className={cn(
+                  "group rounded-2xl border bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-lg hover:shadow-pink-950/5",
+                  active ? "border-pink-200 shadow-lg shadow-pink-950/5" : "border-zinc-200"
+                )}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-2xl ring-1",
+                      active ? "bg-pink-50 text-pink-600 ring-pink-100" : "bg-zinc-50 text-zinc-500 ring-zinc-100"
+                    )}
+                  >
+                    <Icon className="size-4" />
+                  </span>
+                  <span className="text-xs font-semibold text-zinc-500">
+                    {stage.rate}% total
+                  </span>
+                </div>
+                <p className="mt-3 text-xl font-semibold text-zinc-950">{stage.value}</p>
+                <p className="mt-1 text-sm font-medium text-zinc-700">{stage.label}</p>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
+                  <AnimatedProgress value={stage.rate} delay={index * 0.05} />
+                </div>
+                <p className="mt-2 text-[11px] leading-4 text-zinc-500">
+                  {index === 0 ? stage.detail : `${stage.previousRate}% from previous · -${stage.dropOff}`}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        <motion.div
+          key={activeStage.label}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: smoothEase }}
+          className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-zinc-950">{activeStage.label} insight</p>
+            <span className="text-xs font-semibold text-pink-700">
+              {activeStage.value} · {activeStage.detail}
+            </span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">{activeStage.interpretation}</p>
+        </motion.div>
+
+        <p className="text-xs font-medium text-zinc-500">
+          Pipeline signal: largest drop-off occurs between {stages[largestDrop.index - 1]?.label} and {largestDrop.stage.label}.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CandidateQualityDistribution({
+  bands,
+  total,
+  activeBand,
+  onActiveBandChange,
+  averageMatch,
+}: {
+  bands: Array<{
+    label: string;
+    value: number;
+    tone: string;
+    name: string;
+    meaning: string;
+  }>;
+  total: number;
+  activeBand: string;
+  onActiveBandChange: (band: string) => void;
+  averageMatch: number;
+}) {
+  const active = bands.find((band) => band.label === activeBand) ?? bands[0];
+  const highFit = bands.slice(0, 2).reduce((sum, band) => sum + band.value, 0);
+  const maxValue = Math.max(...bands.map((band) => band.value), 1);
+
+  return (
+    <Card className="career-panel-muted rounded-3xl">
+      <CardHeader>
+        <CardTitle>Candidate quality distribution</CardTitle>
+        <p className="mt-1 text-sm text-zinc-500">Match score bands across the current talent pool.</p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="rounded-3xl bg-white p-4 ring-1 ring-zinc-100">
+          <div className="flex h-48 items-end justify-between gap-3">
+            {bands.map((band, index) => {
+              const percent = Math.round((band.value / total) * 100);
+              const activeBar = band.label === active.label;
+              return (
+                <button
+                  key={band.label}
+                  type="button"
+                  onMouseEnter={() => onActiveBandChange(band.label)}
+                  onFocus={() => onActiveBandChange(band.label)}
+                  className="flex h-full flex-1 flex-col items-center justify-end gap-2 rounded-2xl p-1 transition hover:bg-pink-50/50"
+                >
+                  <div className="flex h-full w-full items-end rounded-2xl bg-zinc-50 p-2">
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${Math.max((band.value / maxValue) * 100, 12)}%` }}
+                      transition={{ duration: 0.55, delay: index * 0.04, ease: smoothEase }}
+                      className={cn(
+                        "w-full rounded-xl transition",
+                        band.tone,
+                        activeBar ? "opacity-100 shadow-lg shadow-pink-950/10" : "opacity-70"
+                      )}
+                    />
+                  </div>
+                  <p className="text-xs font-medium text-zinc-600">{band.label}</p>
+                  <p className="text-[11px] text-zinc-400">{band.value} · {percent}%</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <motion.div
+          key={active.label}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: smoothEase }}
+          className="rounded-2xl border border-zinc-200 bg-white p-4"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+            {active.name} · {Math.round((active.value / total) * 100)}% of pool
+          </p>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">{active.meaning}</p>
+        </motion.div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <JobSignal label="Average match" value={`${averageMatch}%`} />
+          <JobSignal label="80%+ profiles" value={String(highFit)} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ApplicantActivityTrend({
+  data,
+  range,
+  activeIndex,
+  onRangeChange,
+  onActiveIndexChange,
+}: {
+  data: Array<{ day: string; value: number }>;
+  range: "7d" | "30d";
+  activeIndex: number;
+  onRangeChange: (range: "7d" | "30d") => void;
+  onActiveIndexChange: (index: number) => void;
+}) {
+  const maxValue = Math.max(...data.map((point) => point.value), 1);
+  const total = data.reduce((sum, point) => sum + point.value, 0);
+  const peakIndex = data.reduce((best, point, index) => (point.value > data[best].value ? index : best), 0);
+  const quietIndex = data.reduce((best, point, index) => (point.value < data[best].value ? index : best), 0);
+  const currentActiveIndex = Math.min(activeIndex, data.length - 1);
+  const active = data[currentActiveIndex] ?? data[0];
+  const chartWidth = 640;
+  const chartHeight = 220;
+  const paddingX = 34;
+  const paddingTop = 24;
+  const paddingBottom = 34;
+  const plotWidth = chartWidth - paddingX * 2;
+  const plotHeight = chartHeight - paddingTop - paddingBottom;
+  const points = data.map((point, index) => {
+    const x = paddingX + (data.length === 1 ? 0 : (index / (data.length - 1)) * plotWidth);
+    const y = paddingTop + (1 - point.value / maxValue) * plotHeight;
+    return { ...point, x, y };
+  });
+  const path = points
+    .map((point, index) => {
+      if (index === 0) return `M ${point.x} ${point.y}`;
+      const previous = points[index - 1];
+      const midX = (previous.x + point.x) / 2;
+      return `C ${midX} ${previous.y}, ${midX} ${point.y}, ${point.x} ${point.y}`;
+    })
+    .join(" ");
+  const baseline = chartHeight - paddingBottom;
+  const areaPath = `${path} L ${points[points.length - 1]?.x ?? paddingX} ${baseline} L ${points[0]?.x ?? paddingX} ${baseline} Z`;
+  const activePoint = points[currentActiveIndex] ?? points[0];
+
+  return (
+    <Card className="career-clear-card rounded-3xl">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle>Applicant activity trend</CardTitle>
+          <p className="mt-1 text-sm text-zinc-500">Application movement over the selected range.</p>
+        </div>
+        <div className="flex rounded-full bg-zinc-100 p-1">
+          {(["7d", "30d"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onRangeChange(option);
+                onActiveIndexChange(option === "7d" ? 3 : 23);
+              }}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-semibold transition",
+                range === option ? "bg-white text-pink-700 shadow-sm" : "text-zinc-500 hover:text-zinc-800"
+              )}
+            >
+              {option === "7d" ? "7 days" : "30 days"}
+            </button>
+          ))}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-3xl bg-zinc-50 p-4">
+          <svg
+            className="w-full overflow-visible"
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            role="img"
+            aria-label="Applicant trend line chart"
+          >
+            <defs>
+              <linearGradient id="applicant-trend-fill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="#E00046" stopOpacity="0.16" />
+                <stop offset="100%" stopColor="#E00046" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[0.25, 0.5, 0.75, 1].map((line) => (
+              <line
+                key={line}
+                x1={paddingX}
+                x2={chartWidth - paddingX}
+                y1={paddingTop + plotHeight * line}
+                y2={paddingTop + plotHeight * line}
+                stroke="#E4E8F0"
+                strokeDasharray="4 8"
+                strokeWidth="1"
+              />
+            ))}
+            <motion.path
+              d={areaPath}
+              fill="url(#applicant-trend-fill)"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, ease: smoothEase }}
+            />
+            <motion.path
+              d={path}
+              fill="none"
+              stroke="#E00046"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.75, ease: smoothEase }}
+            />
+            {points.map((point, index) => (
+              <g
+                key={`${point.day}-${index}`}
+                onMouseEnter={() => onActiveIndexChange(index)}
+                onFocus={() => onActiveIndexChange(index)}
+                tabIndex={0}
+              >
+                <circle cx={point.x} cy={point.y} r="13" fill="transparent" />
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={index === currentActiveIndex ? 7 : index === peakIndex || index === quietIndex ? 5.5 : 4.5}
+                  fill={index === peakIndex ? "#E00046" : index === quietIndex ? "#CBD5E1" : "#FFFFFF"}
+                  stroke={index === currentActiveIndex ? "#E00046" : "#CBD5E1"}
+                  strokeWidth="2.5"
+                  className="transition"
+                />
+              </g>
+            ))}
+            {activePoint && (
+              <g>
+                <line
+                  x1={activePoint.x}
+                  x2={activePoint.x}
+                  y1={paddingTop}
+                  y2={baseline}
+                  stroke="#F5CBD6"
+                  strokeDasharray="4 8"
+                  strokeWidth="1.5"
+                />
+                <rect
+                  x={Math.min(Math.max(activePoint.x - 58, paddingX), chartWidth - paddingX - 116)}
+                  y={Math.max(activePoint.y - 42, 8)}
+                  width="116"
+                  height="30"
+                  rx="15"
+                  fill="#081433"
+                  opacity="0.94"
+                />
+                <text
+                  x={Math.min(Math.max(activePoint.x, paddingX + 58), chartWidth - paddingX - 58)}
+                  y={Math.max(activePoint.y - 22, 28)}
+                  textAnchor="middle"
+                  fill="#FFFFFF"
+                  fontSize="12"
+                  fontWeight="700"
+                >
+                  {activePoint.day}: {activePoint.value}
+                </text>
+              </g>
+            )}
+          </svg>
+          <div className="mt-2 flex justify-between text-[11px] font-medium text-zinc-500">
+            <span>{data[0]?.day}</span>
+            <span>{data[Math.floor(data.length / 2)]?.day}</span>
+            <span>{data[data.length - 1]?.day}</span>
+          </div>
+        </div>
+
+        <motion.div
+          key={`${range}-${active?.day}`}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: smoothEase }}
+          className="rounded-2xl border border-zinc-200 bg-white p-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-zinc-950">
+              {active?.day}: {active?.value} applications
+            </p>
+            <span className="text-xs font-semibold text-pink-700">{total} total</span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">
+            Applications peaked on {data[peakIndex].day} and were quietest on {data[quietIndex].day}, suggesting candidate activity is strongest around the middle of the cycle.
+          </p>
+        </motion.div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RolePerformanceComparison({
+  roles,
+  selectedMetric,
+  onMetricChange,
+  onSelectJob,
+  onManageJobs,
+}: {
+  roles: Array<{
+    id: number;
+    title: string;
+    status: JobStatus;
+    applicants: number;
+    shortlisted: number;
+    invited: number;
+    averageMatch: number;
+    shortlistConversion: number;
+    inviteConversion: number;
+    pattern: string;
+  }>;
+  selectedMetric: RolePerformanceMetric;
+  onMetricChange: (metric: RolePerformanceMetric) => void;
+  onSelectJob: (jobId: number) => void;
+  onManageJobs: () => void;
+}) {
+  const metricOptions: Array<{ key: RolePerformanceMetric; label: string; suffix: string }> = [
+    { key: "applicants", label: "Applicants", suffix: "" },
+    { key: "averageMatch", label: "Avg match", suffix: "%" },
+    { key: "shortlistConversion", label: "Shortlist", suffix: "%" },
+    { key: "inviteConversion", label: "Invite", suffix: "%" },
+  ];
+  const selected = metricOptions.find((option) => option.key === selectedMetric) ?? metricOptions[0];
+  const maxValue = Math.max(...roles.map((role) => role[selectedMetric]), 1);
+  const leader = [...roles].sort((a, b) => b[selectedMetric] - a[selectedMetric])[0];
+
+  return (
+    <Card className="career-clear-card rounded-3xl">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle>Role performance comparison</CardTitle>
+          <p className="mt-1 text-sm text-zinc-500">Compare active roles by volume, quality, and conversion.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onManageJobs}>
+          Manage jobs
+          <ChevronRight />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {metricOptions.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => onMetricChange(option.key)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                selectedMetric === option.key
+                  ? "border-pink-200 bg-pink-50 text-pink-700"
+                  : "border-zinc-200 bg-white text-zinc-500 hover:border-pink-200 hover:text-pink-700"
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-3 rounded-3xl border border-zinc-200 bg-white p-4">
+          {roles.map((role, index) => {
+            const value = role[selectedMetric];
+            const selectable = role.id < 100;
+            return (
+              <button
+                key={role.title}
+                type="button"
+                onClick={() => {
+                  if (selectable) onSelectJob(role.id);
+                }}
+                className="grid w-full gap-3 rounded-2xl p-2 text-left transition hover:bg-zinc-50 sm:grid-cols-[minmax(150px,0.9fr)_minmax(0,1fr)_70px] sm:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-zinc-950">{role.title}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <StatusBadge status={role.status} />
+                    <span className="text-[11px] text-zinc-400">{role.shortlisted}/{role.invited} shortlist/invite</span>
+                  </div>
+                </div>
+                <div className="h-2.5 overflow-hidden rounded-full bg-zinc-100">
+                  <AnimatedProgress
+                    value={(value / maxValue) * 100}
+                    delay={index * 0.04}
+                    className={selectedMetric === "applicants" ? "bg-[linear-gradient(90deg,#f4537c,#df0746)]" : "bg-[linear-gradient(90deg,#a78bfa,#df0746)]"}
+                  />
+                </div>
+                <p className="text-right text-sm font-semibold text-pink-700">
+                  {value}{selected.suffix}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        <motion.div
+          key={`${selectedMetric}-${leader.title}`}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: smoothEase }}
+          className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4"
+        >
+          <p className="text-sm font-semibold text-zinc-950">
+            {leader.title} leads on {selected.label.toLowerCase()}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">{leader.pattern}</p>
+        </motion.div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TraitIntelligenceCard({
+  jobTitle,
+  traitCounts,
+  roleTraitMatches,
+  missingTraitProfiles,
+  onReview,
+}: {
+  jobTitle: string;
+  traitCounts: Array<{
+    animal: NonNullable<ReturnType<typeof getWorkAnimal>>;
+    count: number;
+    percent: number;
+    averageScore: number;
+  }>;
+  roleTraitMatches: ReturnType<typeof topAnimalsForJob>;
+  missingTraitProfiles: number;
+  onReview: () => void;
+}) {
+  const dominantTrait = traitCounts[0];
+  const coverage = traitCounts.reduce((sum, item) => sum + item.count, 0);
+  const recommendation = dominantTrait
+    ? `${dominantTrait.animal.name} is leading this pool, so the shortlist currently leans ${dominantTrait.animal.short.toLowerCase()}`
+    : "Trait data will appear once candidates complete the Menagerie Method profile.";
+
+  return (
+    <Card className="career-panel-muted rounded-3xl">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle>Candidate trait intelligence</CardTitle>
+          <p className="mt-1 text-sm text-zinc-500">
+            Work-style composition for {jobTitle}.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onReview}>
+          Review
+          <ChevronRight />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                Pool mix
+              </p>
+              <p className="mt-1 text-sm font-medium text-zinc-950">
+                {coverage} profiled candidates
+              </p>
+            </div>
+            {missingTraitProfiles > 0 && (
+              <Badge className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200">
+                {missingTraitProfiles} pending
+              </Badge>
+            )}
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {traitCounts.length > 0 ? (
+              traitCounts.map((item) => (
+                <div key={item.animal.slug}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-pink-50 text-base ring-1 ring-pink-100">
+                        {item.animal.emoji}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-zinc-950">
+                          {item.animal.name}
+                        </p>
+                        <p className="truncate text-xs text-zinc-500">
+                          {item.animal.archetype}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-pink-700">{item.percent}%</p>
+                      <p className="text-[11px] text-zinc-500">{item.averageScore}% avg</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${item.percent}%` }}
+                      transition={{ duration: 0.45, ease: smoothEase }}
+                      className="h-full rounded-full bg-pink-500"
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                Ask candidates to complete their work-style profile to unlock trait distribution.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-zinc-100">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              Best-fit traits
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {roleTraitMatches.map((match) => (
+                <Badge
+                  key={match.animal.slug}
+                  className="bg-pink-50 text-pink-700 ring-1 ring-pink-100"
+                >
+                  {match.animal.emoji} {match.animal.name} {match.score}%
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-zinc-100">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              Hiring read
+            </p>
+            <p className="mt-2 text-sm leading-6 text-zinc-600">{recommendation}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1172,20 +1985,20 @@ function DashboardMetricCard({
   return (
     <motion.div
       variants={listItemMotion}
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -2 }}
       whileTap={tactileTap}
       className={cn(
-        "career-clear-metric rounded-3xl p-4 transition",
+        "career-clear-metric rounded-2xl p-3.5 transition",
         accent && "career-metric-accent"
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="flex size-10 items-center justify-center rounded-2xl bg-white text-pink-600 shadow-sm ring-1 ring-pink-100">
-          <Icon className="size-5" />
+        <span className="flex size-8 items-center justify-center rounded-xl bg-white text-pink-600 shadow-sm ring-1 ring-pink-100">
+          <Icon className="size-4" />
         </span>
-        <span className="career-soft-beam h-1.5 w-12 rounded-full bg-pink-200/80" />
+        <span className="h-1 w-8 rounded-full bg-pink-200/80" />
       </div>
-      <p className="mt-5 text-xs font-semibold uppercase tracking-normal text-zinc-500">
+      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </p>
       <motion.p
@@ -1193,11 +2006,11 @@ function DashboardMetricCard({
         initial={{ opacity: 0, y: 6, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.26, ease: smoothEase }}
-        className="mt-2 text-3xl font-semibold tracking-normal"
+        className="mt-1.5 text-2xl font-semibold tracking-normal"
       >
         {value}
       </motion.p>
-      <p className="mt-1 text-xs text-zinc-500">{detail}</p>
+      <p className="mt-1 text-xs leading-5 text-zinc-500">{detail}</p>
     </motion.div>
   );
 }
@@ -1247,7 +2060,6 @@ function TeamPage({
   currentUserEmail,
   onMembersChange,
   onRoleChange,
-  onNavigate,
   onNotify,
 }: {
   role: CompanyRole;
@@ -1420,45 +2232,26 @@ function TeamPage({
         title="Manage who belongs to this workspace."
         description="Everyone can use the hiring workflow. Admins manage normal users, while the single Super Admin controls Admin access and ownership transfer."
       >
-        <div className="rounded-[1.35rem] border border-zinc-200 bg-white p-4 text-zinc-950 shadow-xl shadow-pink-950/5">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-pink-700 ring-1 ring-pink-100">
-              <UserCog className="size-5" />
+        <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3 text-zinc-950">
+          <div className="flex items-center gap-3 border-b border-zinc-200 pb-3">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-white text-pink-700 ring-1 ring-zinc-200">
+              <UserCog className="size-4" />
             </span>
             <div>
               <p className="text-sm font-semibold">{role}</p>
               <p className="text-xs text-zinc-500">{rolePermissions[role].label}</p>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <MiniStat label="Members" value={String(members.length)} />
             <MiniStat label="Online" value={String(members.filter((member) => member.presence === "Online").length)} />
             <MiniStat label="Admins" value={String(members.filter((member) => member.role === "Admin").length)} />
             <MiniStat label="Super Admin" value="1 only" />
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {roleCards.map((roleName) => (
-              <span
-                key={roleName}
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium ring-1",
-                  roleName === role
-                    ? "bg-zinc-950 text-white ring-zinc-950"
-                    : "bg-white text-zinc-600 ring-pink-100"
-                )}
-              >
-                {roleName}
-              </span>
-            ))}
-          </div>
-          <Button className="career-pink-action mt-4 w-full text-white" disabled={!permissions.canManageTeam} onClick={inviteMember}>
-            <UserPlus />
-            Add employer by email
-          </Button>
         </div>
       </CommandHero>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-5 grid gap-4">
         <div className="space-y-4">
           <Card className="career-clear-card rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -1468,7 +2261,14 @@ function TeamPage({
                 Add member
               </Button>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-0">
+              <div className="hidden grid-cols-[minmax(220px,1fr)_112px_104px_140px_96px] gap-3 border-b border-zinc-100 bg-zinc-50/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500 xl:grid">
+                <span>Member</span>
+                <span>Role</span>
+                <span>Status</span>
+                <span>Last active</span>
+                <span className="text-right">Actions</span>
+              </div>
               {members.map((member) => {
                 const isCurrentUser = member.email.toLowerCase() === currentUserEmail.toLowerCase();
                 return (
@@ -1479,28 +2279,24 @@ function TeamPage({
                   animate="animate"
                   whileHover={{ y: -2 }}
                   whileTap={tactileTap}
-                  className="grid min-h-[112px] items-center gap-4 rounded-2xl border border-transparent bg-white p-4 transition hover:border-zinc-200 hover:bg-zinc-50/70 lg:grid-cols-[minmax(0,1fr)_150px_132px]"
+                  className="grid items-center gap-3 border-b border-zinc-100 px-4 py-3 transition last:border-b-0 hover:bg-zinc-50 xl:grid-cols-[minmax(220px,1fr)_112px_104px_140px_96px]"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-950 text-sm font-semibold text-white">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-xs font-semibold text-white">
                       {member.name.split(" ").map((part) => part[0]).join("")}
                     </span>
                     <div className="min-w-0">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <p className="truncate font-semibold">{member.name}</p>
-                        <Badge className="shrink-0 bg-pink-50 text-pink-700 ring-1 ring-pink-100">{member.role}</Badge>
-                        <Badge variant="outline" className="shrink-0">{member.status}</Badge>
                         {isCurrentUser && <Badge variant="outline" className="shrink-0">You</Badge>}
                       </div>
-                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500">
-                        <span className="truncate">{member.email}</span>
-                        <span className="hidden text-zinc-300 sm:inline">/</span>
-                        <span>{member.focus}</span>
-                      </div>
+                      <p className="mt-1 truncate text-sm text-zinc-500">{member.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 lg:justify-center">
-                    <div className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-50 ring-1 ring-zinc-200">
+                  <Badge className="w-fit shrink-0 bg-pink-50 text-pink-700 ring-1 ring-pink-100">{member.role}</Badge>
+                  <Badge variant="outline" className="w-fit shrink-0">{member.status}</Badge>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-50 ring-1 ring-zinc-200">
                       <span
                         className={cn(
                           "size-2.5 rounded-full",
@@ -1513,9 +2309,9 @@ function TeamPage({
                       <p className="text-xs text-zinc-500">{member.presence === "Online" ? "Now" : member.lastActive}</p>
                     </div>
                   </div>
-                  <div className="flex justify-start lg:justify-end">
+                  <div className="flex justify-start xl:justify-end">
                     {isCurrentUser ? (
-                      <span className="rounded-full bg-zinc-50 px-3 py-2 text-sm text-zinc-500 ring-1 ring-zinc-200">Current user</span>
+                      <span className="rounded-full bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-500 ring-1 ring-zinc-200">Current</span>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setManageMember(member)}>
                         Manage
@@ -1547,36 +2343,6 @@ function TeamPage({
           </Card>
         </div>
 
-        <aside className="space-y-4">
-          <Card className="career-panel-muted rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <LockKeyhole className="size-5 text-zinc-500" />
-                Admin controls
-                <HelpTip text="Admins can manage users. Only the single Super Admin can create/remove Admins or transfer ownership." />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <CheckRow>There is only one Super Admin per company.</CheckRow>
-              <CheckRow>Admins can manage Users, but cannot add or remove Admins.</CheckRow>
-              <CheckRow>Team rows show live presence and last active time.</CheckRow>
-            </CardContent>
-          </Card>
-          <Card className="career-clear-card rounded-2xl border-l-4 border-l-pink-600">
-            <CardHeader>
-              <CardTitle>Team access model</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="rounded-2xl border border-pink-200 bg-white p-4">
-                <p className="font-medium">Email-based employer access</p>
-                <p className="mt-1 text-sm text-zinc-500">Admins add users by email and set a temporary password. The directory shows whether they are online or when they were last active.</p>
-              </div>
-              <Button variant="outline" className="w-full" onClick={() => onNavigate("settings")}>
-                Review settings
-              </Button>
-            </CardContent>
-          </Card>
-        </aside>
       </div>
       {confirmation && (
         <ConfirmationDialog
@@ -1716,12 +2482,148 @@ function TeamPage({
   );
 }
 
+type EmployerReputationStatus = "Silver" | "Gold" | "Platinum";
+
+const employerReputationProfiles: Record<EmployerReputationStatus, {
+  label: string;
+  summary: string;
+  medalClass: string;
+  panelClass: string;
+  badgeClass: string;
+  nextStatus: string;
+  progress: number;
+  requirements: string[];
+  currentSignals: string[];
+}> = {
+  Silver: {
+    label: "Silver Employer",
+    summary: "Verified hiring activity with a consistent candidate experience baseline.",
+    medalClass: "from-zinc-100 via-slate-200 to-zinc-50 text-zinc-700 ring-zinc-300",
+    panelClass: "border-zinc-200 bg-[linear-gradient(135deg,#ffffff,#f4f4f5)]",
+    badgeClass: "bg-zinc-100 text-zinc-700 ring-zinc-200",
+    nextStatus: "Gold Employer",
+    progress: 31,
+    requirements: [
+      "25+ verified hires through CareerOS",
+      "4.3+ candidate hiring experience score",
+      "80%+ response-rate standard",
+    ],
+    currentSignals: ["31 verified hires", "4.34 / 5 hiring score", "82% response rate"],
+  },
+  Gold: {
+    label: "Gold Employer",
+    summary: "High-trust employer with proven hiring volume and strong candidate communication.",
+    medalClass: "from-amber-100 via-yellow-300 to-amber-50 text-amber-900 ring-amber-300",
+    panelClass: "border-amber-200 bg-[linear-gradient(135deg,#fffaf0,#fff7db)]",
+    badgeClass: "bg-amber-100 text-amber-800 ring-amber-200",
+    nextStatus: "Platinum Employer",
+    progress: 58,
+    requirements: [
+      "100+ verified hires through CareerOS",
+      "4.6+ candidate hiring experience score",
+      "90%+ response-rate standard",
+    ],
+    currentSignals: ["124 verified hires", "4.62 / 5 hiring score", "91% response rate"],
+  },
+  Platinum: {
+    label: "Platinum Employer",
+    summary: "Top-tier hiring reputation with enterprise-level consistency and audited hiring quality.",
+    medalClass: "from-slate-100 via-indigo-100 to-white text-slate-900 ring-indigo-200",
+    panelClass: "border-indigo-200 bg-[linear-gradient(135deg,#ffffff,#eef2ff)]",
+    badgeClass: "bg-indigo-50 text-indigo-800 ring-indigo-200",
+    nextStatus: "Elite maintained",
+    progress: 100,
+    requirements: [
+      "300+ verified hires through CareerOS",
+      "4.8+ candidate hiring experience score",
+      "95%+ response-rate standard",
+    ],
+    currentSignals: ["318 verified hires", "4.82 / 5 hiring score", "96% response rate"],
+  },
+};
+
+function EmployerReputationPanel({
+  status,
+  onStatusChange,
+}: {
+  status: EmployerReputationStatus;
+  onStatusChange: (status: EmployerReputationStatus) => void;
+}) {
+  const profile = employerReputationProfiles[status];
+
+  return (
+    <div className={cn("overflow-hidden rounded-3xl border p-5 shadow-[0_18px_45px_rgba(24,24,27,0.08)]", profile.panelClass)}>
+      <div className="flex items-start gap-4">
+        <div className={cn("grid size-16 shrink-0 place-items-center rounded-3xl bg-gradient-to-br ring-1 shadow-lg shadow-zinc-950/5", profile.medalClass)}>
+          <Medal className="size-8" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Employer reputation</p>
+            <Badge className={cn("ring-1", profile.badgeClass)}>{profile.label}</Badge>
+          </div>
+          <h3 className="mt-2 text-xl font-semibold tracking-normal text-zinc-950">{profile.label}</h3>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">{profile.summary}</p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-2xl bg-white/75 p-3 ring-1 ring-white/80">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-zinc-700">Progress toward {profile.nextStatus}</p>
+          <span className="text-xs font-bold text-pink-700">{profile.progress}%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-zinc-200/80">
+          <div className="h-full rounded-full bg-[#E00046]" style={{ width: `${profile.progress}%` }} />
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500">
+          {(["Silver", "Gold", "Platinum"] as EmployerReputationStatus[]).map((tier) => (
+            <span key={tier} className={cn("rounded-full px-2 py-1", tier === status && "bg-white text-zinc-950 shadow-sm ring-1 ring-zinc-200")}>
+              {tier}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+        {profile.currentSignals.map((signal) => (
+          <div key={signal} className="flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2.5 text-xs font-semibold text-zinc-700 ring-1 ring-white/80">
+            <Check className="size-3.5 text-pink-600" />
+            {signal}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-white/80 bg-white/55 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Earned by</p>
+        <ul className="mt-2 space-y-1.5 text-xs leading-5 text-zinc-600">
+          {profile.requirements.map((requirement) => (
+            <li key={requirement}>• {requirement}</li>
+          ))}
+        </ul>
+      </div>
+
+      <label className="mt-4 flex flex-col gap-1.5 border-t border-white/80 pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-xs font-semibold text-zinc-500">Preview employer tier</span>
+        <select
+          value={status}
+          onChange={(event) => onStatusChange(event.target.value as EmployerReputationStatus)}
+          className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+          aria-label="Preview employer reputation status"
+        >
+          {Object.keys(employerReputationProfiles).map((tier) => (
+            <option key={tier} value={tier}>{tier}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
 function CompanyProfilePage({
   company,
   permissions,
   onCompanyChange,
   onNotify,
-  onNavigate,
 }: {
   company: Company;
   permissions: (typeof rolePermissions)[CompanyRole];
@@ -1731,6 +2633,15 @@ function CompanyProfilePage({
 }) {
   const [editing, setEditing] = useState(false);
   const [draftCompany, setDraftCompany] = useState(company);
+  const [reputationStatus, setReputationStatus] = useState<EmployerReputationStatus>("Gold");
+  const reputationProfile = employerReputationProfiles[reputationStatus];
+  const companyInitials =
+    company.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "CO";
 
   function saveProfile() {
     onCompanyChange(draftCompany);
@@ -1742,45 +2653,84 @@ function CompanyProfilePage({
     onNotify("Brand asset queued", "Prototype upload complete. The cover/logo preview stays simulated.", "emerald");
   }
 
+  const heroStats = [
+    { label: "Profile strength", value: "86%", icon: Gauge },
+    { label: "Open roles", value: "1", icon: BriefcaseBusiness },
+    { label: "Talent pool", value: "428", icon: UsersRound },
+    { label: "Response rate", value: "74%", icon: MessageSquareText },
+  ];
+  const overviewCards = [
+    { label: "Hiring mode", value: "Structured shortlist", detail: "Re-engagement enabled", icon: ClipboardList },
+    { label: "Profile owner", value: "Super Admin", detail: "Managed workspace", icon: ShieldCheck },
+    { label: "Candidate response", value: "74%", detail: "Average reply rate", icon: MessageSquareText },
+    { label: "Public strength", value: "86%", detail: "Profile completed", icon: Gauge },
+  ];
+  const presenceItems = [
+    ["About", "Career discovery and hiring intelligence for modern teams."],
+    ["Why candidates respond", "Clear salary bands, fast next-stage emails, and transparent outcome updates."],
+    ["Re-engagement promise", "High-fit past shortlist candidates can be approached before the role expires."],
+    ["Hiring transparency", "Candidates see clearer stage movement, interview expectations, and next-step context."],
+    ["Communication quality", "Response behaviour contributes to employer reputation status over time."],
+  ];
+
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
-      <div className="career-clear-card overflow-hidden rounded-3xl">
-        <div className="relative h-48 bg-[linear-gradient(120deg,#fff1f7_0%,#f7d5e8_48%,#f5ecff_100%)]">
-          <div className="absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_30%,white_0_1px,transparent_1px)] [background-size:24px_24px]" />
-          <div className="absolute bottom-5 right-5 hidden rounded-2xl border border-pink-200 bg-white/90 p-4 text-zinc-950 shadow-sm md:block">
-            <p className="text-xs uppercase text-zinc-500">Public profile strength</p>
-            <p className="mt-1 text-2xl font-semibold text-pink-700">86%</p>
-          </div>
-        </div>
-        <div className="relative px-5 pb-6 lg:px-7">
-          <div className="absolute left-5 top-0 flex size-28 -translate-y-1/2 items-center justify-center rounded-3xl border-4 border-white bg-white text-4xl font-semibold text-pink-600 shadow-md lg:left-7">
-            TB
-          </div>
-          <div className="grid gap-6 pt-20 lg:grid-cols-[minmax(0,1fr)_520px] lg:items-end">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="break-words text-3xl font-semibold tracking-normal md:text-4xl">{company.name}</h1>
-                <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-100">Verified company</Badge>
+      <div className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-950/[0.04] lg:p-7">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-center">
+          <div className="min-w-0">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+              <div className="flex size-20 shrink-0 items-center justify-center rounded-3xl border border-zinc-200 bg-zinc-950 text-2xl font-semibold text-white shadow-sm">
+                {companyInitials}
               </div>
-              <p className="mt-2 text-zinc-600">{company.industry} · {company.location} · {company.size} employees</p>
-              <p className="mt-8 max-w-3xl text-sm leading-6 text-zinc-600">{company.description}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-white text-zinc-700 ring-1 ring-zinc-200">Verified company</Badge>
+                  <Badge className={cn("gap-1.5 ring-1", reputationProfile.badgeClass)}>
+                    <Medal className="size-3.5" />
+                    {reputationProfile.label}
+                  </Badge>
+                </div>
+                <h1 className="mt-3 break-words text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">{company.name}</h1>
+                <div className="mt-3 flex flex-wrap gap-2 text-sm font-medium text-zinc-600">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-3 py-1 ring-1 ring-zinc-200"><Building2 className="size-3.5 text-pink-600" />{company.industry}</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-3 py-1 ring-1 ring-zinc-200"><MapPin className="size-3.5 text-pink-600" />{company.location}</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-3 py-1 ring-1 ring-zinc-200"><UsersRound className="size-3.5 text-pink-600" />{company.size} employees</span>
+                </div>
+                <p className="mt-5 max-w-3xl text-sm leading-6 text-zinc-600">{company.description}</p>
+              </div>
             </div>
-            <div className="space-y-4">
-              <Button disabled={!permissions.canEditCompany} className="w-full bg-zinc-950 hover:bg-zinc-800 sm:w-auto lg:ml-auto lg:flex" onClick={() => setEditing((current) => !current)}>
-                <PenLine />
-                {editing ? "Close edit mode" : "Edit company profile"}
-              </Button>
-              <div className="grid grid-cols-3 gap-2">
-                <MiniStat label="Open roles" value="1" />
-                <MiniStat label="Talent pool" value="428" />
-                <MiniStat label="Response" value="74%" />
+          </div>
+
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50/70 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Public profile</p>
+                <p className="mt-1 text-lg font-semibold text-zinc-950">Ready for candidate review</p>
               </div>
+              <Button disabled={!permissions.canEditCompany} className="bg-zinc-950 hover:bg-zinc-800" onClick={() => setEditing((current) => !current)}>
+                <PenLine />
+                {editing ? "Close edit mode" : "Edit profile"}
+              </Button>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {heroStats.map((stat) => {
+                const Icon = stat.icon;
+                return (
+                  <div key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
+                      <Icon className="size-3.5 text-pink-600" />
+                      {stat.label}
+                    </div>
+                    <p className="mt-2 text-xl font-semibold text-zinc-950">{stat.value}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_410px]">
         <div className="space-y-4">
           {editing && (
             <Card className="career-clear-card rounded-2xl">
@@ -1820,52 +2770,57 @@ function CompanyProfilePage({
               <CardTitle>Company overview</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-2">
-              {[
-                ["Hiring mode", "Structured shortlist and re-engagement"],
-                ["Profile owner", "Super Admin managed"],
-                ["Candidate response", "74% average reply rate"],
-                ["Public strength", "86% completed"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-zinc-200 bg-white p-4">
-                  <p className="text-xs uppercase text-zinc-500">{label}</p>
-                  <p className="mt-2 font-semibold">{value}</p>
+              {overviewCards.map((item) => {
+                const Icon = item.icon;
+                return (
+                <div key={item.label} className="min-h-[116px] rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm shadow-zinc-950/[0.02]">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="grid size-10 place-items-center rounded-2xl bg-pink-50 text-pink-700 ring-1 ring-pink-100">
+                      <Icon className="size-4" />
+                    </span>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>
+                  </div>
+                  <p className="mt-4 text-lg font-semibold text-zinc-950">{item.value}</p>
+                  <p className="mt-1 text-sm text-zinc-500">{item.detail}</p>
                 </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
           <Card className="career-panel-muted rounded-2xl">
             <CardHeader>
               <CardTitle>Hiring presence</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                ["About", "Career discovery and hiring intelligence for modern teams."],
-                ["Why candidates respond", "Clear salary bands, fast next-stage emails, and transparent outcome updates."],
-                ["Re-engagement promise", "High-fit past shortlist candidates can be approached before the role expires."],
-              ].map(([label, body]) => (
-                <div key={label} className="career-clear-line rounded-2xl p-4">
-                  <p className="font-semibold">{label}</p>
-                  <p className="mt-1 text-sm leading-6 text-zinc-600">{body}</p>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2">
+                {presenceItems.map(([label, body], index) => (
+                <div key={label} className={cn("rounded-2xl border bg-white p-4 shadow-sm shadow-zinc-950/[0.02]", index === 0 ? "border-pink-100 md:col-span-2" : "border-zinc-200")}>
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-8 place-items-center rounded-xl bg-pink-50 text-pink-700">
+                      {index === 0 ? <Building2 className="size-4" /> : index === 1 ? <MessageSquareText className="size-4" /> : index === 2 ? <UserCheck className="size-4" /> : index === 3 ? <Eye className="size-4" /> : <ShieldCheck className="size-4" />}
+                    </span>
+                    <p className="font-semibold text-zinc-950">{label}</p>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-zinc-600">{body}</p>
                 </div>
-              ))}
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
         <aside className="space-y-4">
+          <EmployerReputationPanel status={reputationStatus} onStatusChange={setReputationStatus} />
           <Card className="career-clear-card rounded-2xl">
             <CardHeader>
               <CardTitle>Brand assets</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-2xl border border-pink-200 bg-white p-4">
-                <p className="text-sm font-medium">Cover gradient</p>
-                <div className="mt-3 h-16 rounded-xl border border-pink-100 bg-[linear-gradient(120deg,#fff1f7,#ffd8e8,#f4ecff)]" />
-              </div>
+              <p className="text-sm leading-6 text-zinc-600">
+                Upload public-facing logo and cover assets for the employer profile preview.
+              </p>
               <Button variant="outline" className="w-full" disabled={!permissions.canEditCompany} onClick={uploadBrandAsset}>
+                <FilePlus2 className="size-4" />
                 Upload logo or banner
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => onNavigate("jobs")}>
-                View open jobs
               </Button>
             </CardContent>
           </Card>
@@ -2134,6 +3089,12 @@ function JobsPage({
     if (jobFilter === "Active") return job.status === "Open" || job.status === "Interviewing" || job.status === "Hired";
     return job.status === jobFilter;
   });
+  const jobNextActionLabel = (job: Job) => {
+    if (job.hired > 0) return "View result";
+    if (job.shortlisted > 0) return "Review shortlist";
+    if (job.applicants > 0) return "Review candidates";
+    return "Build pipeline";
+  };
 
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
@@ -2183,8 +3144,21 @@ function JobsPage({
         ))}
       </div>
 
-      <div className="mt-4 grid gap-4">
+      <div className="mt-4 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm shadow-zinc-950/[0.03]">
+        {jobs.length > 0 && visibleJobs.length > 0 && (
+          <div className="hidden grid-cols-[minmax(220px,1.25fr)_110px_90px_100px_80px_100px_110px_minmax(170px,0.9fr)] gap-3 border-b border-zinc-100 bg-zinc-50/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500 xl:grid">
+            <span>Role</span>
+            <span>Status</span>
+            <span>Applicants</span>
+            <span>Shortlist</span>
+            <span>Hired</span>
+            <span>Expiry</span>
+            <span>Quality</span>
+            <span>Next action</span>
+          </div>
+        )}
         {jobs.length === 0 ? (
+          <div className="p-4">
           <EmptyState
             icon={BriefcaseBusiness}
             title="No jobs posted yet"
@@ -2192,7 +3166,9 @@ function JobsPage({
             actionLabel="Post job"
             onAction={() => onNavigate("post-job")}
           />
+          </div>
         ) : visibleJobs.length === 0 ? (
+          <div className="p-4">
           <EmptyState
             icon={Search}
             title="No jobs match this filter"
@@ -2200,6 +3176,7 @@ function JobsPage({
             actionLabel="Clear filter"
             onAction={() => setJobFilter("Active")}
           />
+          </div>
         ) : visibleJobs.map((job) => (
           <motion.button
             key={job.id}
@@ -2210,41 +3187,39 @@ function JobsPage({
             whileTap={tactileTap}
             onClick={() => onSelectJob(job.id)}
             className={cn(
-              "career-list-row group relative overflow-hidden rounded-3xl p-5 text-left transition hover:-translate-y-1 hover:border-pink-200",
-              activeJobId === job.id && "career-list-row-active"
+              "group grid w-full gap-3 border-b border-zinc-100 px-4 py-4 text-left transition last:border-b-0 hover:bg-pink-50/40 xl:grid-cols-[minmax(220px,1.25fr)_110px_90px_100px_80px_100px_110px_minmax(170px,0.9fr)] xl:items-center",
+              activeJobId === job.id && "bg-pink-50/50"
             )}
           >
-            <div className="absolute right-5 top-5 h-1.5 w-16 rounded-full bg-pink-200/70 opacity-0 transition group-hover:opacity-100" />
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-semibold tracking-normal">{job.title}</h2>
-                  <StatusBadge status={job.status} />
-                  <Badge className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200">{job.department}</Badge>
-                  <JobCountdownBadge job={job} show={showCountdown} />
-                </div>
-                <p className="mt-2 text-sm text-zinc-500">{job.workMode} · {job.location} · {job.salary}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {job.skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
-                </div>
-                <div className="mt-5 h-2 max-w-lg overflow-hidden rounded-full bg-zinc-100">
-                  <AnimatedProgress value={Math.min(100, Math.max(14, job.applicants * 3))} />
-                </div>
-                <div className="mt-2 flex flex-wrap gap-3 text-xs text-zinc-500">
-                  <span>{job.applicants} applicants</span>
-                  <span>{job.shortlisted} shortlisted</span>
-                  <span>{job.hired} hired</span>
-                </div>
+            <div className="min-w-0">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <h2 className="truncate text-base font-semibold tracking-normal text-zinc-950">{job.title}</h2>
+                <Badge className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200 xl:hidden">{job.department}</Badge>
               </div>
-              <div className="grid grid-cols-3 gap-2 self-start">
-                <JobSignal label="Applicants" value={String(job.applicants)} />
-                <JobSignal label="Shortlist" value={String(job.shortlisted)} />
-                <JobSignal label="Hired" value={String(job.hired)} />
+              <p className="mt-1 truncate text-sm text-zinc-500">{job.workMode} · {job.location} · {job.salary}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5 xl:hidden">
+                {job.skills.slice(0, 3).map((skill) => <Badge key={skill} variant="secondary" className="text-[11px]">{skill}</Badge>)}
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-end text-sm font-medium text-pink-600">
-              Open job workspace
-              <ChevronRight className="ml-1 size-4 transition group-hover:translate-x-0.5" />
+            <StatusBadge status={job.status} />
+            <CompactMetric value={String(job.applicants)} label="Applicants" />
+            <CompactMetric value={String(job.shortlisted)} label="Shortlist" />
+            <CompactMetric value={String(job.hired)} label="Hired" />
+            <span className="text-sm text-zinc-600">
+              {showCountdown && job.status !== "Closed" ? `${job.expiresIn}d` : job.status === "Closed" ? "Closed" : "Hidden"}
+            </span>
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-pink-700">{Math.min(96, Math.max(62, job.applicants * 4 + job.shortlisted * 8))}%</span>
+                <span className="text-xs text-zinc-400">Fit</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                <AnimatedProgress value={Math.min(96, Math.max(62, job.applicants * 4 + job.shortlisted * 8))} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-sm font-medium text-pink-600 xl:justify-start">
+              <span>{jobNextActionLabel(job)}</span>
+              <ChevronRight className="size-4 transition group-hover:translate-x-0.5" />
             </div>
           </motion.button>
         ))}
@@ -2272,7 +3247,16 @@ function JobDetailPage({
 }) {
   const applied = candidates.filter((candidate) => candidate.appliedToJob).length;
   const reengagement = candidates.filter((candidate) => candidate.pastSecondStage && !candidate.appliedToJob).length;
-  const shortlisted = candidates.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited").length;
+  const shortlisted = candidates.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited" || candidate.stage === "Interview scheduled").length;
+  const topAnimalMatches = topAnimalsForJob({
+    title: job.title,
+    skills: job.skills,
+    historicalAnimalSlugs: candidates
+      .map((candidate) => candidate.livingCvDetails.workAnimal)
+      .filter(Boolean) as WorkAnimalSlug[],
+  });
+  const managerAnimal = getWorkAnimal(job.supervisorAnimal);
+  const managerGuide = supervisorGuide(job.supervisorAnimal);
 
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
@@ -2323,12 +3307,12 @@ function JobDetailPage({
             <button onClick={() => onNavigate("shortlist")} className="rounded-xl border bg-white p-4 text-left transition hover:border-pink-200 hover:bg-pink-50">
               <ClipboardList className="size-5 text-pink-600" />
               <p className="mt-3 font-medium">Shortlist</p>
-              <p className="mt-1 text-sm text-zinc-500">Prepare next-stage email.</p>
+              <p className="mt-1 text-sm text-zinc-500">Invite, hire, or mark not selected.</p>
             </button>
             <button onClick={() => onNavigate("result")} className="rounded-xl border bg-white p-4 text-left transition hover:border-pink-200 hover:bg-pink-50">
               <ShieldCheck className="size-5 text-pink-600" />
-              <p className="mt-3 font-medium">Update result</p>
-              <p className="mt-1 text-sm text-zinc-500">{promptResultUpdate ? "Expiry prompts this update." : "Mark hired or keep open."}</p>
+              <p className="mt-3 font-medium">Hiring result</p>
+              <p className="mt-1 text-sm text-zinc-500">{promptResultUpdate ? "Expiry prompts a final review." : "View confirmed hires and close the role."}</p>
             </button>
           </CardContent>
         </Card>
@@ -2349,6 +3333,56 @@ function JobDetailPage({
                 last={index === Math.min(activityLog.length, 5) - 1}
               />
             ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card className="career-form-panel rounded-2xl">
+          <CardHeader>
+            <CardTitle>Menagerie role signal</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {topAnimalMatches.map((match) => (
+              <div key={match.animal.slug} className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold">
+                    <span className="mr-1">{match.animal.emoji}</span>
+                    {match.animal.name}
+                  </p>
+                  <span className="text-sm font-semibold text-pink-700">{match.score}%</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-pink-50">
+                  <div className="h-full rounded-full bg-pink-500" style={{ width: `${match.score}%` }} />
+                </div>
+                <p className="mt-1 text-xs text-zinc-500">{match.animal.archetype}</p>
+              </div>
+            ))}
+            <div className="rounded-2xl border border-pink-100 bg-pink-50 p-3 text-sm leading-5 text-pink-900">
+              AI converts this role and historical successful candidates into a 100% animal-trait breakdown, then highlights the top 3 shares.
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="career-form-panel rounded-2xl">
+          <CardHeader>
+            <CardTitle>Reporting manager</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm leading-6 text-zinc-600">
+            <p className="font-semibold text-zinc-950">{job.supervisorName || "Not set"}</p>
+            <p>
+              {managerAnimal ? `${managerAnimal.emoji} ${managerAnimal.name}, ${managerAnimal.archetype}` : "Animal trait not set"}
+            </p>
+            <div className="space-y-2">
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                <p className="font-medium text-zinc-900">Candidate guidance</p>
+                <p className="mt-1">{managerGuide.candidateResponse}</p>
+              </div>
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                <p className="font-medium text-zinc-900">Why it works</p>
+                <p className="mt-1">{managerGuide.whyItWorks}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -2378,6 +3412,8 @@ function PostJobPage({
     deadline: string;
     skills: string[];
     screeningQuestion: string;
+    supervisorName: string;
+    supervisorAnimal: WorkAnimalSlug | "";
   }) => boolean;
   onBack: () => void;
 }) {
@@ -2393,6 +3429,8 @@ function PostJobPage({
   const [skillInput, setSkillInput] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [screeningQuestion, setScreeningQuestion] = useState("");
+  const [supervisorName, setSupervisorName] = useState("");
+  const [supervisorAnimal, setSupervisorAnimal] = useState<WorkAnimalSlug | "">("");
   const [publishAttempted, setPublishAttempted] = useState(false);
 
   const normalizedTitle = title.trim();
@@ -2403,6 +3441,7 @@ function PostJobPage({
   const normalizedDescription = description.trim();
   const normalizedRequirements = requirements.trim();
   const normalizedQuestion = screeningQuestion.trim();
+  const normalizedSupervisorName = supervisorName.trim();
   const cleanSkills = skills.map((skill) => skill.trim()).filter(Boolean);
 
   const duplicateTitle = jobs.some((job) =>
@@ -2469,6 +3508,11 @@ function PostJobPage({
       complete: normalizedQuestion.length > 0,
     },
     {
+      label: "Reporting manager animal added",
+      detail: "Add who the role reports to and their Menagerie Method animal.",
+      complete: normalizedSupervisorName.length > 0 && Boolean(supervisorAnimal),
+    },
+    {
       label: "No duplicate active job title",
       detail: "This title already exists in the same department.",
       complete: !(settings.validation.duplicateTitle && duplicateTitle),
@@ -2504,6 +3548,8 @@ function PostJobPage({
       deadline,
       skills: cleanSkills,
       screeningQuestion: normalizedQuestion,
+      supervisorName: normalizedSupervisorName,
+      supervisorAnimal,
     });
   }
 
@@ -2662,6 +3708,40 @@ function PostJobPage({
                 />
               </Field>
             </StepBlock>
+            <StepBlock step="6" title="Reporting manager fit">
+              <div className="grid gap-3 md:grid-cols-[1fr_1.4fr]">
+                <Field label="Reports to *">
+                  <Input
+                    value={supervisorName}
+                    onChange={(event) => setSupervisorName(event.target.value)}
+                    placeholder="e.g. Sarah Lee"
+                  />
+                </Field>
+                <Field label="Manager work animal *">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {workAnimals.map((animal) => (
+                      <button
+                        key={animal.slug}
+                        type="button"
+                        onClick={() => setSupervisorAnimal(animal.slug)}
+                        className={cn(
+                          "min-h-12 rounded-xl px-3 text-left text-sm font-medium ring-1 transition",
+                          supervisorAnimal === animal.slug
+                            ? "bg-pink-600 text-white ring-pink-600 shadow-lg shadow-pink-500/15"
+                            : "bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50"
+                        )}
+                      >
+                        <span className="mr-1">{animal.emoji}</span>
+                        {animal.name}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-zinc-500">
+                Candidates will see how to prepare for this supervisor&apos;s working style before applying.
+              </p>
+            </StepBlock>
             {publishAttempted && !canPublish && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 Complete the missing publish checks before publishing this job.
@@ -2723,17 +3803,22 @@ function CandidateReviewPage({
   const [filter, setFilter] = useState<"All" | "Applied" | "Potential" | "Shortlisted">("All");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(true);
-  const appliedReviewCount = candidates.filter((candidate) => candidate.source === "Applied" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired").length;
-  const potentialReviewCount = candidates.filter((candidate) => candidate.source === "Potential" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired").length;
-  const shortlistReviewCount = candidates.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited").length;
+  const isReviewCandidate = (candidate: Candidate) =>
+    !["Shortlisted", "Invited", "Interview scheduled", "Hired", "Rejected"].includes(candidate.stage);
+  const isDecisionCandidate = (candidate: Candidate) =>
+    ["Shortlisted", "Invited", "Interview scheduled"].includes(candidate.stage);
+  const appliedReviewCount = candidates.filter((candidate) => candidate.source === "Applied" && isReviewCandidate(candidate)).length;
+  const potentialReviewCount = candidates.filter((candidate) => candidate.source === "Potential" && isReviewCandidate(candidate)).length;
+  const shortlistReviewCount = candidates.filter(isDecisionCandidate).length;
+  const activeReviewCount = candidates.filter((candidate) => candidate.stage !== "Hired" && candidate.stage !== "Rejected").length;
   const visibleCandidates = candidates.filter((candidate) => {
-    if (filter === "All") return true;
-    if (filter === "Applied") return candidate.source === "Applied" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
-    if (filter === "Potential") return candidate.source === "Potential" && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
-    return candidate.stage === "Shortlisted" || candidate.stage === "Invited";
+    if (filter === "All") return candidate.stage !== "Hired" && candidate.stage !== "Rejected";
+    if (filter === "Applied") return candidate.source === "Applied" && isReviewCandidate(candidate);
+    if (filter === "Potential") return candidate.source === "Potential" && isReviewCandidate(candidate);
+    return isDecisionCandidate(candidate);
   });
   const candidateTabs = [
-    { label: "All", value: candidates.length, type: "All" as const },
+    { label: "All", value: activeReviewCount, type: "All" as const },
     { label: "Applied", value: appliedReviewCount, type: "Applied" as const },
     { label: "Potential", value: potentialReviewCount, type: "Potential" as const },
     { label: "Shortlisted", value: shortlistReviewCount, type: "Shortlisted" as const },
@@ -2742,9 +3827,7 @@ function CandidateReviewPage({
   const selectedCanMoveToShortlist = selectedCandidates.filter(
     (candidate) =>
       candidate.appliedToJob &&
-      candidate.stage !== "Shortlisted" &&
-      candidate.stage !== "Invited" &&
-      candidate.stage !== "Hired"
+      isReviewCandidate(candidate)
   );
 
   function toggleSelected(candidateId: number) {
@@ -2778,11 +3861,11 @@ function CandidateReviewPage({
           action={
             <Button variant="outline" onClick={() => onNavigate("result")}>
               <ShieldCheck />
-              Update result
+              View hiring result
             </Button>
           }
         />
-        <div className="career-section-band space-y-3 rounded-2xl p-4">
+        <div className="sticky top-3 z-20 space-y-3 rounded-2xl border border-zinc-200 bg-white/92 p-3 shadow-lg shadow-zinc-950/[0.04] backdrop-blur">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
             <Input value={searchTerm} onChange={(e) => onSearch(e.target.value)} placeholder="Search candidates, skills, type, location" className="h-10 pl-9" />
@@ -2814,7 +3897,7 @@ function CandidateReviewPage({
             </Button>
           </div>
         </div>
-        <div className="grid min-w-0 gap-3">
+        <div className="grid min-w-0 gap-2">
           {visibleCandidates.length === 0 ? (
             <EmptyState
               icon={Search}
@@ -2881,8 +3964,11 @@ function CandidateProfilePage({
 }) {
   const isApproachable = candidate.source === "Potential" && candidate.stage === "New";
   const isApproached = candidate.source === "Potential" && candidate.stage === "Approached";
-  const canShortlist = candidate.appliedToJob && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
+  const canShortlist = candidate.appliedToJob && !["Shortlisted", "Invited", "Interview scheduled", "Hired", "Rejected"].includes(candidate.stage);
   const livingCv = candidate.livingCvDetails;
+  const candidateAnimal = getWorkAnimal(livingCv.workAnimal);
+  const secondaryAnimal = getWorkAnimal(livingCv.secondaryWorkAnimal);
+  const shadowAnimal = getWorkAnimal(livingCv.shadowWorkAnimal);
   const skillGroups = [
     ["Technical", livingCv.skills.technical],
     ["Tools", livingCv.skills.tools],
@@ -2912,11 +3998,12 @@ function CandidateProfilePage({
           </div>
           <div className="grid gap-4 pt-20 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
             <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-3xl font-semibold tracking-normal">{livingCv.name}</h1>
-                  {candidateLabels(candidate, scoreWeights).map((label) => (
-                    <CandidateLabel key={label} label={label} />
-                  ))}
+	                <div className="flex flex-wrap items-center gap-2">
+	                  <h1 className="text-3xl font-semibold tracking-normal">{livingCv.name}</h1>
+                    <WorkAnimalTraitBadge candidate={candidate} />
+	                  {candidateLabels(candidate, scoreWeights).map((label) => (
+	                    <CandidateLabel key={label} label={label} />
+	                  ))}
                 </div>
                 <p className="mt-1 text-zinc-600">{livingCv.title}</p>
                 <p className="mt-1 text-sm text-zinc-500">{livingCv.location}</p>
@@ -2933,10 +4020,10 @@ function CandidateProfilePage({
                   <UserCheck />
                   Mark applied
                 </Button>
-              ) : candidate.stage === "Shortlisted" || candidate.stage === "Invited" ? (
+              ) : candidate.stage === "Shortlisted" || candidate.stage === "Invited" || candidate.stage === "Interview scheduled" ? (
                 <Button variant="outline" onClick={() => onNavigate("shortlist")}>
                   <ClipboardList />
-                  Open shortlist
+                  Open decision shortlist
                 </Button>
               ) : candidate.stage === "Hired" ? (
                 <Button className="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" disabled>
@@ -2993,8 +4080,38 @@ function CandidateProfilePage({
                   <p className="font-semibold text-zinc-900">{livingCv.profileStrength}%</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {candidate.evidence.map((item) => <Badge key={item} variant="secondary">{item}</Badge>)}
+	              <div className="rounded-2xl border border-pink-100 bg-pink-50 p-4">
+	                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">Menagerie Method</p>
+	                {livingCv.workAnimalTestCompleted && candidateAnimal ? (
+	                  <>
+	                    <h3 className="mt-2 text-lg font-semibold text-zinc-950">
+	                      {candidateAnimal.emoji} {candidateAnimal.name}, {candidateAnimal.archetype}
+	                    </h3>
+	                    <p className="mt-2 text-sm leading-6 text-zinc-700">{candidateAnimal.short}</p>
+                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                        <AnimalTraitMiniCard label="Primary" animal={candidateAnimal} />
+                        {secondaryAnimal && <AnimalTraitMiniCard label="Secondary" animal={secondaryAnimal} />}
+                        {shadowAnimal && <AnimalTraitMiniCard label="Shadow" animal={shadowAnimal} />}
+                      </div>
+	                  </>
+	                ) : (
+                  <p className="mt-2 text-sm leading-6 text-zinc-700">
+                    Animal trait is unknown. This candidate profile is incomplete until the test is finished.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2 pt-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">
+                  Employer evidence
+                </p>
+                {candidate.evidence.map((item) => (
+                  <div key={item} className="flex gap-2 rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+                    <Check className="mt-0.5 size-4 shrink-0 text-pink-600" />
+                    <p className="min-w-0 text-sm leading-6 text-zinc-700">
+                      {item}
+                    </p>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -3138,7 +4255,7 @@ function CandidateProfilePage({
                     ? "Candidate has been approached. Mark applied in the prototype to show the next step."
                     : "Candidate reached second stage before but has not applied to this job, so the primary action is Approach."}
               </p>
-              <Button className="career-pink-action w-full text-white" onClick={() => onNavigate("shortlist")}>Open shortlist</Button>
+              <Button className="career-pink-action w-full text-white" onClick={() => onNavigate("shortlist")}>Open decision shortlist</Button>
             </CardContent>
           </Card>
         </aside>
@@ -3171,8 +4288,6 @@ function ShortlistPage({
   onNavigate: (page: Page) => void;
 }) {
   const [selectedShortlistId, setSelectedShortlistId] = useState<number | null>(shortlisted[0]?.id ?? null);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"Waiting" | "Invited">("Waiting");
   const [confirmation, setConfirmation] = useState<{
     title: string;
     body: string;
@@ -3183,71 +4298,49 @@ function ShortlistPage({
     shortlisted.find((candidate) => candidate.id === selectedShortlistId) ??
     shortlisted[0];
   const activeShortlist = shortlisted.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited" || candidate.stage === "Hired");
-  const filteredShortlist = activeShortlist.filter((candidate) => candidate.status === statusFilter);
-  const waitingCandidates = shortlisted.filter((candidate) => candidate.status === "Waiting");
-  const invitedCandidates = shortlisted.filter((candidate) => candidate.status === "Invited");
-  const selectedCandidates = shortlisted.filter((candidate) => selectedIds.includes(candidate.id));
-  const selectedWaitingCandidates = selectedCandidates.filter((candidate) => candidate.status === "Waiting");
-  const selectedInvitedCandidates = selectedCandidates.filter((candidate) => candidate.status === "Invited");
-  const sendTargets = selectedWaitingCandidates.length > 0 ? selectedWaitingCandidates : waitingCandidates;
+  const reviewCandidates = activeShortlist.filter((candidate) => getShortlistStageLabel(candidate) === "Shortlisted");
+  const interviewCandidates = activeShortlist.filter((candidate) => getShortlistStageLabel(candidate) === "Interview");
+  const hiredCandidates = activeShortlist.filter((candidate) => getShortlistStageLabel(candidate) === "Hired");
 
-  function toggleSelected(candidateId: number) {
-    setSelectedIds((current) =>
-      current.includes(candidateId)
-        ? current.filter((id) => id !== candidateId)
-        : [...current, candidateId]
-    );
-  }
-
-  function confirmSend(candidatesToSend: Candidate[]) {
-    if (isClosed || candidatesToSend.length === 0) return;
+  function confirmSend(candidate: Candidate) {
+    if (isClosed) return;
 
     setConfirmation({
-      title: candidatesToSend.length === 1 ? "Send email?" : "Send batch email?",
-      body:
-        candidatesToSend.length === 1
-          ? `Send the next-stage email to ${candidatesToSend[0].name}?`
-          : `Send the next-stage email to ${candidatesToSend.length} waiting candidates?`,
-      confirmLabel: "Send email",
+      title: "Send interview invite?",
+      body: `Send the saved interview email template to ${candidate.name} and move them into the interview stage for ${activeJob.title}?`,
+      confirmLabel: "Send invite",
       onConfirm: () => {
-        onSend(candidatesToSend.map((candidate) => candidate.id));
-        setSelectedIds((current) => current.filter((id) => !candidatesToSend.some((candidate) => candidate.id === id)));
+        onSend([candidate.id]);
+        setSelectedShortlistId(candidate.id);
         setConfirmation(null);
       },
     });
   }
 
-  function confirmRemove(candidatesToRemove: Candidate[]) {
-    if (isClosed || candidatesToRemove.length === 0) return;
+  function confirmRemove(candidate: Candidate) {
+    if (isClosed) return;
 
     setConfirmation({
-      title: candidatesToRemove.length === 1 ? "Remove candidate?" : "Remove selected candidates?",
-      body:
-        candidatesToRemove.length === 1
-          ? `Remove ${candidatesToRemove[0].name} from the shortlist?`
-          : `Remove ${candidatesToRemove.length} candidates from the shortlist?`,
-      confirmLabel: "Remove",
+      title: "Mark not selected?",
+      body: `Mark ${candidate.name} as not selected and remove them from the active shortlist?`,
+      confirmLabel: "Not selected",
       onConfirm: () => {
-        candidatesToRemove.forEach((candidate) => onRemove(candidate.id));
-        setSelectedIds((current) => current.filter((id) => !candidatesToRemove.some((candidate) => candidate.id === id)));
+        onRemove(candidate.id);
         setConfirmation(null);
       },
     });
   }
 
-  function confirmHired(candidatesToHire: Candidate[]) {
-    if (isClosed || candidatesToHire.length === 0) return;
+  function confirmHired(candidate: Candidate) {
+    if (isClosed) return;
 
     setConfirmation({
-      title: candidatesToHire.length === 1 ? "Mark hired?" : "Mark selected as hired?",
-      body:
-        candidatesToHire.length === 1
-          ? `Mark ${candidatesToHire[0].name} as hired for this job?`
-          : `Mark ${candidatesToHire.length} invited candidates as hired for this job?`,
+      title: "Mark hired and send email?",
+      body: `Mark ${candidate.name} as hired for ${activeJob.title} and send the saved hired email template?`,
       confirmLabel: "Mark hired",
       onConfirm: () => {
-        candidatesToHire.forEach((candidate) => onMarkHired(candidate.id));
-        setSelectedIds((current) => current.filter((id) => !candidatesToHire.some((candidate) => candidate.id === id)));
+        onMarkHired(candidate.id);
+        setSelectedShortlistId(candidate.id);
         setConfirmation(null);
       },
     });
@@ -3261,220 +4354,86 @@ function ShortlistPage({
         onBack={() => onNavigate("candidates")}
         onNavigate={onNavigate}
       />
-      <div className="career-section-band rounded-3xl p-5 lg:p-7">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm lg:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-200">Shortlist</Badge>
-            <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">Next-stage candidates</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+            <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-200">Shortlist review</Badge>
+            <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">Decide who moves forward</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
               {isClosed
-                ? `${activeJob.title} is closed. Review shortlist history without changing candidate state.`
-                : "Keep candidate context visible while preparing interviews, tests, portfolio reviews, and email invitations."}
+                ? `${activeJob.title} is closed. Review final shortlist decisions without changing candidate state.`
+              : "Invite candidates to interview first, then decide whether to hire or mark not selected."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button className="bg-white text-pink-700 ring-1 ring-pink-100 hover:bg-pink-50" onClick={() => onNavigate("candidates")}>
+            <Button variant="outline" onClick={() => onNavigate("candidates")}>
+              <ChevronRight className="rotate-180" />
+              Back to review
+            </Button>
+            <Button variant="outline" onClick={() => onNavigate("result")}>
+              <ShieldCheck />
+              View hiring result
+            </Button>
+            <Button variant="outline" onClick={() => onNavigate("candidates")}>
               <Plus />
               Add more candidates
             </Button>
           </div>
         </div>
       </div>
-      <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_460px]">
-        <div className="space-y-3">
-          <div className="career-section-band rounded-3xl p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-semibold">Queue controls</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {isClosed ? "Closed jobs are read-only." : "Select candidates, then remove or email them in one action."}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(["Waiting", "Invited"] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
-                      statusFilter === status
-                        ? "bg-zinc-950 text-white ring-zinc-950"
-                        : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
-                    )}
-                  >
-                    {status} {status === "Waiting" ? waitingCandidates.length : invitedCandidates.length}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                className="career-pink-action text-white"
-                disabled={isClosed || sendTargets.length === 0}
-                onClick={() => confirmSend(sendTargets)}
-              >
-                <MailPlus />
-                {selectedWaitingCandidates.length > 0 ? `Email selected (${selectedWaitingCandidates.length})` : `Email all waiting (${waitingCandidates.length})`}
-              </Button>
-              <Button
-                className="bg-emerald-600 text-white shadow-sm shadow-emerald-100 hover:bg-emerald-700"
-                disabled={isClosed || selectedInvitedCandidates.length === 0}
-                onClick={() => confirmHired(selectedInvitedCandidates)}
-              >
-                <UserCheck />
-                Mark selected hired
-              </Button>
-              <Button
-                variant="outline"
-                disabled={isClosed || selectedCandidates.length === 0}
-                onClick={() => confirmRemove(selectedCandidates)}
-              >
-                Remove selected
-              </Button>
-            </div>
-          </div>
 
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
+        <ShortlistStageSummary label="Shortlisted" value={reviewCandidates.length} detail="Ready to invite" active />
+        <ShortlistStageSummary label="Interview" value={interviewCandidates.length} detail="Awaiting decision" />
+        <ShortlistStageSummary label="Hired" value={hiredCandidates.length} detail="Confirmed outcome" />
+        <ShortlistStageSummary label="Avg match" value={`${Math.round(activeShortlist.reduce((sum, candidate) => sum + candidateScore(candidate, scoreWeights), 0) / Math.max(activeShortlist.length, 1))}%`} detail="Across shortlist" />
+      </div>
+
+      <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,27rem)]">
+        <div className="space-y-3">
           <motion.div
             variants={listContainerMotion}
             initial="initial"
             animate="animate"
             className="grid gap-3"
           >
-        {shortlisted.length === 0 && (
-          <EmptyState
-            icon={ClipboardList}
-            title="No next-stage candidates yet"
-            description="Review applicants and re-engagement talent, then add the strongest people to this shortlist."
-            actionLabel="Review candidates"
-            onAction={() => onNavigate("candidates")}
-          />
-        )}
-        {filteredShortlist.map((candidate) => (
-          <motion.div
-            key={candidate.id}
-            variants={listItemMotion}
-            whileHover={{ y: -3 }}
-            whileTap={tactileTap}
-            onClick={() => setSelectedShortlistId(candidate.id)}
-            className={cn(
-              "career-list-row h-fit cursor-pointer rounded-3xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200",
-              featured?.id === candidate.id && "career-preview-row-active",
-              selectedIds.includes(candidate.id) && "ring-2 ring-pink-200"
+            {activeShortlist.length === 0 && (
+              <EmptyState
+                icon={ClipboardList}
+                title="No shortlisted candidates yet"
+                description="Review applicants and re-engagement talent, then add the strongest people here for a final decision."
+                actionLabel="Review candidates"
+                onAction={() => onNavigate("candidates")}
+              />
             )}
-          >
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(candidate.id)}
-                    onChange={(event) => {
-                      event.stopPropagation();
-                      toggleSelected(candidate.id);
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                    className="career-checkbox size-4 accent-pink-600"
-                    aria-label={`Select ${candidate.name}`}
-                  />
-                  <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
-                    {candidate.name.split(" ").map((part) => part[0]).join("")}
-                  </span>
-                <h2 className="font-semibold">{candidate.name}</h2>
-                  <CandidateStatusBadge status={candidate.status} />
-              </div>
-              <p className="text-sm text-zinc-500">{candidate.title}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {candidate.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-                </div>
-                <p className="mt-3 text-sm leading-6 text-zinc-600">{candidate.evidence[0]}</p>
-            </div>
-              <div className="min-w-[220px] space-y-3">
-                <ScoreBar label="Match" value={candidateScore(candidate, scoreWeights)} compact />
-                <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={isClosed} onClick={(event) => {
-                event.stopPropagation();
-                confirmRemove([candidate]);
-              }}>Remove</Button>
-                  {candidate.status === "Waiting" ? (
-                    <Button variant="outline" disabled={isClosed} className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50" onClick={(event) => {
-                      event.stopPropagation();
-                      setSelectedShortlistId(candidate.id);
-                      confirmSend([candidate]);
-                    }}><MailPlus />Invite</Button>
-                  ) : candidate.status === "Hired" ? (
-                    <Button className="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" disabled><UserCheck />Hired</Button>
-                  ) : (
-                    <Button className="bg-emerald-600 text-white shadow-sm shadow-emerald-100 hover:bg-emerald-700" disabled={isClosed} onClick={(event) => {
-                      event.stopPropagation();
-                      setSelectedShortlistId(candidate.id);
-                      confirmHired([candidate]);
-                    }}><UserCheck />Hired</Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+            {activeShortlist.map((candidate) => (
+              <ShortlistReviewCard
+                key={candidate.id}
+                candidate={candidate}
+                selected={featured?.id === candidate.id}
+                score={candidateScore(candidate, scoreWeights)}
+                isClosed={isClosed}
+                onSelect={() => setSelectedShortlistId(candidate.id)}
+                onMoveInterview={() => confirmSend(candidate)}
+                onMarkHired={() => confirmHired(candidate)}
+                onNotSelected={() => confirmRemove(candidate)}
+              />
+            ))}
           </motion.div>
         </div>
-        <aside className="space-y-4">
-          <Card className="career-clear-card rounded-2xl">
-            <CardHeader>
-              <CardTitle>Candidate context</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {featured ? (
-                <>
-                  <div>
-                    <p className="font-semibold">{featured.name}</p>
-                    <p className="text-sm text-zinc-500">{featured.title}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <MiniStat label="Skill" value={`${featured.skillFit}%`} />
-                    <MiniStat label="Project" value={`${featured.projectRelevance}%`} />
-                    <MiniStat label="Experience" value={`${featured.experience}%`} />
-                    <MiniStat label="Trajectory" value={`${featured.trajectory}%`} />
-                  </div>
-                  <ul className="space-y-2">
-                    {featured.evidence.slice(0, 2).map((item) => (
-                      <li key={item} className="flex gap-2 text-sm leading-5 text-zinc-600">
-                        <Check className="mt-0.5 size-4 shrink-0 text-pink-600" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="grid gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      className="justify-between"
-                      onClick={() => onOpenInterviewSettings(featured.id)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <MailPlus className="size-4" />
-                        Interview email settings
-                      </span>
-                      <ChevronRight className="size-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="justify-between"
-                      onClick={() => onOpenHiredSettings(featured.id)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <UserCheck className="size-4" />
-                        Hired email settings
-                      </span>
-                      <ChevronRight className="size-4" />
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-zinc-500">Add candidates to see their fit context here.</p>
-              )}
-            </CardContent>
-          </Card>
-
-        </aside>
+        {featured && (
+          <ShortlistIntelligencePanel
+            candidate={featured}
+            activeJob={activeJob}
+            score={candidateScore(featured, scoreWeights)}
+            isClosed={isClosed}
+            onMoveInterview={() => confirmSend(featured)}
+            onMarkHired={() => confirmHired(featured)}
+            onNotSelected={() => confirmRemove(featured)}
+            onOpenInterviewSettings={() => onOpenInterviewSettings(featured.id)}
+            onOpenHiredSettings={() => onOpenHiredSettings(featured.id)}
+          />
+        )}
       </div>
       {confirmation && (
         <ConfirmationDialog
@@ -3486,6 +4445,315 @@ function ShortlistPage({
         />
       )}
     </section>
+  );
+}
+
+function ShortlistStageSummary({
+  label,
+  value,
+  detail,
+  active = false,
+}: {
+  label: string;
+  value: string | number;
+  detail: string;
+  active?: boolean;
+}) {
+  return (
+    <div className={cn(
+      "rounded-2xl border bg-white p-4 shadow-sm",
+      active ? "border-pink-200 shadow-pink-950/5" : "border-zinc-200"
+    )}>
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-zinc-950">{value}</p>
+      <p className="mt-1 text-xs text-zinc-500">{detail}</p>
+    </div>
+  );
+}
+
+function getShortlistStageLabel(candidate: Candidate) {
+  if (candidate.status === "Hired" || candidate.stage === "Hired") return "Hired";
+  if (candidate.status === "Invited" || candidate.stage === "Invited" || candidate.stage === "Interview scheduled") return "Interview";
+  return "Shortlisted";
+}
+
+function ShortlistReviewCard({
+  candidate,
+  selected,
+  score,
+  isClosed,
+  onSelect,
+  onMoveInterview,
+  onMarkHired,
+  onNotSelected,
+}: {
+  candidate: Candidate;
+  selected: boolean;
+  score: number;
+  isClosed: boolean;
+  onSelect: () => void;
+  onMoveInterview: () => void;
+  onMarkHired: () => void;
+  onNotSelected: () => void;
+}) {
+  const stageLabel = getShortlistStageLabel(candidate);
+  const isHired = stageLabel === "Hired";
+  const isInterview = stageLabel === "Interview";
+  const isShortlisted = stageLabel === "Shortlisted";
+
+  return (
+    <motion.div
+      variants={listItemMotion}
+      whileHover={{ y: -1 }}
+      whileTap={tactileTap}
+      onClick={onSelect}
+      className={cn(
+        "career-list-row h-fit cursor-pointer rounded-2xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200",
+        selected && "career-preview-row-active"
+      )}
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
+              {candidate.name.split(" ").map((part) => part[0]).join("")}
+            </span>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-zinc-950">{candidate.name}</h2>
+              <p className="text-sm text-zinc-500">{candidate.title}</p>
+            </div>
+            <WorkAnimalTraitBadge candidate={candidate} />
+            <span className={cn(
+              "rounded-full px-2.5 py-1 text-xs font-semibold ring-1",
+              stageLabel === "Hired" && "bg-emerald-50 text-emerald-700 ring-emerald-200",
+              stageLabel === "Interview" && "bg-violet-50 text-violet-700 ring-violet-200",
+              stageLabel === "Shortlisted" && "bg-pink-50 text-pink-700 ring-pink-200"
+            )}>
+              {stageLabel}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {candidate.tags.slice(0, 4).map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-[11px]">{tag}</Badge>
+            ))}
+          </div>
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-600">{candidate.evidence[0]}</p>
+        </div>
+
+        <div className="w-full space-y-3 lg:w-[220px] lg:shrink-0">
+          <ScoreBar label="Match" value={score} compact />
+          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+            <Button
+              size="sm"
+              className={cn(
+                !isShortlisted ? "border-zinc-200 bg-white text-zinc-400" : "career-pink-action text-white"
+              )}
+              variant={!isShortlisted ? "outline" : undefined}
+              disabled={isClosed || !isShortlisted}
+              onClick={(event) => {
+                event.stopPropagation();
+                onMoveInterview();
+              }}
+            >
+              <MailPlus />
+              {isShortlisted ? "Invite interview" : "Interview sent"}
+            </Button>
+            <Button
+              size="sm"
+              className={cn(
+                isHired && "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
+                !isHired && isInterview && "bg-emerald-600 text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-700",
+                !isHired && !isInterview && "border-zinc-200 bg-white text-zinc-400"
+              )}
+              variant={isHired || isInterview ? undefined : "outline"}
+              disabled={isClosed || isHired || !isInterview}
+              onClick={(event) => {
+                event.stopPropagation();
+                onMarkHired();
+              }}
+            >
+              <UserCheck />
+              {isHired ? "Hired" : isInterview ? "Mark hired" : "Hire after interview"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isClosed || isHired}
+              onClick={(event) => {
+                event.stopPropagation();
+                onNotSelected();
+              }}
+            >
+              <X className="size-4" />
+              Not selected
+            </Button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function ShortlistIntelligencePanel({
+  candidate,
+  activeJob,
+  score,
+  isClosed,
+  onMoveInterview,
+  onMarkHired,
+  onNotSelected,
+  onOpenInterviewSettings,
+  onOpenHiredSettings,
+}: {
+  candidate: Candidate;
+  activeJob: Job;
+  score: number;
+  isClosed: boolean;
+  onMoveInterview: () => void;
+  onMarkHired: () => void;
+  onNotSelected: () => void;
+  onOpenInterviewSettings: () => void;
+  onOpenHiredSettings: () => void;
+}) {
+  const animal = getWorkAnimal(candidate.livingCvDetails.workAnimal);
+  const stageLabel = getShortlistStageLabel(candidate);
+  const isShortlisted = stageLabel === "Shortlisted";
+  const isInterview = stageLabel === "Interview";
+  const isHired = stageLabel === "Hired";
+  const portfolioEvidence = candidate.livingCvDetails.projects.slice(0, 2).map((project) => project.title);
+  const strongestEvidence = candidate.evidence[0] ?? `${candidate.name} has relevant evidence for ${activeJob.title}.`;
+  const risk =
+    candidate.experience < 86
+      ? "Experience depth may need validation. Ask for examples of ownership, ambiguity, and stakeholder pressure."
+      : candidate.projectRelevance < 88
+        ? "Portfolio relevance is promising but should be checked against the actual role problems."
+        : "Main risk is calibration, not capability. Validate expectations, salary range, and decision pace.";
+  const nextStage =
+    isHired
+      ? "Prepare onboarding and keep the hiring outcome recorded."
+      : isInterview
+        ? "Use the interview to validate risk areas, then decide hire or not selected."
+        : "Move to interview with a focused evidence-review prompt.";
+
+  return (
+    <aside className="space-y-4 xl:sticky xl:top-6">
+      <Card className="career-clear-card rounded-2xl">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pink-600">CareerOS Hiring Intelligence</p>
+              <CardTitle className="mt-2">{candidate.name}</CardTitle>
+              <p className="mt-1 text-sm text-zinc-500">{candidate.title}</p>
+            </div>
+            <span className="flex size-10 items-center justify-center rounded-2xl bg-pink-50 text-pink-600 ring-1 ring-pink-100">
+              <Sparkles className="size-5" />
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <MiniStat label="Match" value={`${score}%`} />
+            <MiniStat label="Stage" value={stageLabel} />
+          </div>
+
+          {animal && (
+            <div className="rounded-2xl border border-pink-100 bg-pink-50/60 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-pink-700">Work style</p>
+              <p className="mt-1 text-sm font-semibold text-zinc-950">{animal.emoji} {animal.name}, {animal.archetype}</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-600">{animal.short}</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <HiringInsightRow
+              icon={Check}
+              title="Why this candidate fits"
+              body={strongestEvidence}
+            />
+            <HiringInsightRow
+              icon={CircleAlert}
+              title="Risk / concern"
+              body={risk}
+            />
+            <HiringInsightRow
+              icon={MessageSquareText}
+              title="Best interview angle"
+              body={`Ask them to explain how their ${candidate.tags.slice(0, 2).join(" and ")} evidence would apply to ${activeJob.title}.`}
+            />
+            <HiringInsightRow
+              icon={FolderOpen}
+              title="Portfolio evidence to inspect"
+              body={portfolioEvidence.length ? portfolioEvidence.join(", ") : candidate.tags.slice(0, 3).join(", ")}
+            />
+            <HiringInsightRow
+              icon={ChevronRight}
+              title="Suggested next stage"
+              body={nextStage}
+            />
+          </div>
+
+          <div className="grid gap-2 border-t border-zinc-100 pt-4">
+            {isShortlisted && (
+              <Button className="career-pink-action text-white" disabled={isClosed} onClick={onMoveInterview}>
+                <MailPlus />
+                Send interview invite
+              </Button>
+            )}
+            {!isHired && (
+              <Button
+                className={cn(isInterview && "bg-emerald-600 text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-700")}
+                variant={isInterview ? undefined : "outline"}
+                disabled={isClosed || !isInterview}
+                onClick={onMarkHired}
+              >
+                <UserCheck />
+                {isInterview ? "Mark hired" : "Hire after interview"}
+              </Button>
+            )}
+            {!isHired && (
+              <Button variant="outline" disabled={isClosed} onClick={onNotSelected}>
+                <X className="size-4" />
+                Not selected
+              </Button>
+            )}
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Button variant="outline" className="justify-between" onClick={onOpenInterviewSettings}>
+                Edit interview template
+                <ChevronRight className="size-4" />
+              </Button>
+              <Button variant="outline" className="justify-between" onClick={onOpenHiredSettings}>
+                Edit hired template
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </aside>
+  );
+}
+
+function HiringInsightRow({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: React.ElementType;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-3">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-pink-50 text-pink-600 ring-1 ring-pink-100">
+          <Icon className="size-4" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-zinc-950">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-zinc-500">{body}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -3557,7 +4825,6 @@ function InvitePage({
   onSettingsChange,
   stageType,
   onStageTypeChange,
-  onSend,
   onBack,
   onNavigate,
   onNotify,
@@ -3569,7 +4836,6 @@ function InvitePage({
   onSettingsChange: React.Dispatch<React.SetStateAction<HiringSettings>>;
   stageType: string;
   onStageTypeChange: (value: string) => void;
-  onSend: () => void;
   onBack: () => void;
   onNavigate: (page: Page) => void;
   onNotify: (title: string, body?: string, tone?: ActivityTone) => void;
@@ -3580,8 +4846,8 @@ function InvitePage({
   const [contactName, setContactName] = useState(settings.templates.interview.sender);
   const [includeLogo, setIncludeLogo] = useState(settings.templates.interview.includeLogo);
   const [saved, setSaved] = useState(false);
-  const [confirmation, setConfirmation] = useState(false);
   const [message, setMessage] = useState(settings.templates.interview.body);
+  const [mobilePane, setMobilePane] = useState<"compose" | "preview">("compose");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const renderedSubject = renderEmailTemplate(subject, candidate, stageType, contactName, {
     job: activeJob,
@@ -3636,10 +4902,25 @@ function InvitePage({
       <PageHeader
         eyebrow="Next-stage email"
         title="Next-stage email template"
-        description="Write one reusable message. Candidate names, role, stage, and sender details auto-fill in the preview."
+        description="Write one reusable message. This page only saves the default template; the email sends when you invite a candidate from the shortlist."
       />
+      <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200 bg-white p-1 lg:hidden">
+        {(["compose", "preview"] as const).map((pane) => (
+          <button
+            key={pane}
+            type="button"
+            onClick={() => setMobilePane(pane)}
+            className={cn(
+              "rounded-xl px-3 py-2 text-sm font-semibold capitalize transition",
+              mobilePane === pane ? "bg-zinc-950 text-white" : "text-zinc-600 hover:bg-zinc-50"
+            )}
+          >
+            {pane}
+          </button>
+        ))}
+      </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <Card className="career-form-panel rounded-2xl">
+        <Card className={cn("career-form-panel rounded-2xl", mobilePane !== "compose" && "hidden lg:block")}>
           <CardHeader>
             <CardTitle>Email composer</CardTitle>
           </CardHeader>
@@ -3687,14 +4968,6 @@ function InvitePage({
                 className="size-4 accent-pink-600"
               />
             </label>
-            <Field label="Email body">
-              <textarea
-                ref={textareaRef}
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                className="min-h-56 w-full rounded-2xl border bg-white p-3 text-sm leading-6 outline-none ring-pink-200 transition focus:ring-2"
-              />
-            </Field>
             <div className="rounded-2xl border bg-zinc-50/80 p-3">
               <p className="text-xs font-medium uppercase text-zinc-500">Auto-fill fields</p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -3710,13 +4983,21 @@ function InvitePage({
                 ))}
               </div>
             </div>
+            <Field label="Email body">
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                className="min-h-56 w-full rounded-2xl border bg-white p-3 text-sm leading-6 outline-none ring-pink-200 transition focus:ring-2"
+              />
+            </Field>
           </CardContent>
         </Card>
 
-        <aside className="space-y-4">
+        <aside className={cn("space-y-4 lg:sticky lg:top-6", mobilePane !== "preview" && "hidden lg:block")}>
           <Card className="career-panel-muted rounded-2xl">
             <CardHeader>
-              <CardTitle>Preview</CardTitle>
+              <CardTitle>Candidate-facing preview</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="career-form-panel overflow-hidden rounded-2xl">
@@ -3771,20 +5052,7 @@ function InvitePage({
         >
           {saved ? "✓ Changes Saved" : "Save Template Changes"}
         </Button>
-        <Button className="career-pink-action text-white" onClick={() => setConfirmation(true)}><Send />Send to {candidate.name}</Button>
       </div>
-      {confirmation && (
-        <ConfirmationDialog
-          title="Send interview email?"
-          body={`Send the interview invitation to ${candidate.name} for ${activeJob.title}?`}
-          confirmLabel="Send email"
-          onCancel={() => setConfirmation(false)}
-          onConfirm={() => {
-            setConfirmation(false);
-            onSend();
-          }}
-        />
-      )}
     </section>
   );
 }
@@ -3795,7 +5063,6 @@ function HiredEmailPage({
   company,
   settings,
   onSettingsChange,
-  onSend,
   onBack,
   onNavigate,
   onNotify,
@@ -3805,7 +5072,6 @@ function HiredEmailPage({
   company: Company;
   settings: HiringSettings;
   onSettingsChange: React.Dispatch<React.SetStateAction<HiringSettings>>;
-  onSend: () => void;
   onBack: () => void;
   onNavigate: (page: Page) => void;
   onNotify: (title: string, body?: string, tone?: ActivityTone) => void;
@@ -3816,7 +5082,6 @@ function HiredEmailPage({
   const [contactName, setContactName] = useState(settings.templates.hired.sender);
   const [includeLogo, setIncludeLogo] = useState(settings.templates.hired.includeLogo);
   const [saved, setSaved] = useState(false);
-  const [confirmation, setConfirmation] = useState(false);
   const [message, setMessage] = useState(settings.templates.hired.body);
   const [attachments, setAttachments] = useState(["Offer letter draft.pdf", "Onboarding checklist.pdf"]);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -3872,7 +5137,7 @@ function HiredEmailPage({
       <PageHeader
         eyebrow="Hired email"
         title="Hired candidate email settings"
-        description="Customize the message used when an invited candidate becomes hired."
+        description="Customize the message used when an interviewed candidate is marked hired. This page saves the template only."
       />
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
         <Card className="career-form-panel rounded-2xl">
@@ -4010,23 +5275,7 @@ function HiredEmailPage({
         >
           {saved ? "✓ Changes Saved" : "Save Template Changes"}
         </Button>
-        <Button className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" onClick={() => setConfirmation(true)}>
-          <UserCheck />
-          Send hired email
-        </Button>
       </div>
-      {confirmation && (
-        <ConfirmationDialog
-          title="Send hired email?"
-          body={`Send the hired email to ${candidate.name} for ${activeJob.title}?`}
-          confirmLabel="Send hired email"
-          onCancel={() => setConfirmation(false)}
-          onConfirm={() => {
-            setConfirmation(false);
-            onSend();
-          }}
-        />
-      )}
     </section>
   );
 }
@@ -4112,26 +5361,19 @@ function ToastNotice({
 function ResultPage({
   candidates,
   permissions,
-  noHireYet,
   activeJob,
-  promptResultUpdate,
-  onNoHire,
-  onMarkHired,
   onCloseJob,
   onNavigate,
 }: {
   candidates: Candidate[];
   permissions: (typeof rolePermissions)[CompanyRole];
-  noHireYet: boolean;
   activeJob: Job;
-  promptResultUpdate: boolean;
-  onNoHire: () => void;
-  onMarkHired: (id: number) => void;
   onCloseJob: () => void;
   onNavigate: (page: Page) => void;
 }) {
-  const eligible = candidates.filter((candidate) => candidate.stage === "Shortlisted" || candidate.stage === "Invited");
+  const eligible = candidates.filter((candidate) => candidate.stage === "Invited" || candidate.stage === "Interview scheduled");
   const hired = candidates.filter((candidate) => candidate.stage === "Hired");
+  const rejected = candidates.filter((candidate) => candidate.stage === "Rejected" || candidate.status === "Not selected");
   const [confirmation, setConfirmation] = useState<{
     title: string;
     body: string;
@@ -4163,10 +5405,8 @@ function ResultPage({
       />
       <PageHeader
         eyebrow="Hiring result"
-        title="Record outcome"
-        description={promptResultUpdate
-          ? "Mark hires or close the job before the expiry reminder asks for an outcome update."
-          : "Mark one or more candidates as hired. The job stays open unless the team closes it."}
+        title="Hiring result"
+        description="A read-only outcome view for candidates already marked hired from the shortlist. Keep the final record visible, then close the job when the role is complete."
         action={
           <Button
             variant="outline"
@@ -4179,55 +5419,73 @@ function ResultPage({
           </Button>
         }
       />
-      {noHireYet && <Notice title="No one hired yet" body="Result saved. Continue reviewing candidates without closing the job." />}
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_340px]">
-        <Card className="career-form-panel rounded-2xl">
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
+        <Card className="career-clear-card rounded-2xl">
           <CardHeader>
-            <CardTitle>Ready for result</CardTitle>
+            <CardTitle>Hired candidates</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {eligible.length === 0 ? (
+            {hired.length === 0 ? (
               <EmptyState
-                icon={Crown}
-                title="No candidates ready for outcome yet"
-                description="Invite shortlisted candidates first, then return here to mark hired or keep reviewing."
-                actionLabel="Open shortlist"
+                icon={UserCheck}
+                title="No hired candidates yet"
+                description="Mark an interviewed candidate as hired from the shortlist. Their final outcome will appear here."
+                actionLabel="Open decision shortlist"
                 onAction={() => onNavigate("shortlist")}
               />
-            ) : eligible.map((candidate) => (
-              <div key={candidate.id} className="career-list-row flex flex-col gap-3 rounded-2xl p-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="font-medium">{candidate.name}</p>
-                  <p className="text-sm text-zinc-500">{candidate.title}</p>
+            ) : hired.map((candidate) => (
+              <div key={candidate.id} className="career-list-row rounded-2xl p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                        {candidate.name.split(" ").map((part) => part[0]).join("")}
+                      </span>
+                      <div>
+                        <p className="font-semibold text-zinc-950">{candidate.name}</p>
+                        <p className="text-sm text-zinc-500">{candidate.title}</p>
+                      </div>
+                      <WorkAnimalTraitBadge candidate={candidate} />
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                        Hired
+                      </span>
+                    </div>
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-600">{candidate.evidence[0]}</p>
+                  </div>
+                  <div className="w-full rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 lg:w-56 lg:shrink-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">Outcome</p>
+                    <p className="mt-1 text-lg font-semibold text-emerald-900">Hired</p>
+                    <p className="mt-1 text-xs leading-5 text-emerald-800">Hired email sent from the saved template.</p>
+                  </div>
                 </div>
-                <Button
-                  disabled={!permissions.canMarkHired}
-                  onClick={() =>
-                    setConfirmation({
-                      title: "Mark candidate hired?",
-                      body: `Mark ${candidate.name} as hired for ${activeJob.title}? The job can still remain open for multiple hires.`,
-                      confirmLabel: "Mark hired",
-                      onConfirm: () => {
-                        onMarkHired(candidate.id);
-                        setConfirmation(null);
-                      },
-                    })
-                  }
-                >
-                  <Crown />
-                  Mark hired
-                </Button>
               </div>
             ))}
-            <Button variant="outline" onClick={onNoHire}>No one hired yet</Button>
           </CardContent>
         </Card>
         <Card className="career-panel-muted rounded-2xl">
           <CardHeader>
-            <CardTitle>Hired candidates</CardTitle>
+            <CardTitle>Outcome summary</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {hired.length === 0 ? <p className="text-sm text-zinc-500">No hires recorded yet.</p> : hired.map((candidate) => <CheckRow key={candidate.id}>{candidate.name}</CheckRow>)}
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-2">
+              <MiniStat label="Interview" value={String(eligible.length)} />
+              <MiniStat label="Hired" value={String(hired.length)} />
+              <MiniStat label="Not selected" value={String(rejected.length)} />
+            </div>
+            <div className="rounded-2xl border border-zinc-200 bg-white p-3">
+              <p className="text-sm font-semibold text-zinc-950">Hired candidates</p>
+              <div className="mt-3 space-y-2">
+                {hired.length === 0 ? (
+                  <p className="text-sm text-zinc-500">No hires recorded yet.</p>
+                ) : (
+                  hired.map((candidate) => <CheckRow key={candidate.id}>{candidate.name}</CheckRow>)
+                )}
+              </div>
+            </div>
+            <Notice
+              title="Decision source"
+              body="Hiring decisions are made in the shortlist. This page only records confirmed outcomes."
+            />
             <Button
               variant="outline"
               className="w-full border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
@@ -4272,6 +5530,7 @@ function CompanyNav({
   onNavigate: (page: Page) => void;
   onLogOut: () => void;
 }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const activeSection =
     active === "job-detail" || active === "candidates" || active === "candidate-profile" || active === "shortlist" || active === "invite" || active === "hire-email"
       ? "jobs"
@@ -4283,112 +5542,188 @@ function CompanyNav({
     profile: Building2,
     settings: ShieldCheck,
   } as const;
+  const activeItem = navItems.find((item) => item.page === activeSection);
+
+  function handleNavigate(nextPage: Page) {
+    setMobileMenuOpen(false);
+    onNavigate(nextPage);
+  }
 
   return (
-    <motion.aside
-      initial={{ x: -18, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.34, ease: smoothEase }}
-      style={
-        {
-          "--sidebar-top": `${topOffset}px`,
-        } as React.CSSProperties
-      }
-      className={cn(
-        "z-30 border-b bg-white/95 backdrop-blur transition-[width,top,height] duration-300 lg:fixed lg:left-0 lg:top-[var(--sidebar-top)] lg:h-[calc(100vh-var(--sidebar-top))] lg:overflow-y-auto lg:border-b-0 lg:border-r lg:shadow-[10px_0_35px_rgba(24,24,27,0.05)]",
-        collapsed ? "lg:w-24" : "lg:w-72"
-      )}
-    >
-      <div className={cn("mx-auto flex w-full max-w-7xl flex-col items-start gap-3 px-5 py-3 lg:min-h-full lg:pb-6 lg:pt-4", collapsed ? "lg:px-3" : "lg:px-4")}>
-        <div
-          className={cn(
-            "w-full rounded-3xl border border-pink-100 bg-[linear-gradient(135deg,#fff,#fff7fb)] transition-all",
-            collapsed ? "p-3" : "p-4"
-          )}
-        >
-          <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-3")}>
-            <div className={cn("min-w-0", collapsed && "sr-only")}>
-              <p className="truncate text-2xl font-semibold tracking-normal text-pink-600">CareerOS</p>
-              <span className="mt-2 inline-flex rounded-full bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-700 ring-1 ring-pink-100">
-                Employer
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onCollapsedChange(!collapsed)}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <ChevronRight className={cn("size-4 transition", !collapsed && "rotate-180")} />
-            </button>
+    <>
+      <div className="sticky top-0 z-40 border-b border-zinc-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur xl:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold tracking-normal text-pink-600">CareerOS Employer</p>
+            <p className="mt-0.5 truncate text-xs font-medium text-zinc-500">
+              {activeItem?.label ?? "Dashboard"} · {rolePermissions[role].label}
+            </p>
           </div>
-
-          {collapsed ? (
-            <div className="mt-3 flex justify-center">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
-                OS
-              </span>
-            </div>
-          ) : (
-            null
-          )}
-        </div>
-
-        <motion.div
-          layout
-          className={cn("grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-col", collapsed && "lg:grid-cols-1")}
-        >
-          {navItems.map((item) => (
-            <SidebarButton
-              key={item.page}
-              active={activeSection === item.page}
-              icon={navIcon[item.page as keyof typeof navIcon]}
-              label={item.label}
-              collapsed={collapsed}
-              onClick={() => onNavigate(item.page)}
-            />
-          ))}
-        </motion.div>
-
-        {collapsed ? (
           <button
             type="button"
-            onClick={() => onCollapsedChange(false)}
-            className="mt-auto flex w-full items-center justify-center rounded-2xl border bg-white p-3 text-xs font-semibold text-pink-700 shadow-sm ring-1 ring-pink-100 transition hover:bg-pink-50"
-            title={`${role}: ${rolePermissions[role].label}`}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-800 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
+            aria-label={mobileMenuOpen ? "Close employer navigation" : "Open employer navigation"}
+            aria-expanded={mobileMenuOpen}
           >
-            {role.slice(0, 1)}
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-        ) : (
-          <div className="w-full lg:mt-auto">
-            <div className="career-clear-card w-full rounded-2xl p-3">
-            <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
-            <select
-              value={role}
-              onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
-              className="mt-2 h-10 w-full rounded-xl border bg-white px-3 text-sm"
-              aria-label="Preview role"
+        </div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: smoothEase }}
+              className="mt-3 overflow-hidden rounded-3xl border border-zinc-200 bg-white p-3 shadow-xl shadow-zinc-950/10"
             >
-              {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
-            </select>
-            <p className="mt-2 text-xs leading-5 text-zinc-500">
-              Use this to test what each company role can access.
-            </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-3 w-full justify-start gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-              onClick={onLogOut}
-            >
-              <LogOut className="size-4" />
-              Log out
-            </Button>
-          </div>
-        )}
+              <div className="grid gap-2">
+                {navItems.map((item) => (
+                  <SidebarButton
+                    key={item.page}
+                    active={activeSection === item.page}
+                    icon={navIcon[item.page as keyof typeof navIcon]}
+                    label={item.label}
+                    collapsed={false}
+                    onClick={() => handleNavigate(item.page)}
+                  />
+                ))}
+              </div>
+              <div className="mt-3 rounded-2xl bg-zinc-50 p-3 ring-1 ring-zinc-100">
+                <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
+                <select
+                  value={role}
+                  onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
+                  className="mt-2 h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                  aria-label="Preview role"
+                >
+                  {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
+                </select>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full justify-center gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onLogOut();
+                }}
+              >
+                <LogOut className="size-4" />
+                Log out
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </motion.aside>
+
+      <motion.aside
+        initial={{ x: -18, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.34, ease: smoothEase }}
+        style={
+          {
+            "--sidebar-top": `${topOffset}px`,
+          } as React.CSSProperties
+        }
+        className={cn(
+          "z-30 hidden border-b bg-white/95 backdrop-blur transition-[width,top,height] duration-300 xl:fixed xl:left-0 xl:top-[var(--sidebar-top)] xl:block xl:h-[calc(100vh-var(--sidebar-top))] xl:overflow-y-auto xl:border-b-0 xl:border-r xl:shadow-[10px_0_35px_rgba(24,24,27,0.05)]",
+          collapsed ? "xl:w-24" : "xl:w-72"
+        )}
+      >
+        <div className={cn("mx-auto flex w-full max-w-7xl flex-col items-start gap-3 px-5 py-3 xl:min-h-full xl:pb-6 xl:pt-4", collapsed ? "xl:px-3" : "xl:px-4")}>
+          <div
+            className={cn(
+              "w-full rounded-3xl border border-pink-100 bg-[linear-gradient(135deg,#fff,#fff7fb)] transition-all",
+              collapsed ? "p-3" : "p-4"
+            )}
+          >
+            <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-3")}>
+              <div className={cn("min-w-0", collapsed && "sr-only")}>
+                <p className="truncate text-2xl font-semibold tracking-normal text-pink-600">CareerOS</p>
+                <span className="mt-2 inline-flex rounded-full bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-700 ring-1 ring-pink-100">
+                  Employer
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onCollapsedChange(!collapsed)}
+                className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <ChevronRight className={cn("size-4 transition", !collapsed && "rotate-180")} />
+              </button>
+            </div>
+
+            {collapsed ? (
+              <div className="mt-3 flex justify-center">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
+                  OS
+                </span>
+              </div>
+            ) : (
+              null
+            )}
+          </div>
+
+          <motion.div
+            layout
+            className={cn("grid w-full grid-cols-2 gap-2 sm:grid-cols-3 xl:flex xl:flex-col", collapsed && "xl:grid-cols-1")}
+          >
+            {navItems.map((item) => (
+              <SidebarButton
+                key={item.page}
+                active={activeSection === item.page}
+                icon={navIcon[item.page as keyof typeof navIcon]}
+                label={item.label}
+                collapsed={collapsed}
+                onClick={() => onNavigate(item.page)}
+              />
+            ))}
+          </motion.div>
+
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={() => onCollapsedChange(false)}
+              className="mt-auto flex w-full items-center justify-center rounded-2xl border bg-white p-3 text-xs font-semibold text-pink-700 shadow-sm ring-1 ring-pink-100 transition hover:bg-pink-50"
+              title={`${role}: ${rolePermissions[role].label}`}
+            >
+              {role.slice(0, 1)}
+            </button>
+          ) : (
+            <div className="w-full xl:mt-auto">
+              <div className="career-clear-card w-full rounded-2xl p-3">
+              <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
+              <select
+                value={role}
+                onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
+                className="mt-2 h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                aria-label="Preview role"
+              >
+                {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
+              </select>
+              <p className="mt-2 text-xs leading-5 text-zinc-500">
+                Use this to test what each company role can access.
+              </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full justify-start gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                onClick={onLogOut}
+              >
+                <LogOut className="size-4" />
+                Log out
+              </Button>
+            </div>
+          )}
+        </div>
+      </motion.aside>
+    </>
   );
 }
 
@@ -4458,22 +5793,22 @@ function CandidateCard({
   const score = candidateScore(candidate, scoreWeights);
   const isApproachable = candidate.source === "Potential" && candidate.stage === "New";
   const isApproached = candidate.source === "Potential" && candidate.stage === "Approached";
-  const isShortlisted = candidate.stage === "Shortlisted" || candidate.stage === "Invited";
-  const canShortlist = candidate.appliedToJob && candidate.stage !== "Shortlisted" && candidate.stage !== "Invited" && candidate.stage !== "Hired";
+  const isShortlisted = candidate.stage === "Shortlisted" || candidate.stage === "Invited" || candidate.stage === "Interview scheduled";
+  const canShortlist = candidate.appliedToJob && !["Shortlisted", "Invited", "Interview scheduled", "Hired", "Rejected"].includes(candidate.stage);
 
   return (
     <motion.div
       variants={listItemMotion}
       initial="initial"
       animate="animate"
-      whileHover={{ y: -3 }}
+      whileHover={{ y: -1 }}
       whileTap={tactileTap}
       className={cn(
-      "career-list-row min-w-0 rounded-3xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200",
+      "career-list-row min-w-0 rounded-2xl p-3 transition hover:-translate-y-0.5 hover:border-pink-200",
       active && "career-list-row-active"
     )}>
       <button className="w-full min-w-0 text-left" onClick={() => onSelect(candidate.id)}>
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_150px] xl:grid-cols-[minmax(0,1fr)_190px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <input
@@ -4487,25 +5822,26 @@ function CandidateCard({
                 className="career-checkbox size-4 accent-pink-600"
                 aria-label={`Select ${candidate.name}`}
               />
-              <h2 className="text-lg font-semibold">{candidate.name}</h2>
+              <h2 className="text-base font-semibold">{candidate.name}</h2>
+              <WorkAnimalTraitBadge candidate={candidate} />
               {candidateLabels(candidate, scoreWeights).map((label) => (
                 <CandidateLabel key={label} label={label} />
               ))}
             </div>
             <p className="mt-1 text-sm text-zinc-600">{candidate.title}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {candidate.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {candidate.tags.slice(0, 4).map((tag) => <Badge key={tag} variant="secondary" className="text-[11px]">{tag}</Badge>)}
             </div>
           </div>
-          <div className="career-clear-metric rounded-2xl p-3">
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase text-zinc-500">Match score</span>
-              <span className="text-2xl font-semibold text-pink-700">{score}%</span>
+              <span className="text-xl font-semibold text-pink-700">{score}%</span>
             </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
               <AnimatedProgress value={score} />
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-zinc-500">
+            <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-zinc-500">
               <span>Skill {candidate.skillFit}%</span>
               <span>Project {candidate.projectRelevance}%</span>
               <span>Exp {candidate.experience}%</span>
@@ -4513,36 +5849,38 @@ function CandidateCard({
           </div>
         </div>
       </button>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3">
         <div className="flex items-center gap-2 text-sm text-zinc-500">
           <MapPin className="size-4" />
           {candidate.location}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => onOpenProfile(candidate.id)}>
-            View {candidate.name} CV
+          <Button variant="outline" size="sm" onClick={() => onOpenProfile(candidate.id)}>
+            View CV
           </Button>
           {isApproachable ? (
-            <Button className="bg-violet-50 text-violet-700 ring-1 ring-violet-100 hover:bg-violet-100" disabled={isClosed || !permissions.canApproach} onClick={() => onApproach(candidate.id)}>
+            <Button size="sm" className="bg-violet-50 text-violet-700 ring-1 ring-violet-100 hover:bg-violet-100" disabled={isClosed || !permissions.canApproach} onClick={() => onApproach(candidate.id)}>
               <MessageSquareText />
               Approach
             </Button>
           ) : isApproached ? (
-            <Button className="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100" disabled={isClosed || !permissions.canApproach} onClick={() => onMarkApplied(candidate.id)}>
+            <Button size="sm" className="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100" disabled={isClosed || !permissions.canApproach} onClick={() => onMarkApplied(candidate.id)}>
               <UserCheck />
               Mark applied
             </Button>
           ) : isShortlisted ? (
             <Button
               variant="outline"
+              size="sm"
               className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
               onClick={() => onNavigate("shortlist")}
             >
               <ClipboardList />
-              Open shortlist
+              Open decision shortlist
             </Button>
           ) : (
             <Button
+              size="sm"
               className="career-pink-action text-white"
               disabled={isClosed || !canShortlist || (!permissions.canManageJobs && !permissions.canApproach)}
               onClick={() => onShortlist(candidate.id)}
@@ -4553,6 +5891,53 @@ function CandidateCard({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function WorkAnimalTraitBadge({ candidate }: { candidate: Candidate }) {
+  const livingCv = candidate.livingCvDetails;
+  const animal = getWorkAnimal(livingCv.workAnimal);
+
+  if (!livingCv.workAnimalTestCompleted || !animal) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-500 ring-1 ring-zinc-200"
+        title="Work animal trait test is incomplete"
+      >
+        Trait pending
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200"
+      title={`${animal.name}: ${animal.short}`}
+    >
+      <span aria-hidden="true">{animal.emoji}</span>
+      <span className="truncate">{animal.name}</span>
+      <span className="hidden text-zinc-400 sm:inline">/</span>
+      <span className="hidden truncate text-zinc-500 sm:inline">{animal.archetype}</span>
+    </span>
+  );
+}
+
+function AnimalTraitMiniCard({
+  label,
+  animal,
+}: {
+  label: string;
+  animal: NonNullable<ReturnType<typeof getWorkAnimal>>;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/70 bg-white/80 p-3 ring-1 ring-pink-100/70">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-pink-600">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-zinc-950">
+        <span className="mr-1" aria-hidden="true">{animal.emoji}</span>
+        {animal.name}
+      </p>
+      <p className="mt-0.5 text-xs leading-5 text-zinc-500">{animal.archetype}</p>
+    </div>
   );
 }
 
@@ -4570,25 +5955,26 @@ function CandidateEvidence({
   onNavigate: (page: Page) => void;
 }) {
   const livingCv = candidate.livingCvDetails;
+  const animal = getWorkAnimal(livingCv.workAnimal);
 
   return (
-    <aside className="w-full min-w-0 space-y-4 lg:w-[360px] lg:shrink-0 lg:grow-0 lg:basis-[360px]">
+    <aside className="w-full min-w-0 space-y-4 lg:sticky lg:top-6 lg:w-[clamp(20rem,28vw,23rem)] lg:shrink-0 lg:grow-0 lg:basis-[clamp(20rem,28vw,23rem)]">
       <Card className="career-section-band rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="size-5 text-pink-600" />
-            Shortlist queue
+            Decision shortlist
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm leading-6 text-zinc-600">
-            Selected candidates move here for next-stage email, scheduling, and result updates.
+            Shortlisted candidates move here for interview invites, hire decisions, and not-selected outcomes.
           </p>
           <Button
             className="career-pink-action w-full text-white"
             onClick={() => onNavigate("shortlist")}
           >
-            Open shortlist
+            Open decision shortlist
             <ChevronRight />
           </Button>
         </CardContent>
@@ -4626,11 +6012,19 @@ function CandidateEvidence({
                 <AnimatedProgress value={candidateScore(candidate, scoreWeights)} />
             </div>
           </div>
+          <div className="rounded-2xl bg-pink-50 p-3 ring-1 ring-pink-100">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-700">Work animal</p>
+            <p className="mt-1 text-sm font-semibold text-zinc-950">
+              {livingCv.workAnimalTestCompleted && animal
+                ? `${animal.emoji} ${animal.name}, ${animal.archetype}`
+                : "Unknown - profile incomplete"}
+            </p>
+          </div>
           <ul className="space-y-2">
             {livingCv.employerEvidence.map((item) => (
               <li key={item} className="flex gap-2 text-sm leading-5">
                 <Check className="mt-0.5 size-4 shrink-0 text-pink-600" />
-                <span className="text-zinc-700">{item}</span>
+                <span className="min-w-0 text-zinc-700">{item}</span>
               </li>
             ))}
           </ul>
@@ -4802,6 +6196,15 @@ function JobSignal({
         <p className="text-xl font-semibold">{value}</p>
         <span className={cn("h-1.5 w-8 rounded-full", dark ? "bg-pink-300" : "bg-pink-400")} />
       </div>
+    </div>
+  );
+}
+
+function CompactMetric({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="flex items-baseline gap-2 xl:block">
+      <span className="text-sm font-semibold text-zinc-950">{value}</span>
+      <span className="text-xs text-zinc-500 xl:hidden">{label}</span>
     </div>
   );
 }
@@ -5094,26 +6497,6 @@ function PermissionRow({ label, enabled }: { label: string; enabled: boolean }) 
   );
 }
 
-function ActivityItem({ label, time, tone = "zinc" }: { label: string; time: string; tone?: ActivityTone }) {
-  const dotTone: Record<ActivityTone, string> = {
-    pink: "bg-pink-500",
-    amber: "bg-amber-400",
-    emerald: "bg-emerald-500",
-    violet: "bg-violet-500",
-    zinc: "bg-zinc-300",
-  };
-
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border bg-white px-3 py-2.5">
-      <span className="flex min-w-0 items-center gap-2">
-        <span className={cn("size-2 shrink-0 rounded-full", dotTone[tone])} />
-        <span className="truncate">{label}</span>
-      </span>
-      <span className="text-xs text-zinc-500">{time}</span>
-    </div>
-  );
-}
-
 function Notice({ title, body }: { title: string; body: string }) {
   return (
     <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
@@ -5141,23 +6524,12 @@ function CandidateLabel({ label }: { label: string }) {
     Approached: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     Shortlisted: "bg-violet-50 text-violet-700 ring-violet-200",
     Invited: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    Interview: "bg-violet-50 text-violet-700 ring-violet-200",
+    Hired: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    "Not selected": "bg-zinc-50 text-zinc-600 ring-zinc-200",
     "High fit": "bg-pink-50 text-pink-700 ring-pink-200",
   };
   const tone = tones[label] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200";
 
   return <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium ring-1", tone)}>{label}</span>;
-}
-
-function CandidateStatusBadge({ status }: { status: Candidate["status"] }) {
-  const tone: Record<Candidate["status"], string> = {
-    New: "bg-sky-50 text-sky-700 ring-sky-200",
-    Waiting: "bg-amber-50 text-amber-700 ring-amber-200",
-    Drafted: "bg-zinc-100 text-zinc-700 ring-zinc-200",
-    Invited: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    "Interview scheduled": "bg-violet-50 text-violet-700 ring-violet-200",
-    Hired: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-    "Not selected": "bg-zinc-100 text-zinc-500 ring-zinc-200",
-  };
-
-  return <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium ring-1", tone[status])}>{status}</span>;
 }
