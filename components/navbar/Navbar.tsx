@@ -9,6 +9,7 @@ import {
   Sparkles,
   TrendingUp,
   FileCheck,
+  BotMessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -32,6 +33,10 @@ const navItems = [
   {
     label: "Life Chapter Designer",
     href: "/?view=life-chapter-designer",
+  },
+  {
+    label: "AI Career Coach",
+    href: "/?view=ai-career-coach",
   },
   {
     label: "Applications",
@@ -79,6 +84,10 @@ export default function Navbar() {
       return 2;
     }
 
+    if (view === "ai-career-coach") {
+      return 3;
+    }
+
     if (
       view === "my-applications" ||
       view === "application-submitted" ||
@@ -86,10 +95,10 @@ export default function Navbar() {
       view === "track-application" ||
       view === "company-profile"
     ) {
-      return 3;
+      return 4;
     }
 
-    return 4;
+    return 5;
   }, [view]);
 
   useLayoutEffect(() => {
@@ -169,7 +178,7 @@ export default function Navbar() {
 
           <div
             ref={navRef}
-            className="relative hidden items-center gap-8 lg:flex"
+            className="relative hidden items-center gap-5 xl:gap-8 lg:flex"
           >
             {navItems.map((item, index) => {
               const active =
@@ -258,6 +267,32 @@ export default function Navbar() {
                   </div>
 
                   <div className="divide-y divide-[#F2F4F8]">
+
+                    <div className="flex gap-4 p-4 hover:bg-[#fafafa]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF2F6]">
+                        <BotMessageSquare
+                          size={18}
+                          className="text-[#f0184f]"
+                        />
+                      </div>
+
+                      <div>
+                        <p className="font-bold text-[#081433]">
+                          Coach Check-In Ready
+                        </p>
+
+                        <p className="mt-1 text-sm text-[#46536D]">
+                          Your career coach has a
+                          next-step plan based on
+                          your latest portfolio
+                          signals.
+                        </p>
+
+                        <p className="mt-2 text-xs text-slate-400">
+                          Just now
+                        </p>
+                      </div>
+                    </div>
 
                     <div className="flex gap-4 p-4 hover:bg-[#fafafa]">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF2F6]">

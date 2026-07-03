@@ -42,8 +42,9 @@ function GoogleLogo() {
 
 export default function SignInPage() {
   function handleEmployerDemoLogin() {
-    authenticateEmployer("admin@talentbank.com", "careeros");
-    window.location.href = "/employer";
+    if (authenticateEmployer("admin@talentbank.com", "careeros")) {
+      window.location.href = "/employer";
+    }
   }
 
   function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -190,10 +191,10 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={handleEmployerDemoLogin}
-              className="flex w-full items-center justify-center gap-3 rounded-full border bg-white px-6 py-3 text-sm font-extrabold text-[#152238] transition hover:-translate-y-0.5 hover:border-[#F04D7A] hover:bg-[#FFF7FA] hover:text-[#E00046] active:translate-y-0"
-              style={{ borderColor: "#DDE2EC" }}
+              className="flex w-full items-center justify-center gap-3 rounded-full border bg-[#FFF7FA] px-6 py-3.5 text-sm font-extrabold text-[#152238] transition hover:-translate-y-0.5 hover:border-[#F04D7A] hover:bg-white hover:shadow-md active:translate-y-0"
+              style={{ borderColor: theme.border }}
             >
-              <BriefcaseBusiness className="h-4 w-4" />
+              <BriefcaseBusiness className="h-4 w-4 text-[#E00046]" />
               Sign in to employer demo
             </button>
           </form>

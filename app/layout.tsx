@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import NavbarWrapper from "@/components/NavbarWrapper";
+import CareerCoachShortcut from "@/components/CareerCoachShortcut";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,6 +36,10 @@ export default function RootLayout({
         </Suspense>
 
         {children}
+
+        <Suspense fallback={null}>
+          <CareerCoachShortcut />
+        </Suspense>
       </body>
     </html>
   );
