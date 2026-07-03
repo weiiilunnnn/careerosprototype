@@ -1,3 +1,5 @@
+import type { WorkAnimalSlug } from "@/lib/workAnimals";
+
 export type CareerPathAlignment = {
   title: string;
   match: number;
@@ -56,6 +58,10 @@ export type CandidateLivingCv = {
   educationLabel: string;
   location: string;
   profileStrength: number;
+  workAnimal?: WorkAnimalSlug;
+  secondaryWorkAnimal?: WorkAnimalSlug;
+  shadowWorkAnimal?: WorkAnimalSlug;
+  workAnimalTestCompleted: boolean;
   careerPaths: CareerPathAlignment[];
   skills: {
     technical: string[];
@@ -83,6 +89,10 @@ export const candidateLivingCv: CandidateLivingCv = {
   educationLabel: "BSc Computer Science",
   location: "Kuala Lumpur",
   profileStrength: 82,
+  workAnimal: "owl",
+  secondaryWorkAnimal: "fox",
+  shadowWorkAnimal: "peacock",
+  workAnimalTestCompleted: true,
   careerPaths: [
     {
       title: "Data Analyst",
@@ -241,6 +251,7 @@ export const candidateLivingCvById: Record<number, CandidateLivingCv> = {
     location: "Singapore",
     experienceLabel: "6 years",
     educationLabel: "BSc Information Systems",
+    workAnimal: "fox",
     skills: {
       technical: ["Product Strategy", "HR Tech", "AI Workflows", "Enterprise SaaS", "Analytics"],
       tools: ["Jira", "Figma", "Amplitude", "Looker"],
@@ -263,6 +274,7 @@ export const candidateLivingCvById: Record<number, CandidateLivingCv> = {
     location: "Kuala Lumpur",
     experienceLabel: "4 years",
     educationLabel: "BA Design",
+    workAnimal: "peacock",
     skills: {
       technical: ["UX Research", "Activation", "Design Systems", "Prototyping", "Experimentation"],
       tools: ["Figma", "FigJam", "Maze", "Notion"],
@@ -285,6 +297,7 @@ export const candidateLivingCvById: Record<number, CandidateLivingCv> = {
     location: "Remote",
     experienceLabel: "9 years",
     educationLabel: "BBA Business Analytics",
+    workAnimal: "eagle",
     skills: {
       technical: ["Product Discovery", "PLG", "0-1 Product", "Strategy", "User Research"],
       tools: ["Linear", "Figma", "Mixpanel", "Miro"],
@@ -294,6 +307,110 @@ export const candidateLivingCvById: Record<number, CandidateLivingCv> = {
       "Living CV shows strong discovery craft and written product case studies.",
       "Evidence is promising but less direct for regulated marketplace requirements.",
       "Availability looks strong, but portfolio freshness should be reviewed.",
+    ],
+  }),
+  5: createCandidateLivingCv({
+    name: "Mei Lin",
+    title: "Senior UX Researcher",
+    role: "Senior UX Researcher",
+    direction: "Growth Research and Activation Strategy",
+    trajectory: "UX Researcher → Growth Research Lead → Product Insights Manager",
+    summary:
+      "UX researcher with strong activation research, journey mapping, and experiment insight experience. The Living CV highlights evidence from onboarding studies, funnel diagnosis, and research operations.",
+    location: "Penang",
+    experienceLabel: "5 years",
+    educationLabel: "MSc Human-Computer Interaction",
+    workAnimal: "dolphin",
+    secondaryWorkAnimal: "owl",
+    shadowWorkAnimal: "cheetah",
+    workAnimalTestCompleted: true,
+    skills: {
+      technical: ["UX Research", "Activation", "Journey Mapping", "Experiment Design", "Interview Synthesis"],
+      tools: ["Dovetail", "Maze", "Figma", "Lookback"],
+      soft: ["Facilitation", "Empathy", "Stakeholder Communication", "Critical Thinking"],
+    },
+    employerEvidence: [
+      "Living CV shows strong qualitative research evidence for activation and onboarding problems.",
+      "Research operations background supports scalable hiring and candidate experience discovery.",
+      "Portfolio includes decision-ready insight summaries for product and design teams.",
+    ],
+  }),
+  6: createCandidateLivingCv({
+    name: "Priya Nair",
+    title: "Product Designer, Growth",
+    role: "Product Designer",
+    direction: "Growth Product Design",
+    trajectory: "Product Designer → Growth Product Designer → Design Lead",
+    summary:
+      "Product designer focused on activation, funnel improvement, and fast prototype validation. The Living CV shows strong case studies around onboarding, messaging tests, and design-system reuse.",
+    location: "Kuala Lumpur",
+    experienceLabel: "4 years",
+    educationLabel: "BA Interaction Design",
+    workAnimal: "octopus",
+    secondaryWorkAnimal: "fox",
+    shadowWorkAnimal: "elephant",
+    workAnimalTestCompleted: true,
+    skills: {
+      technical: ["Growth Design", "Prototyping", "Design Systems", "A/B Testing", "User Flows"],
+      tools: ["Figma", "Framer", "Amplitude", "FigJam"],
+      soft: ["Creative Problem Solving", "Collaboration", "Iteration", "Communication"],
+    },
+    employerEvidence: [
+      "Living CV shows direct growth design portfolio evidence and measurable activation improvements.",
+      "Prototype-heavy workflow aligns with fast CareerOS employer and candidate experiments.",
+      "Design-system experience reduces delivery risk for a scaling product team.",
+    ],
+  }),
+  7: createCandidateLivingCv({
+    name: "Marcus Teo",
+    title: "Design Systems Lead",
+    role: "Design Systems Lead",
+    direction: "Product Design Systems and UX Quality",
+    trajectory: "Product Designer → Design Systems Lead → Platform Design Manager",
+    summary:
+      "Design systems lead with a track record of improving component quality, product consistency, and designer-developer handoff. The Living CV highlights governance, documentation, and reusable UI patterns.",
+    location: "Singapore",
+    experienceLabel: "7 years",
+    educationLabel: "BSc Digital Media",
+    workAnimal: "ant",
+    secondaryWorkAnimal: "horse",
+    shadowWorkAnimal: "peacock",
+    workAnimalTestCompleted: true,
+    skills: {
+      technical: ["Design Systems", "Accessibility", "Component QA", "Documentation", "Design Tokens"],
+      tools: ["Figma", "Storybook", "Zeroheight", "Linear"],
+      soft: ["Systems Thinking", "Quality Control", "Mentoring", "Documentation"],
+    },
+    employerEvidence: [
+      "Living CV shows strong design-system governance and component quality evidence.",
+      "Systems mindset supports repeatable product delivery across employer workflows.",
+      "Candidate may be better for platform design than pure acquisition experimentation.",
+    ],
+  }),
+  8: createCandidateLivingCv({
+    name: "Nur Aisyah",
+    title: "Lifecycle UX Designer",
+    role: "Lifecycle UX Designer",
+    direction: "Retention and Lifecycle Experience Design",
+    trajectory: "UX Designer → Lifecycle Designer → Growth Experience Lead",
+    summary:
+      "Lifecycle UX designer with experience improving onboarding, retention, and notification journeys. The Living CV shows evidence across lifecycle messaging, research synthesis, and mobile-first UX.",
+    location: "Johor Bahru",
+    experienceLabel: "3 years",
+    educationLabel: "BA Communication Design",
+    workAnimal: "fox",
+    secondaryWorkAnimal: "dolphin",
+    shadowWorkAnimal: "wolf",
+    workAnimalTestCompleted: true,
+    skills: {
+      technical: ["Lifecycle UX", "Retention", "Content Design", "User Research", "Experimentation"],
+      tools: ["Figma", "Braze", "Mixpanel", "Notion"],
+      soft: ["Strategic Thinking", "User Empathy", "Writing", "Prioritisation"],
+    },
+    employerEvidence: [
+      "Living CV shows lifecycle design evidence tied to retention and activation outcomes.",
+      "Candidate has a strong blend of UX writing, research, and growth experimentation.",
+      "Would benefit from deeper enterprise workflow examples before final interview.",
     ],
   }),
 };

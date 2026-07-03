@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye, LockKeyhole, Mail, Sparkles } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Eye, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import { authenticateEmployer } from "@/features/components (employer)/store";
 
 const theme = {
@@ -41,6 +41,12 @@ function GoogleLogo() {
 }
 
 export default function SignInPage() {
+  function handleEmployerDemoLogin() {
+    if (authenticateEmployer("admin@talentbank.com", "careeros")) {
+      window.location.href = "/employer";
+    }
+  }
+
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -180,6 +186,16 @@ export default function SignInPage() {
             >
               Log in
               <ArrowRight className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleEmployerDemoLogin}
+              className="flex w-full items-center justify-center gap-3 rounded-full border bg-[#FFF7FA] px-6 py-3.5 text-sm font-extrabold text-[#152238] transition hover:-translate-y-0.5 hover:border-[#F04D7A] hover:bg-white hover:shadow-md active:translate-y-0"
+              style={{ borderColor: theme.border }}
+            >
+              <BriefcaseBusiness className="h-4 w-4 text-[#E00046]" />
+              Sign in to employer demo
             </button>
           </form>
 

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Edit3,
+  Eye,
   ExternalLink,
   FileText,
   GraduationCap,
@@ -17,7 +18,12 @@ import {
   X,
   LucideIcon,
 } from "lucide-react";
-import Navbar from "@/components/navbar/Navbar";
+import {
+  getAnimalRoleInTrio,
+  getBlendInterpretation,
+  getWorkAnimal,
+  type WorkAnimalSlug,
+} from "@/lib/workAnimals";
 
 const theme = {
   navy: "#081433",
@@ -41,9 +47,10 @@ type ModalType =
   | "edit-experience"
   | "add-education"
   | "edit-education"
+  | "add-project"
+  | "edit-project"
   | "add-skills"
   | "edit-skills"
-  | "update-resume"
   | "add-certificate"
   | "edit-certificates"
   | "edit-github"
@@ -65,6 +72,14 @@ interface Education {
   programme: string;
   period: string;
   detail: string;
+}
+
+interface ProjectAchievement {
+  title: string;
+  type: string;
+  date: string;
+  description: string;
+  tags: string;
 }
 
 interface Certificate {
@@ -448,6 +463,64 @@ function EducationItem({
   );
 }
 
+function ProjectAchievementItem({
+  item,
+  onEdit,
+}: {
+  item: ProjectAchievement;
+  onEdit: () => void;
+}) {
+  const tags = item.tags
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  return (
+    <div
+      className="rounded-xl border bg-white p-5"
+      style={{ borderColor: theme.border }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E00046]">
+            {item.type}
+          </p>
+          <h3 className="mt-2 text-base font-semibold text-[#152238]">
+            {item.title}
+          </h3>
+          <p className="mt-1 text-sm font-medium text-[#46536D]">
+            {item.date}
+          </p>
+        </div>
+
+        <EditIconButton onClick={onEdit} />
+      </div>
+
+      <p className="mt-3 text-sm leading-6 text-[#46536D]">
+        {item.description}
+      </p>
+
+      {tags.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+              style={{
+                borderColor: theme.line,
+                backgroundColor: theme.soft,
+                color: theme.rose2,
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PinkAccentItem({ children }: { children: ReactNode }) {
   return (
     <div
@@ -543,6 +616,40 @@ function isPdfFile(file: File) {
   );
 }
 
+function getLikelyStruggleRoles(animalSlug?: WorkAnimalSlug) {
+  const struggleRoles: Partial<Record<WorkAnimalSlug, string[]>> = {
+    lion: ["Consensus Coordinator", "Back-office Clerk", "Pure Research Assistant"],
+    eagle: ["Routine Administrator", "Compliance Processor", "Ticket Support Agent"],
+    wolf: ["Front Desk Host", "Community Associate", "Group Facilitator"],
+    owl: ["HR Partner", "Head of People", "Public Speaker"],
+    dolphin: ["Solo Analyst", "Forensic Auditor", "Night Operations Monitor"],
+    peacock: ["Data Entry Clerk", "Quality Inspector", "Silent Researcher"],
+    elephant: ["Crisis Trader", "Growth Hacker", "Cold Sales Hunter"],
+    horse: ["0-1 Founder", "Brand Evangelist", "Venture Scout"],
+    ant: ["Celebrity Host", "Improvisational Sales Lead", "Vision Evangelist"],
+    cheetah: ["Long-cycle Archivist", "Governance Reviewer", "Policy Maintainer"],
+    fox: ["Routine Processor", "Scripted Support Agent", "Manual QA Clerk"],
+    octopus: ["Single-task Operator", "Static Compliance Clerk", "Legacy System Custodian"],
+  };
+
+  return animalSlug ? struggleRoles[animalSlug] ?? [] : ["Role fit locked", "Clash patterns locked", "Blind spots locked"];
+}
+
+const dimensionPoles = [
+  { key: "pace", label: "Pace", left: "Deliberate", right: "Decisive" },
+  { key: "purpose", label: "Purpose", left: "Maintainer", right: "Builder" },
+  { key: "people", label: "People", left: "Independent", right: "Relational" },
+  { key: "perspective", label: "Perspective", left: "Concrete", right: "Visionary" },
+] as const;
+
+function getDimensionLean(value: number) {
+  const distance = Math.abs(value - 50);
+
+  if (distance >= 30) return "Most lean strongly";
+  if (distance >= 18) return "Most lean clearly";
+  return "Most lean slightly";
+}
+
 export default function UserProfile() {
   const [modal, setModal] = useState<ModalType>(null);
   const [editingExperienceIndex, setEditingExperienceIndex] = useState<
@@ -551,6 +658,9 @@ export default function UserProfile() {
   const [editingEducationIndex, setEditingEducationIndex] = useState<
     number | null
   >(null);
+  const [editingProjectIndex, setEditingProjectIndex] = useState<number | null>(
+    null
+  );
 
   const [about, setAbout] = useState(
     "They say AI is going to replace humans pretty soon.... Well guess jokes on them cause they ain't replacing me any time soon. If me myself does not even know what I'm doing right now, how on earth is AI going to replace me. Visca Barca Visca Catalunya."
@@ -604,6 +714,33 @@ export default function UserProfile() {
     },
   ]);
 
+  const [projects, setProjects] = useState<ProjectAchievement[]>([
+    {
+      title: "Sales Performance Dashboard",
+      type: "Featured Project",
+      date: "May 2025",
+      description:
+        "Built a Power BI dashboard that visualizes regional sales trends and KPIs to support data driven business decisions.",
+      tags: "Power BI, DAX, Data Visualization",
+    },
+    {
+      title: "Customer Segmentation Analysis",
+      type: "Analytics Project",
+      date: "Feb 2025",
+      description:
+        "Analyzed customer data using Python and clustering techniques to identify high value customer segments.",
+      tags: "Python, Pandas, Scikit Learn",
+    },
+    {
+      title: "Hackathon Analytics Challenge",
+      type: "Achievement",
+      date: "Nov 2024",
+      description:
+        "Completed an analytics challenge by preparing insights from messy datasets and presenting findings to judges.",
+      tags: "Analytics, Presentation, Problem Solving",
+    },
+  ]);
+
   const [skills, setSkills] = useState([
     "Python",
     "SQL",
@@ -613,11 +750,6 @@ export default function UserProfile() {
     "Machine Learning",
     "Dashboard Design",
   ]);
-
-  const [resume, setResume] = useState({
-    name: "Jason_Tan_Resume.pdf",
-    meta: "PDF · 231 KB",
-  });
 
   const [certificates, setCertificates] = useState<Certificate[]>([
     {
@@ -631,6 +763,7 @@ export default function UserProfile() {
   ]);
 
   const [githubLink, setGithubLink] = useState("github.com/jasontan");
+  const workAnimal: WorkAnimalSlug = "owl";
 
   const [aboutDraft, setAboutDraft] = useState(about);
   const [detailsDraft, setDetailsDraft] = useState<ProfileDetails>(details);
@@ -638,8 +771,10 @@ export default function UserProfile() {
     experiences[0]
   );
   const [educationDraft, setEducationDraft] = useState<Education>(education[0]);
+  const [projectDraft, setProjectDraft] = useState<ProjectAchievement>(
+    projects[0]
+  );
   const [skillsDraft, setSkillsDraft] = useState(skills.join(", "));
-  const [resumeDraft, setResumeDraft] = useState(resume);
   const [certificateDraft, setCertificateDraft] = useState<Certificate>({
     name: "",
     meta: "PDF",
@@ -694,6 +829,24 @@ export default function UserProfile() {
     setModal("edit-education");
   };
 
+  const openAddProject = () => {
+    setEditingProjectIndex(null);
+    setProjectDraft({
+      title: "",
+      type: "Project",
+      date: "",
+      description: "",
+      tags: "",
+    });
+    setModal("add-project");
+  };
+
+  const openEditProject = (index: number) => {
+    setEditingProjectIndex(index);
+    setProjectDraft(projects[index]);
+    setModal("edit-project");
+  };
+
   const openAddSkills = () => {
     setSkillsDraft("");
     setModal("add-skills");
@@ -702,11 +855,6 @@ export default function UserProfile() {
   const openEditSkills = () => {
     setSkillsDraft(skills.join(", "));
     setModal("edit-skills");
-  };
-
-  const openResumeUpdate = () => {
-    setResumeDraft(resume);
-    setModal("update-resume");
   };
 
   const openAddCertificate = () => {
@@ -724,6 +872,55 @@ export default function UserProfile() {
     setModal("edit-github");
   };
 
+  const currentAnimal = getWorkAnimal(workAnimal ?? undefined);
+  const secondaryAnimal = getWorkAnimal("fox");
+  const shadowAnimal = getWorkAnimal("peacock");
+  const blend = getBlendInterpretation({
+    primary: workAnimal,
+    secondary: "fox",
+    shadow: "peacock",
+  });
+  const [showTraitSummary, setShowTraitSummary] = useState(false);
+  const completenessItems = [
+    {
+      label: "Work animal trait",
+      complete: Boolean(currentAnimal),
+      detail: currentAnimal ? `Completed as ${currentAnimal.name}` : "Complete the work animal trait assessment.",
+    },
+    {
+      label: "Personal information",
+      complete: Boolean(about.trim() && details.location.trim() && details.email.trim() && details.phone.trim()),
+      detail: "Add about, location, email, and phone number.",
+    },
+    {
+      label: "Experience",
+      complete: experiences.length > 0,
+      detail: experiences.length > 0 ? `${experiences.length} experience record added` : "Add at least one work, internship, or leadership experience.",
+    },
+    {
+      label: "Education background",
+      complete: education.length > 0,
+      detail: education.length > 0 ? `${education.length} education record added` : "Add at least one education background record.",
+    },
+    {
+      label: "Skills",
+      complete: skills.length > 0,
+      detail: skills.length > 0 ? `${skills.length} skills added` : "Add the skills you want the system to match against jobs.",
+    },
+    {
+      label: "Certificates",
+      complete: certificates.length > 0,
+      detail: certificates.length > 0 ? `${certificates.length} certificate evidence added` : "Add certificate evidence or learning proof.",
+    },
+    {
+      label: "Projects and achievements",
+      complete: projects.length > 0,
+      detail: projects.length > 0 ? `${projects.length} project or achievement record added` : "Add at least one project or achievement.",
+    },
+  ];
+  const completedProfileItems = completenessItems.filter((item) => item.complete).length;
+  const profileCompleteness = Math.round((completedProfileItems / completenessItems.length) * 100);
+
   return (
     <div
       className="min-h-screen bg-[#fbfbfc] text-[#152238]"
@@ -732,17 +929,17 @@ export default function UserProfile() {
       }}
     >
 
-      <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
         {/* Top Profile + About Section */}
         <section
-          className="mb-5 overflow-hidden rounded-2xl border bg-white shadow-sm"
+          className="mb-5 rounded-2xl border bg-white shadow-sm"
           style={{ borderColor: theme.border }}
         >
           <div className="grid lg:grid-cols-[360px_1fr]">
             {/* Left profile section */}
-            <div className="border-r border-[#E6E6E6] border-l-4 border-l-[#E00046] bg-white px-8 py-8 shadow-[8px_0_18px_rgba(15,15,15,0.035)]">
+            <div className="border-l-4 border-l-[#E00046] bg-white px-5 py-7 shadow-[8px_0_18px_rgba(15,15,15,0.035)] sm:px-8 lg:border-r lg:border-[#E6E6E6]">
               <div className="flex flex-col items-center text-center">
-                <div className="h-44 w-44 overflow-hidden rounded-full border-8 border-[#FFF2F6] shadow-sm">
+                <div className="h-36 w-36 overflow-hidden rounded-full border-8 border-[#FFF2F6] shadow-sm sm:h-44 sm:w-44">
                   <img
                     src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?auto=format&fit=crop&w=700&q=80"
                     alt="Jason Tan profile"
@@ -766,18 +963,19 @@ export default function UserProfile() {
                   <ExternalLink className="h-4 w-4" />
                   View Portfolio
                 </Link>
+
               </div>
             </div>
 
             {/* Right section */}
-            <div className="bg-white px-8 py-8">
+            <div className="bg-white px-5 py-6 sm:px-8 sm:py-8">
               <div
-                className="rounded-[1.5rem] px-8 py-7 text-white shadow-[0_16px_34px_rgba(15,15,15,0.16)]"
+                className="rounded-[1.5rem] px-5 py-6 text-white shadow-[0_16px_34px_rgba(15,15,15,0.16)] sm:px-8 sm:py-7"
                 style={{ backgroundColor: theme.detailDark }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="max-w-4xl">
-                    <p className="text-2xl font-bold leading-none text-white">
+                    <p className="text-2xl font-bold leading-tight text-white">
                       About
                     </p>
 
@@ -789,7 +987,7 @@ export default function UserProfile() {
                   <EditIconButton onClick={openEditAbout} dark />
                 </div>
 
-                <div className="mt-7 grid gap-4 md:grid-cols-3">
+                <div className="mt-7 grid gap-4 md:grid-cols-4">
                   <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
                     <div className="mb-3 flex items-center gap-2 text-white/55">
                       <MapPin className="h-4 w-4" />
@@ -825,6 +1023,63 @@ export default function UserProfile() {
                       {details.phone}
                     </p>
                   </div>
+
+                  <div className="group relative isolate z-20 overflow-visible rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm outline-none ring-white/35 transition hover:border-white/25 focus-within:ring-2">
+                    <div className="mb-3 flex items-center gap-2 text-white/55">
+                      <Eye className="h-4 w-4" />
+                      <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                        Completeness
+                      </span>
+                    </div>
+                    <button type="button" className="text-left outline-none">
+                      <p className="text-base font-semibold text-white">
+                        {profileCompleteness}% {profileCompleteness === 100 ? "Complete" : "Incomplete"}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-white/45">
+                        Hover for breakdown
+                      </p>
+                    </button>
+
+                    <div className="pointer-events-none absolute right-0 top-full z-[999] mt-3 w-80 max-w-[calc(100vw-3rem)] -translate-y-2 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                      <div className="rounded-2xl border border-[#E5E8F0] bg-white p-4 text-[#152238] shadow-[0_20px_45px_rgba(15,23,42,0.24)]">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-[#152238]">
+                              Completeness breakdown
+                            </p>
+                            <p className="mt-1 text-xs font-medium leading-5 text-[#667085]">
+                              {completedProfileItems} of {completenessItems.length} profile signals are ready.
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-bold text-[#E00046]">
+                            {profileCompleteness}%
+                          </span>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          {completenessItems.map((item) => (
+                            <div key={item.label} className="flex gap-3 rounded-xl bg-[#F8FAFC] p-3">
+                              <span
+                                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                                  item.complete ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-[#E00046]"
+                                }`}
+                              >
+                                {item.complete ? <ShieldCheck className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-[#152238]">
+                                  {item.label}
+                                </p>
+                                <p className="mt-0.5 text-xs leading-5 text-[#667085]">
+                                  {item.detail}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -835,6 +1090,223 @@ export default function UserProfile() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
           {/* Bottom Left */}
           <section className="space-y-5">
+            <ProfileSection title="Work Animal Assessment">
+              <div className="grid gap-5 xl:grid-cols-[1.05fr_.95fr]">
+                <div className="relative overflow-hidden rounded-2xl border bg-[#101727] p-6 text-white shadow-[0_18px_38px_rgba(15,23,42,0.18)]">
+                  <div className="absolute right-[-80px] top-[-80px] h-48 w-48 rounded-full bg-[#E00046]/20 blur-3xl" />
+                  <div className="relative">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-4xl shadow-sm">
+                        {currentAnimal?.emoji ?? "?"}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                          Your work animal
+                        </p>
+                        <h3 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">
+                          {currentAnimal ? `The ${currentAnimal.name}` : "Unknown"}
+                        </h3>
+                        <p className="mt-1 text-sm font-medium text-white/70">
+                          {currentAnimal ? `${currentAnimal.archetype} · ${currentAnimal.category}` : "Take the test to complete your profile"}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-white/45">
+                          {currentAnimal ? "Profile trait ready for job matching" : "Required before trait matching can be trusted"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 space-y-3">
+                      {dimensionPoles.map((dimension) => {
+                        const value = currentAnimal?.dimensions[dimension.key] ?? 0;
+                        return (
+                        <div key={dimension.key} className="rounded-2xl border border-white/10 bg-white/[0.05] p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-white/78">{dimension.label}</span>
+                            <span className="text-xs font-semibold text-white/45">{getDimensionLean(value)}</span>
+                          </div>
+                          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/12">
+                            <div
+                              className="h-full rounded-full bg-[#F04D7A]"
+                              style={{ width: `${value}%` }}
+                            />
+                          </div>
+                          <div className="mt-2 flex justify-between text-xs font-semibold text-white/55">
+                            <span>{dimension.left}</span>
+                            <span>{dimension.right}</span>
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6 grid gap-3">
+                      {[
+                        { label: "Primary" as const, animal: currentAnimal },
+                        { label: "Secondary" as const, animal: secondaryAnimal },
+                        { label: "Shadow" as const, animal: shadowAnimal },
+                      ].map(({ label, animal }) => (
+                        <div key={label} className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-2xl">
+                              {animal?.emoji ?? "?"}
+                            </span>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                                {label}
+                              </p>
+                              <p className="mt-1 text-lg font-semibold text-white">
+                                {animal ? `${animal.name} · ${animal.archetype}` : "Unknown"}
+                              </p>
+                              <p className="mt-2 text-xs leading-5 text-white/60">
+                                {getAnimalRoleInTrio(label)}
+                              </p>
+                              {animal && (
+                                <p className="mt-2 text-xs leading-5 text-white/72">
+                                  {animal.short}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="mt-5 text-sm leading-6 text-white/68">
+                      {currentAnimal
+                        ? `Prototype saved result: ${currentAnimal.short}`
+                        : "Your animal trait status is unknown, so CareerOS cannot yet explain where your working style matches a job, differs from it, or how to prepare for a supervisor."}
+                    </p>
+
+                    <a
+                      href="https://www.yourworkanimal.com/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#E00046] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_26px_rgba(224,0,70,0.24)] transition hover:bg-[#D81B3F] sm:w-auto"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Retake test
+                    </a>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  <div className="rounded-2xl border bg-white p-5" style={{ borderColor: theme.border }}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#E00046]">
+                      Blend interpretation
+                    </p>
+                    <h3 className="mt-2 text-xl font-semibold text-[#152238]">
+                      {blend.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-7 text-[#46536D]">
+                      {blend.summary}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowTraitSummary((value) => !value)}
+                      className="mt-5 inline-flex rounded-xl border border-[#F5CBD6] bg-[#FFF2F6] px-4 py-2.5 text-sm font-semibold text-[#E00046] transition hover:bg-[#FDE7EE]"
+                    >
+                      {showTraitSummary ? "Hide full trait summary" : "View full trait summary"}
+                    </button>
+                    {showTraitSummary && (
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-700">What this gives you</p>
+                          <div className="mt-3 space-y-2">
+                            {blend.strengths.map((item) => (
+                              <p key={item} className="rounded-xl bg-emerald-50 px-3 py-2 text-sm leading-5 text-[#152238]">
+                                {item}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-rose-700">What to watch</p>
+                          <div className="mt-3 space-y-2">
+                            {blend.watchouts.map((item) => (
+                              <p key={item} className="rounded-xl bg-rose-50 px-3 py-2 text-sm leading-5 text-[#152238]">
+                                {item}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border bg-[#F8FFF9] p-5" style={{ borderColor: "#BBF7D0" }}>
+                      <p className="text-sm font-semibold text-emerald-700">You would thrive in</p>
+                      <div className="mt-4 space-y-2">
+                        {(currentAnimal?.roles.slice(0, 3) ?? ["Complete test to unlock", "Role fit analysis", "Best working environment"]).map((role) => (
+                          <p key={role} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#152238] shadow-sm">
+                            {role}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border bg-[#FFF7F7] p-5" style={{ borderColor: "#FECACA" }}>
+                      <p className="text-sm font-semibold text-rose-700">You may struggle in</p>
+                      <div className="mt-4 space-y-2">
+                        {getLikelyStruggleRoles(currentAnimal?.slug).map((role) => (
+                          <p key={role} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#152238] shadow-sm">
+                            {role}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border bg-white p-5" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-[#152238]">CareerOS interpretation</p>
+                      <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">
+                        Generated from traits
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Core strength</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Patient judgement under complexity
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          This means you are strongest when a problem needs careful thinking, evidence, and a decision that holds up.
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Best-fit work</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Research and analysis
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          This is a suggested work direction based on the Owl primary trait and Fox strategic influence.
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Growth area</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Show the thinking earlier
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          Peacock as shadow suggests visibility and self-promotion may need deliberate practice.
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#46536D]">Used for</p>
+                        <p className="mt-2 text-sm font-semibold text-[#152238]">
+                          Matching and preparation
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#46536D]">
+                          CareerOS uses this to explain job fit, blind spots, team compatibility, and supervisor communication.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ProfileSection>
+
             <ProfileSection
               title="Experience"
               showAdd
@@ -851,6 +1323,22 @@ export default function UserProfile() {
               </div>
             </ProfileSection>
 
+            <ProfileSection
+              title="Projects and Achievements"
+              showAdd
+              onAdd={openAddProject}
+            >
+              <div className="grid gap-4 lg:grid-cols-2">
+                {projects.map((item, index) => (
+                  <ProjectAchievementItem
+                    key={`${item.title}-${index}`}
+                    item={item}
+                    onEdit={() => openEditProject(index)}
+                  />
+                ))}
+              </div>
+            </ProfileSection>
+
             <ProfileSection title="Education" showAdd onAdd={openAddEducation}>
               <div className="space-y-5">
                 {education.map((item, index) => (
@@ -862,6 +1350,20 @@ export default function UserProfile() {
                 ))}
               </div>
             </ProfileSection>
+
+          </section>
+
+          {/* Bottom Right */}
+          <aside className="space-y-5">
+            <SideDocumentCard
+              title="Certificates"
+              icon={ShieldCheck}
+              button="Add"
+              showEditButton
+              items={certificates}
+              onAction={openAddCertificate}
+              onEdit={openEditCertificates}
+            />
 
             <ProfileSection
               title="Skills"
@@ -886,27 +1388,6 @@ export default function UserProfile() {
                 ))}
               </div>
             </ProfileSection>
-          </section>
-
-          {/* Bottom Right */}
-          <aside className="space-y-5">
-            <SideDocumentCard
-              title="Resume / CV"
-              icon={FileText}
-              button="Update"
-              items={[resume]}
-              onAction={openResumeUpdate}
-            />
-
-            <SideDocumentCard
-              title="Certificates"
-              icon={ShieldCheck}
-              button="Add"
-              showEditButton
-              items={certificates}
-              onAction={openAddCertificate}
-              onEdit={openEditCertificates}
-            />
 
             <section
               className="overflow-hidden rounded-2xl border bg-white shadow-sm"
@@ -1123,6 +1604,72 @@ export default function UserProfile() {
         </Modal>
       )}
 
+      {(modal === "add-project" || modal === "edit-project") && (
+        <Modal
+          title={
+            modal === "add-project"
+              ? "Add Project or Achievement"
+              : "Edit Project or Achievement"
+          }
+          description="Add or update the project and achievement evidence that appears in your Living Portfolio."
+          onClose={closeModal}
+          onSave={() => {
+            if (modal === "add-project") {
+              setProjects((old) => [...old, projectDraft]);
+            } else if (editingProjectIndex !== null) {
+              setProjects((old) =>
+                old.map((item, index) =>
+                  index === editingProjectIndex ? projectDraft : item
+                )
+              );
+            }
+
+            closeModal();
+          }}
+        >
+          <TextInput
+            label="Title"
+            value={projectDraft.title}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, title: value }))
+            }
+            placeholder="Sales Performance Dashboard"
+          />
+          <TextInput
+            label="Type"
+            value={projectDraft.type}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, type: value }))
+            }
+            placeholder="Featured Project, Analytics Project, Achievement"
+          />
+          <TextInput
+            label="Date"
+            value={projectDraft.date}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, date: value }))
+            }
+            placeholder="May 2025"
+          />
+          <TextAreaInput
+            label="Description"
+            value={projectDraft.description}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, description: value }))
+            }
+            placeholder="Describe what you built, achieved, or proved."
+          />
+          <TextInput
+            label="Tags"
+            value={projectDraft.tags}
+            onChange={(value) =>
+              setProjectDraft((old) => ({ ...old, tags: value }))
+            }
+            placeholder="Power BI, DAX, Data Visualization"
+          />
+        </Modal>
+      )}
+
       {(modal === "add-skills" || modal === "edit-skills") && (
         <Modal
           title={modal === "add-skills" ? "Add Skills" : "Edit Skills"}
@@ -1149,46 +1696,6 @@ export default function UserProfile() {
             onChange={setSkillsDraft}
             placeholder="Python, SQL, Power BI"
           />
-        </Modal>
-      )}
-
-      {modal === "update-resume" && (
-        <Modal
-          title="Update Resume / CV"
-          description="Upload an updated PDF resume and save it to your profile."
-          onClose={closeModal}
-          onSave={() => {
-            setResume(resumeDraft);
-            closeModal();
-          }}
-          saveLabel="Save update"
-        >
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-[#152238]">
-              Upload updated resume
-            </span>
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              className="block w-full cursor-pointer rounded-xl border bg-white px-4 py-3 text-sm font-medium text-[#152238] file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#E00046] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
-              style={{ borderColor: "#CBD5E1" }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-
-                if (!isPdfFile(file)) {
-                  alert("Please upload a PDF file only.");
-                  e.target.value = "";
-                  return;
-                }
-
-                setResumeDraft({
-                  name: file.name,
-                  meta: `PDF · ${Math.max(1, Math.round(file.size / 1024))} KB`,
-                });
-              }}
-            />
-          </label>
         </Modal>
       )}
 
@@ -1310,6 +1817,7 @@ export default function UserProfile() {
           />
         </Modal>
       )}
+
     </div>
   );
 }

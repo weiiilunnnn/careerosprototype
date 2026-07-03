@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
-  Building2,
   Check,
   ChevronRight,
   CircleAlert,
@@ -20,18 +19,18 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import Navbar from "@/components/navbar/Navbar";
+import CompanyLogo from "@/components/CompanyLogo";
 
 const jobs = {
   "bi-analyst": {
     role: "BI Analyst",
-    company: "Fintech Company",
+    company: "Grab",
     match: "81%",
     salary: "RM4,000 - RM5,500",
   },
   "junior-bi-analyst": {
     role: "Junior BI Analyst",
-    company: "Consulting Firm",
+    company: "Accenture",
     match: "77%",
     salary: "RM3,500 - RM4,800",
   },
@@ -69,9 +68,7 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
 
         <section className="mt-5 grid gap-6 rounded-md border border-black/5 bg-white p-6 shadow-sm lg:grid-cols-[1.2fr_.55fr_1.1fr] lg:items-center">
           <div className="flex gap-5">
-            <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-md bg-[#f0184f] text-white">
-              <Building2 size={38} />
-            </span>
+            <CompanyLogo company={job.company} size="lg" />
             <div>
               <h1 className="text-3xl font-black">{job.role}</h1>
               <p className="mt-1 text-lg font-bold">{job.company}</p>
