@@ -17,8 +17,6 @@ import {
   UsersRound,
 } from "lucide-react";
 import Navbar from "@/components/navbar/Navbar";
-import Image from "next/image";
-import Link from "next/link";
 
 const careerPath = [
   { label: "Intern", icon: GraduationCap },
@@ -53,13 +51,6 @@ const nextSteps = [
   ["Gain stakeholder-facing presentation exposure", "Practice presenting insights to non-technical audiences."],
   ["Strengthen Power BI storytelling", "Focus on dashboards that drive decisions."],
   ["Re-enter BI Analyst pool with stronger positioning", "Improve match score and unlock better opportunities."],
-];
-
-const timeline = [
-  { range: "0-6 months", role: "Graduate / Intern" },
-  { range: "6-18 months", role: "Junior Data Analyst" },
-  { range: "1-3 years", role: "BI Analyst", active: true },
-  { range: "3-5 years", role: "BI Lead" },
 ];
 
 export default function Home() {
@@ -102,14 +93,15 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-8 flex w-[472px] max-w-full items-center rounded-md bg-[#fff1f5] px-6 py-5 shadow-sm">
+          <button className="mt-8 flex w-full max-w-md items-center justify-between rounded-md bg-[#fff1f5] px-6 py-5 text-left shadow-sm transition hover:shadow-[0_0_26px_rgba(240,24,79,0.18)]">
             <span className="flex items-center gap-4">
-              <UsersRound className="shrink-0 text-[#f0184f]" size={24} />
+              <UsersRound className="text-[#f0184f]" size={24} />
               <span className="text-sm font-semibold">
                 You are ranked in the top 18% of candidates in the Junior BI Analyst pool
               </span>
             </span>
-          </div>
+            <ChevronRight size={18} />
+          </button>
         </div>
 
         <div className="rounded-md border border-black/5 bg-white p-8 shadow-[0_24px_70px_rgba(18,24,40,0.08)]">
@@ -187,15 +179,9 @@ export default function Home() {
             Most successful BI Analyst transitions from similar profiles involved Power BI adoption within the first year.
           </div>
           <div className="relative hidden min-h-48 items-center justify-center lg:flex">
-            <div className="absolute h-44 w-52 rounded-md bg-[#ff4d79]/25 blur-3xl" />
-            <div className="relative overflow-hidden rounded-md border border-white/10 shadow-[0_0_50px_rgba(240,24,79,0.28)]">
-              <Image
-                src="/bi-analyst-dashboard.png"
-                alt="BI analyst dashboard with charts and key metrics"
-                width={260}
-                height={180}
-                className="h-40 w-56 object-cover"
-              />
+            <div className="absolute h-44 w-44 rounded-md bg-[#ff4d79]/30 blur-3xl" />
+            <div className="relative grid h-40 w-40 place-items-center rounded-md bg-white/10 shadow-[0_0_50px_rgba(240,24,79,0.35)]">
+              <UserRound className="text-[#ff7a9c]" size={58} />
             </div>
           </div>
         </div>
@@ -226,27 +212,23 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <p className="text-sm font-bold">AI Insights</p>
-              <div className="rounded-md bg-[#fff1f5] p-5 text-sm leading-7">
-                <Sparkles className="mb-3 text-[#f0184f]" size={17} />
-                Candidates with stakeholder-facing projects had significantly higher interview conversion.
-              </div>
+              {["Candidates with stakeholder-facing projects had significantly higher interview conversion.", "70% of successful BI Analyst transitions had at least one dashboard ownership experience."].map((item) => (
+                <div key={item} className="rounded-md bg-[#fff1f5] p-5 text-sm leading-7">
+                  <Sparkles className="mb-3 text-[#f0184f]" size={17} />
+                  {item}
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         <div className="rounded-md border border-black/5 bg-white p-7 shadow-sm">
           <h3 className="text-lg font-bold">Timeline & Progression</h3>
-          <div className="relative mt-7 space-y-3 before:absolute before:bottom-[30px] before:left-[13px] before:top-[30px] before:z-10 before:w-0.5 before:rounded-full before:bg-black/15">
-            {timeline.map((item) => (
-              <div key={item.role} className={`relative flex gap-4 rounded-md px-1 py-3 text-sm ${item.active ? "bg-[#fff8fa]" : ""}`}>
-                <span className={`relative z-20 mt-2 h-5 w-5 shrink-0 rounded-full bg-white ring-4 ring-white ${item.active ? "shadow-[0_0_20px_rgba(240,24,79,0.65)] after:absolute after:inset-0 after:rounded-full after:bg-[#f0184f]" : "after:absolute after:inset-0 after:rounded-full after:bg-[#bdbdbd]"}`} />
-                <div className="relative z-20">
-                  <p className={`text-xs font-bold uppercase tracking-wide ${item.active ? "text-[#f0184f]" : "text-black/40"}`}>{item.range}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <p className={`font-bold ${item.active ? "text-[#f0184f]" : "text-black/70"}`}>{item.role}</p>
-                    {item.active ? <span className="rounded-full bg-[#f0184f] px-2 py-0.5 text-[10px] font-bold uppercase text-white">Current path</span> : null}
-                  </div>
-                </div>
+          <div className="mt-7 space-y-6">
+            {["0-6 months Graduate / Intern", "6-18 months Junior Data Analyst", "1-3 years BI Analyst", "3-5 years BI Lead"].map((item) => (
+              <div key={item} className="flex gap-4 text-sm">
+                <span className={`mt-1 h-3 w-3 rounded-full ${item.includes("BI Analyst") ? "bg-[#f0184f] shadow-[0_0_18px_rgba(240,24,79,0.8)]" : "bg-black/25"}`} />
+                <p className={item.includes("BI Analyst") ? "font-bold text-[#f0184f]" : "text-black/60"}>{item}</p>
               </div>
             ))}
           </div>
@@ -286,11 +268,7 @@ export default function Home() {
           <button className="text-sm font-bold text-[#f0184f]">View all jobs</button>
         </div>
         {jobs.map(([role, company, location, mode, match]) => (
-          <Link
-            key={role}
-            href={`/jobs/${role.toLowerCase().replaceAll(" ", "-")}`}
-            className="grid gap-4 border-b border-black/5 px-6 py-6 transition hover:bg-[#fff8fa] md:grid-cols-[1fr_1.2fr_.9fr_auto] md:items-center"
-          >
+          <div key={role} className="grid gap-4 border-b border-black/5 px-6 py-6 md:grid-cols-[1fr_1.2fr_.9fr_auto] md:items-center">
             <div className="flex gap-4">
               <span className="flex h-16 w-16 items-center justify-center rounded-md bg-[#f0184f] text-white">
                 <Building2 size={27} />
@@ -313,8 +291,8 @@ export default function Home() {
               <p className="mb-2 text-xs font-bold">Potential gap</p>
               <span className="rounded-full bg-[#fff1f5] px-3 py-1 text-xs font-semibold">Power BI Reporting</span>
             </div>
-            <span className="rounded-md bg-[#fff1f5] px-4 py-2 text-center text-sm font-bold text-[#f0184f]">{match}</span>
-          </Link>
+            <button className="rounded-md bg-[#fff1f5] px-4 py-2 text-sm font-bold text-[#f0184f]">{match}</button>
+          </div>
         ))}
       </section>
 
