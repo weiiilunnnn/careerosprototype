@@ -15,6 +15,7 @@ import SignInPage from "./pages/SignInPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import EmployerOnboarding from "./pages/EmployerOnboarding";
 import CompanyProfile from "./pages/CompanyProfile";
+import BrowseDirectory from "./pages/BrowseDirectory";
 
 export default async function Home({
   searchParams,
@@ -37,6 +38,8 @@ export default async function Home({
   if (view === "my-applications") return <MyApplications />;
   if (view === "track-application") return <TrackApplication />;
   if (view === "company-profile") return <CompanyProfile />;
+  if (view === "browse-university") return <BrowseDirectory kind="university" />;
+  if (view === "browse-employer") return <BrowseDirectory kind="employer" />;
   if (view === "login") return <SignInPage />;
   if (view === "forgot-password") return <ForgotPasswordPage />;
 

@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, BriefcaseBusiness, Eye, LockKeyhole, Mail, Sparkles } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Eye, GraduationCap, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import { authenticateEmployer } from "@/features/components (employer)/store";
 
 const theme = {
@@ -45,6 +45,10 @@ export default function SignInPage() {
     if (authenticateEmployer("admin@talentbank.com", "careeros")) {
       window.location.href = "/employer";
     }
+  }
+
+  function handleUniversityDemoLogin() {
+    window.location.href = "/university";
   }
 
   function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -196,6 +200,16 @@ export default function SignInPage() {
             >
               <BriefcaseBusiness className="h-4 w-4 text-[#E00046]" />
               Sign in to employer demo
+            </button>
+
+            <button
+              type="button"
+              onClick={handleUniversityDemoLogin}
+              className="flex w-full items-center justify-center gap-3 rounded-full border bg-[#F7F4FF] px-6 py-3.5 text-sm font-extrabold text-[#152238] transition hover:-translate-y-0.5 hover:border-[#6D5EF7] hover:bg-white hover:shadow-md active:translate-y-0"
+              style={{ borderColor: "#DDD6FE" }}
+            >
+              <GraduationCap className="h-4 w-4 text-[#6D5EF7]" />
+              Sign in as university demo
             </button>
           </form>
 

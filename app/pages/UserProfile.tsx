@@ -63,6 +63,8 @@ interface Experience {
   location: string;
   description: string;
   skills: string;
+  workEmail: string;
+  validationStatus: "Verified employee" | "Verified former employee" | "Pending employer validation" | "Unverified experience";
   logoType: "grab" | "maybank" | "custom";
   fallback: string;
 }
@@ -72,6 +74,8 @@ interface Education {
   programme: string;
   period: string;
   detail: string;
+  schoolEmail: string;
+  validationStatus: "Verified student" | "Verified alumni" | "Pending university validation" | "Unverified education";
 }
 
 interface ProjectAchievement {
@@ -92,6 +96,12 @@ interface ProfileDetails {
   email: string;
   phone: string;
 }
+
+type DeleteTarget =
+  | { kind: "experience"; index: number }
+  | { kind: "education"; index: number }
+  | { kind: "project"; index: number }
+  | { kind: "skill"; value: string };
 
 function GitHubLogo({ className = "h-6 w-6" }: { className?: string }) {
   return (
@@ -146,6 +156,84 @@ function CompanyLogo({
       {fallback}
     </div>
   );
+}
+
+function getValidationTone(status: string) {
+  if (status.includes("Verified") && !status.includes("former") && !status.includes("alumni")) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status.includes("former") || status.includes("alumni")) {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
+
+  if (status.includes("Pending")) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function ValidationBadge({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${getValidationTone(status)}`}>
+      <ShieldCheck className="h-3 w-3" />
+      {status}
+    </span>
+  );
+}
+
+function validateEducationRecord(record: Education): Education {
+  const email = record.schoolEmail.trim().toLowerCase();
+  const period = record.period.toLowerCase();
+  const active = /present|current|ongoing|2026|2027|2028/.test(period);
+
+  const knownDomains = [
+    "mail.apu.edu.my",
+    "student.apu.edu.my",
+    "student.taylors.edu.my",
+    "students.taylors.edu.my",
+    "imail.sunway.edu.my",
+    "student.swinburne.edu.my",
+    "student.newinti.edu.my",
+  ];
+
+  if (!email) {
+    return { ...record, validationStatus: "Unverified education" };
+  }
+
+  const matched = knownDomains.some((domain) => email.endsWith(`@${domain}`));
+
+  if (!matched) {
+    return { ...record, validationStatus: "Pending university validation" };
+  }
+
+  return {
+    ...record,
+    validationStatus: active ? "Verified student" : "Verified alumni",
+  };
+}
+
+function validateExperienceRecord(record: Experience): Experience {
+  const email = record.workEmail.trim().toLowerCase();
+  const period = record.period.toLowerCase();
+  const active = /present|current|ongoing/.test(period);
+  const knownDomains = ["grab.com", "maybank.com", "microsoft.com", "shopee.com"];
+
+  if (!email) {
+    return { ...record, validationStatus: "Unverified experience" };
+  }
+
+  const matched = knownDomains.some((domain) => email.endsWith(`@${domain}`));
+
+  if (!matched) {
+    return { ...record, validationStatus: "Pending employer validation" };
+  }
+
+  return {
+    ...record,
+    validationStatus: active ? "Verified employee" : "Verified former employee",
+  };
 }
 
 function PrimaryButton({
@@ -211,6 +299,27 @@ function EditIconButton({
       }}
     >
       <Edit3 className="h-4 w-4" />
+    </button>
+  );
+}
+
+function DeleteIconButton({
+  onClick,
+}: {
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition hover:-translate-y-0.5 active:translate-y-0"
+      style={{
+        borderColor: theme.rose2,
+        color: theme.rose2,
+        backgroundColor: "white",
+      }}
+    >
+      <Trash2 className="h-4 w-4" />
     </button>
   );
 }
@@ -382,9 +491,11 @@ function ProfileSection({
 function ExperienceItem({
   item,
   onEdit,
+  onDelete,
 }: {
   item: Experience;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="flex gap-5 border-b pb-5 last:border-b-0 last:pb-0">
@@ -402,9 +513,21 @@ function ExperienceItem({
             <p className="mt-1 text-sm font-normal text-[#46536D]">
               {item.period} · {item.location}
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <ValidationBadge status={item.validationStatus} />
+              {item.workEmail ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-semibold text-[#667085]">
+                  <Mail className="h-3 w-3" />
+                  {item.workEmail}
+                </span>
+              ) : null}
+            </div>
           </div>
 
-          <EditIconButton onClick={onEdit} />
+          <div className="flex items-center gap-2">
+            <EditIconButton onClick={onEdit} />
+            <DeleteIconButton onClick={onDelete} />
+          </div>
         </div>
 
         <p className="mt-2 text-sm font-normal leading-6 text-[#152238]">
@@ -425,9 +548,11 @@ function ExperienceItem({
 function EducationItem({
   item,
   onEdit,
+  onDelete,
 }: {
   item: Education;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="flex gap-5 border-b pb-5 last:border-b-0 last:pb-0">
@@ -450,9 +575,21 @@ function EducationItem({
             <p className="mt-1 text-sm font-normal text-[#46536D]">
               {item.period}
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <ValidationBadge status={item.validationStatus} />
+              {item.schoolEmail ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-semibold text-[#667085]">
+                  <Mail className="h-3 w-3" />
+                  {item.schoolEmail}
+                </span>
+              ) : null}
+            </div>
           </div>
 
-          <EditIconButton onClick={onEdit} />
+          <div className="flex items-center gap-2">
+            <EditIconButton onClick={onEdit} />
+            <DeleteIconButton onClick={onDelete} />
+          </div>
         </div>
 
         <p className="mt-2 text-sm font-normal leading-6 text-[#152238]">
@@ -466,9 +603,11 @@ function EducationItem({
 function ProjectAchievementItem({
   item,
   onEdit,
+  onDelete,
 }: {
   item: ProjectAchievement;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   const tags = item.tags
     .split(",")
@@ -493,7 +632,10 @@ function ProjectAchievementItem({
           </p>
         </div>
 
-        <EditIconButton onClick={onEdit} />
+        <div className="flex items-center gap-2">
+          <EditIconButton onClick={onEdit} />
+          <DeleteIconButton onClick={onDelete} />
+        </div>
       </div>
 
       <p className="mt-3 text-sm leading-6 text-[#46536D]">
@@ -681,6 +823,8 @@ export default function UserProfile() {
       description:
         "Supported analytics reporting, cleaned operational datasets, and created dashboard views to help teams monitor performance trends.",
       skills: "SQL, Power BI, Excel, Data Cleaning",
+      workEmail: "jason.tan@grab.com",
+      validationStatus: "Verified former employee",
       logoType: "grab",
       fallback: "GR",
     },
@@ -692,6 +836,8 @@ export default function UserProfile() {
       description:
         "Prepared reporting datasets and assisted with business insights for internal performance tracking and stakeholder updates.",
       skills: "Python, Reporting, Dashboarding",
+      workEmail: "jason.tan@maybank.com",
+      validationStatus: "Verified former employee",
       logoType: "maybank",
       fallback: "MB",
     },
@@ -704,6 +850,8 @@ export default function UserProfile() {
       period: "2023 – 2026",
       detail:
         "Relevant learning includes database systems, data analytics, software development, and machine learning.",
+      schoolEmail: "jason.tan@student.apu.edu.my",
+      validationStatus: "Verified student",
     },
     {
       institution: "Taylor’s College",
@@ -711,6 +859,8 @@ export default function UserProfile() {
       period: "2022 – 2023",
       detail:
         "Built a foundation in programming, mathematics, communication, and problem solving before progressing into degree studies.",
+      schoolEmail: "jason.tan@students.taylors.edu.my",
+      validationStatus: "Verified alumni",
     },
   ]);
 
@@ -800,6 +950,8 @@ export default function UserProfile() {
       location: "",
       description: "",
       skills: "",
+      workEmail: "",
+      validationStatus: "Unverified experience",
       logoType: "custom",
       fallback: "CO",
     });
@@ -812,6 +964,10 @@ export default function UserProfile() {
     setModal("edit-experience");
   };
 
+  const deleteExperience = (index: number) => {
+    setExperiences((old) => old.filter((_, idx) => idx !== index));
+  };
+
   const openAddEducation = () => {
     setEditingEducationIndex(null);
     setEducationDraft({
@@ -819,6 +975,8 @@ export default function UserProfile() {
       programme: "",
       period: "",
       detail: "",
+      schoolEmail: "",
+      validationStatus: "Unverified education",
     });
     setModal("add-education");
   };
@@ -827,6 +985,10 @@ export default function UserProfile() {
     setEditingEducationIndex(index);
     setEducationDraft(education[index]);
     setModal("edit-education");
+  };
+
+  const deleteEducation = (index: number) => {
+    setEducation((old) => old.filter((_, idx) => idx !== index));
   };
 
   const openAddProject = () => {
@@ -847,6 +1009,10 @@ export default function UserProfile() {
     setModal("edit-project");
   };
 
+  const deleteProject = (index: number) => {
+    setProjects((old) => old.filter((_, idx) => idx !== index));
+  };
+
   const openAddSkills = () => {
     setSkillsDraft("");
     setModal("add-skills");
@@ -855,6 +1021,44 @@ export default function UserProfile() {
   const openEditSkills = () => {
     setSkillsDraft(skills.join(", "));
     setModal("edit-skills");
+  };
+
+  const [pendingDelete, setPendingDelete] = useState<DeleteTarget | null>(null);
+
+  const openDeleteExperience = (index: number) => {
+    setPendingDelete({ kind: "experience", index });
+  };
+
+  const openDeleteEducation = (index: number) => {
+    setPendingDelete({ kind: "education", index });
+  };
+
+  const openDeleteProject = (index: number) => {
+    setPendingDelete({ kind: "project", index });
+  };
+
+  const openDeleteSkill = (skillToDelete: string) => {
+    setPendingDelete({ kind: "skill", value: skillToDelete });
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+
+    if (pendingDelete.kind === "experience") {
+      setExperiences((old) => old.filter((_, idx) => idx !== pendingDelete.index));
+    } else if (pendingDelete.kind === "education") {
+      setEducation((old) => old.filter((_, idx) => idx !== pendingDelete.index));
+    } else if (pendingDelete.kind === "project") {
+      setProjects((old) => old.filter((_, idx) => idx !== pendingDelete.index));
+    } else if (pendingDelete.kind === "skill") {
+      setSkills((old) => old.filter((skill) => skill !== pendingDelete.value));
+    }
+
+    setPendingDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setPendingDelete(null);
   };
 
   const openAddCertificate = () => {
@@ -893,7 +1097,7 @@ export default function UserProfile() {
       detail: "Add about, location, email, and phone number.",
     },
     {
-      label: "Experience",
+      label: "Working experience",
       complete: experiences.length > 0,
       detail: experiences.length > 0 ? `${experiences.length} experience record added` : "Add at least one work, internship, or leadership experience.",
     },
@@ -987,7 +1191,7 @@ export default function UserProfile() {
                   <EditIconButton onClick={openEditAbout} dark />
                 </div>
 
-                <div className="mt-7 grid gap-4 md:grid-cols-4">
+                <div className="mt-7 grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
                   <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm">
                     <div className="mb-3 flex items-center gap-2 text-white/55">
                       <MapPin className="h-4 w-4" />
@@ -1027,7 +1231,7 @@ export default function UserProfile() {
                   <div className="group relative isolate z-20 overflow-visible rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 shadow-sm backdrop-blur-sm outline-none ring-white/35 transition hover:border-white/25 focus-within:ring-2">
                     <div className="mb-3 flex items-center gap-2 text-white/55">
                       <Eye className="h-4 w-4" />
-                      <span className="text-xs font-medium uppercase tracking-[0.18em]">
+                      <span className="break-words text-xs font-medium uppercase tracking-normal">
                         Completeness
                       </span>
                     </div>
@@ -1087,11 +1291,11 @@ export default function UserProfile() {
         </section>
 
         {/* Bottom Layout */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,32%)]">
           {/* Bottom Left */}
           <section className="space-y-5">
             <ProfileSection title="Work Animal Assessment">
-              <div className="grid gap-5 xl:grid-cols-[1.05fr_.95fr]">
+              <div className="grid gap-5 2xl:grid-cols-[1.05fr_.95fr]">
                 <div className="relative overflow-hidden rounded-2xl border bg-[#101727] p-6 text-white shadow-[0_18px_38px_rgba(15,23,42,0.18)]">
                   <div className="absolute right-[-80px] top-[-80px] h-48 w-48 rounded-full bg-[#E00046]/20 blur-3xl" />
                   <div className="relative">
@@ -1233,12 +1437,12 @@ export default function UserProfile() {
                     )}
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 2xl:grid-cols-2">
                     <div className="rounded-2xl border bg-[#F8FFF9] p-5" style={{ borderColor: "#BBF7D0" }}>
                       <p className="text-sm font-semibold text-emerald-700">You would thrive in</p>
                       <div className="mt-4 space-y-2">
                         {(currentAnimal?.roles.slice(0, 3) ?? ["Complete test to unlock", "Role fit analysis", "Best working environment"]).map((role) => (
-                          <p key={role} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#152238] shadow-sm">
+                          <p key={role} className="min-w-0 break-words rounded-xl bg-white px-3 py-2 text-sm font-semibold leading-5 text-[#152238] shadow-sm">
                             {role}
                           </p>
                         ))}
@@ -1249,7 +1453,7 @@ export default function UserProfile() {
                       <p className="text-sm font-semibold text-rose-700">You may struggle in</p>
                       <div className="mt-4 space-y-2">
                         {getLikelyStruggleRoles(currentAnimal?.slug).map((role) => (
-                          <p key={role} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#152238] shadow-sm">
+                          <p key={role} className="min-w-0 break-words rounded-xl bg-white px-3 py-2 text-sm font-semibold leading-5 text-[#152238] shadow-sm">
                             {role}
                           </p>
                         ))}
@@ -1308,7 +1512,7 @@ export default function UserProfile() {
             </ProfileSection>
 
             <ProfileSection
-              title="Experience"
+              title="Working Experience"
               showAdd
               onAdd={openAddExperience}
             >
@@ -1318,6 +1522,7 @@ export default function UserProfile() {
                     key={`${item.company}-${item.title}-${index}`}
                     item={item}
                     onEdit={() => openEditExperience(index)}
+                    onDelete={() => openDeleteExperience(index)}
                   />
                 ))}
               </div>
@@ -1328,24 +1533,26 @@ export default function UserProfile() {
               showAdd
               onAdd={openAddProject}
             >
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-4 2xl:grid-cols-2">
                 {projects.map((item, index) => (
                   <ProjectAchievementItem
                     key={`${item.title}-${index}`}
                     item={item}
                     onEdit={() => openEditProject(index)}
+                    onDelete={() => openDeleteProject(index)}
                   />
                 ))}
               </div>
             </ProfileSection>
 
-            <ProfileSection title="Education" showAdd onAdd={openAddEducation}>
+            <ProfileSection title="Education Background" showAdd onAdd={openAddEducation}>
               <div className="space-y-5">
                 {education.map((item, index) => (
                   <EducationItem
                     key={`${item.institution}-${index}`}
                     item={item}
                     onEdit={() => openEditEducation(index)}
+                    onDelete={() => openDeleteEducation(index)}
                   />
                 ))}
               </div>
@@ -1374,17 +1581,20 @@ export default function UserProfile() {
             >
               <div className="flex flex-wrap gap-3">
                 {skills.map((skill) => (
-                  <span
+                  <button
                     key={skill}
-                    className="rounded-full border px-4 py-2 text-sm font-semibold"
+                    type="button"
+                    onClick={() => openDeleteSkill(skill)}
+                    className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition hover:bg-[#FFF2F6]"
                     style={{
                       borderColor: theme.line,
                       backgroundColor: theme.soft,
                       color: theme.rose2,
                     }}
                   >
-                    {skill}
-                  </span>
+                    <span>{skill}</span>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 ))}
               </div>
             </ProfileSection>
@@ -1488,12 +1698,14 @@ export default function UserProfile() {
           description="Add or update work experience details for your career profile."
           onClose={closeModal}
           onSave={() => {
+            const validatedExperience = validateExperienceRecord(experienceDraft);
+
             if (modal === "add-experience") {
-              setExperiences((old) => [...old, experienceDraft]);
+              setExperiences((old) => [...old, validatedExperience]);
             } else if (editingExperienceIndex !== null) {
               setExperiences((old) =>
                 old.map((item, index) =>
-                  index === editingExperienceIndex ? experienceDraft : item
+                  index === editingExperienceIndex ? validatedExperience : item
                 )
               );
             }
@@ -1533,6 +1745,14 @@ export default function UserProfile() {
             }
             placeholder="Kuala Lumpur, Malaysia"
           />
+          <TextInput
+            label="Work email for validation"
+            value={experienceDraft.workEmail}
+            onChange={(value) =>
+              setExperienceDraft((old) => ({ ...old, workEmail: value }))
+            }
+            placeholder="name@company.com"
+          />
           <TextAreaInput
             label="Description"
             value={experienceDraft.description}
@@ -1557,12 +1777,14 @@ export default function UserProfile() {
           description="Add or update education details shown on your user profile."
           onClose={closeModal}
           onSave={() => {
+            const validatedEducation = validateEducationRecord(educationDraft);
+
             if (modal === "add-education") {
-              setEducation((old) => [...old, educationDraft]);
+              setEducation((old) => [...old, validatedEducation]);
             } else if (editingEducationIndex !== null) {
               setEducation((old) =>
                 old.map((item, index) =>
-                  index === editingEducationIndex ? educationDraft : item
+                  index === editingEducationIndex ? validatedEducation : item
                 )
               );
             }
@@ -1593,6 +1815,14 @@ export default function UserProfile() {
               setEducationDraft((old) => ({ ...old, period: value }))
             }
             placeholder="2023 – 2026"
+          />
+          <TextInput
+            label="School email for validation"
+            value={educationDraft.schoolEmail}
+            onChange={(value) =>
+              setEducationDraft((old) => ({ ...old, schoolEmail: value }))
+            }
+            placeholder="name@student.university.edu"
           />
           <TextAreaInput
             label="Details"
@@ -1815,6 +2045,36 @@ export default function UserProfile() {
             onChange={setGithubDraft}
             placeholder="github.com/yourname"
           />
+        </Modal>
+      )}
+
+      {pendingDelete && (
+        <Modal
+          title="Confirm delete"
+          description={`Are you sure you want to delete this ${
+            pendingDelete.kind === "skill"
+              ? "skill"
+              : pendingDelete.kind === "experience"
+              ? "experience"
+              : pendingDelete.kind === "education"
+              ? "education"
+              : "project"
+          } record? This action cannot be undone.`}
+          onClose={cancelDelete}
+          onSave={confirmDelete}
+          saveLabel="Delete"
+        >
+          <div className="rounded-2xl border border-[#F5CBD6] bg-[#FFF2F6] p-4 text-sm text-[#152238]">
+            {pendingDelete.kind === "skill" ? (
+              <p>
+                You will remove the skill <strong>{pendingDelete.value}</strong> from your profile.
+              </p>
+            ) : (
+              <p>
+                This will remove the selected {pendingDelete.kind} record from your profile.
+              </p>
+            )}
+          </div>
         </Modal>
       )}
 

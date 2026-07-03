@@ -12,12 +12,20 @@ const companyStyles: Record<
   axiata: { label: "axiata", background: "#6B2FBF", color: "#FFFFFF" },
   carsome: { label: "CARSOME", background: "#111827", color: "#FFFFFF" },
   accenture: { label: "accenture", background: "#A100FF", color: "#FFFFFF" },
+  microsoft: { label: "Microsoft", background: "#FFFFFF", color: "#2563EB", border: "#CBD5E1" },
+  fintechcompany: { label: "Fintech", background: "#081433", color: "#FFFFFF", border: "#F5CBD6" },
 };
 
 const sizeClasses = {
   sm: "h-10 w-10 rounded-full text-[9px]",
   md: "h-[52px] w-[52px] rounded-xl text-[10px]",
   lg: "h-16 w-16 rounded-xl text-xs sm:h-20 sm:w-20 sm:rounded-3xl",
+} as const;
+
+const microsoftGridClasses = {
+  sm: "h-6 w-6",
+  md: "h-9 w-9",
+  lg: "h-10 w-10 sm:h-12 sm:w-12",
 } as const;
 
 function normalizeCompanyName(company: string) {
@@ -40,6 +48,28 @@ export default function CompanyLogo({
   company: string;
   size?: keyof typeof sizeClasses;
 }) {
+  const normalized = normalizeCompanyName(company);
+
+  if (normalized === "microsoft") {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center border bg-white shadow-sm ${sizeClasses[size]}`}
+        style={{
+          borderColor: "#CBD5E1",
+        }}
+        aria-label={`${company} logo`}
+        title={company}
+      >
+        <div className={`grid grid-cols-2 gap-0.5 ${microsoftGridClasses[size]}`}>
+          <span className="bg-[#f25022]" />
+          <span className="bg-[#7fba00]" />
+          <span className="bg-[#00a4ef]" />
+          <span className="bg-[#ffb900]" />
+        </div>
+      </div>
+    );
+  }
+
   const config = companyStyles[normalizeCompanyName(company)] ?? {
     label: getInitials(company) || "CO",
     background: "linear-gradient(135deg, #F04D7A, #E00046)",
