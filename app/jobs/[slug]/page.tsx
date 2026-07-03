@@ -51,7 +51,7 @@ export default function JobApplicationPage({
 
   return (
     <div className="min-h-screen bg-[#fdfcfa] text-[#111111]">
-      <Navbar initialActiveItem="Applications" />
+      <Navbar />
 
       <main className="mx-auto max-w-7xl px-5 py-7 sm:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
