@@ -329,6 +329,14 @@ export default function CareerLandscape() {
                   histories, related skills, education, and project experience.
                 </p>
 
+                <Link
+                  href="/?view=career-path-simulator"
+                  className="mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#E00046] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(224,0,70,0.24)] transition hover:bg-[#D81B3F]"
+                >
+                  Open Career Path Simulator
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
                 <div className="mt-8 grid gap-4 md:grid-cols-3">
                   <div className="rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 shadow-sm backdrop-blur-md">
                     <div className="mb-2 flex items-center gap-2 text-white/65">

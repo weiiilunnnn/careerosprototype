@@ -70,7 +70,8 @@ export default function Navbar() {
   const activeIndex = useMemo(() => {
     if (
       view === "career-landscape" ||
-      view === "deep-dive"
+      view === "deep-dive" ||
+      view === "career-path-simulator"
     ) {
       return 0;
     }
@@ -91,7 +92,8 @@ export default function Navbar() {
       view === "my-applications" ||
       view === "application-submitted" ||
       view === "jobapplication" ||
-      view === "track-application"
+      view === "track-application" ||
+      view === "company-profile"
     ) {
       return 4;
     }

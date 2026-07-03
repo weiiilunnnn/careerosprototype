@@ -12,6 +12,8 @@ import type { Candidate, Company, EmployerStore, TeamMember } from "./types";
 export const EMPLOYER_STORE_KEY = "careeros-employer-store";
 export const EMPLOYER_SESSION_KEY = "careeros-employer-session";
 export const LEGACY_COMPANY_KEY = "careeros-employer-company";
+const SENIOR_PRODUCT_LEAD_OPEN_MIGRATION = "senior-product-lead-open-2026-07-02";
+const ALL_POSTED_JOBS_CANDIDATES_MIGRATION = "all-posted-jobs-candidates-2026-07-02";
 
 function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage);
@@ -92,18 +94,28 @@ export function createEmployerStore({
 }
 
 export function createDemoEmployerStore() {
-  return createEmployerStore({
+  return normalizeStore(createEmployerStore({
     company: initialCompany,
     ownerName: "Shihong Wong",
     ownerEmail: "admin@talentbank.com",
     ownerPassword: "careeros",
     mode: "demo",
     seedDemo: true,
-  });
+  }));
 }
 
 function normalizeCandidate(candidate: Candidate): Candidate {
-  const livingCvDetails = candidate.livingCvDetails ?? getCandidateLivingCv(candidate.id);
+  const canonicalLivingCv = getCandidateLivingCv(candidate.id);
+  const savedLivingCv = candidate.livingCvDetails;
+  const livingCvDetails = {
+    ...canonicalLivingCv,
+    ...savedLivingCv,
+    workAnimal: savedLivingCv?.workAnimal ?? canonicalLivingCv.workAnimal,
+    secondaryWorkAnimal: savedLivingCv?.secondaryWorkAnimal ?? canonicalLivingCv.secondaryWorkAnimal,
+    shadowWorkAnimal: savedLivingCv?.shadowWorkAnimal ?? canonicalLivingCv.shadowWorkAnimal,
+    workAnimalTestCompleted:
+      savedLivingCv?.workAnimalTestCompleted || canonicalLivingCv.workAnimalTestCompleted,
+  };
 
   return {
     ...candidate,
@@ -119,6 +131,48 @@ function normalizeCandidate(candidate: Candidate): Candidate {
 function normalizeStore(store: EmployerStore): EmployerStore {
   const timestamp = nowLabel();
   const members = store.members?.length ? store.members : initialMembers;
+  const migrations = store.migrations ?? {};
+  const shouldReopenSeniorProductLead = !migrations[SENIOR_PRODUCT_LEAD_OPEN_MIGRATION];
+  const isDemoLikeStore =
+    store.mode === "demo" ||
+    store.company?.name === initialCompany.name ||
+    (store.jobs ?? []).some((job) =>
+      initialJobs.some((demoJob) => demoJob.id === job.id && demoJob.title === job.title)
+    );
+  const shouldSeedAllPostedJobCandidates =
+    isDemoLikeStore && !migrations[ALL_POSTED_JOBS_CANDIDATES_MIGRATION];
+  const normalizedCandidates = (store.candidates ?? []).map((candidate) => normalizeCandidate(candidate));
+  const existingCandidateIds = new Set(normalizedCandidates.map((candidate) => candidate.id));
+  const candidates = shouldSeedAllPostedJobCandidates
+    ? [
+        ...normalizedCandidates,
+        ...initialCandidates
+          .filter((candidate) => !existingCandidateIds.has(candidate.id))
+          .map((candidate) => normalizeCandidate(candidate)),
+      ]
+    : normalizedCandidates;
+  const jobs = (store.jobs ?? []).map((job) =>
+    shouldReopenSeniorProductLead && job.title === "Senior Product Lead"
+      ? {
+          ...job,
+          status: "Open" as const,
+          expiresIn: job.expiresIn > 0 ? job.expiresIn : 18,
+        }
+      : job
+  ).map((job) => {
+    const scopedCandidates = candidates.filter((candidate) => candidate.jobId === job.id);
+    if (scopedCandidates.length === 0) return job;
+
+    return {
+      ...job,
+      applicants: scopedCandidates.filter((candidate) => candidate.appliedToJob).length,
+      shortlisted: scopedCandidates.filter((candidate) =>
+        ["Shortlisted", "Invited", "Interview scheduled"].includes(candidate.stage)
+      ).length,
+      hired: scopedCandidates.filter((candidate) => candidate.stage === "Hired").length,
+    };
+  });
+
   return {
     company: cleanCompany(store.company ?? initialCompany),
     currentUserEmail: store.currentUserEmail ?? members[0]?.email,
@@ -131,13 +185,18 @@ function normalizeStore(store: EmployerStore): EmployerStore {
       focus: member.focus ?? roleFocus(member.role),
       lastActive: member.lastActive ?? "Not active yet",
     })),
-    jobs: store.jobs ?? [],
-    candidates: (store.candidates ?? []).map((candidate) => normalizeCandidate(candidate)),
+    jobs,
+    candidates,
     settings: store.settings ?? initialHiringSettings,
     activityLog: store.activityLog ?? [],
     createdAt: store.createdAt ?? timestamp,
     updatedAt: store.updatedAt ?? timestamp,
     mode: store.mode ?? "registered",
+    migrations: {
+      ...migrations,
+      [SENIOR_PRODUCT_LEAD_OPEN_MIGRATION]: true,
+      [ALL_POSTED_JOBS_CANDIDATES_MIGRATION]: true,
+    },
   };
 }
 
@@ -151,8 +210,17 @@ export function loadEmployerStore(): EmployerStore | null {
   if (!canUseStorage()) return null;
 
   try {
+    const activeSession = window.localStorage.getItem(EMPLOYER_SESSION_KEY) ?? "";
+    if (activeSession === "admin@talentbank.com") return createDemoEmployerStore();
+
     const stored = window.localStorage.getItem(EMPLOYER_STORE_KEY);
-    if (stored) return normalizeStore(JSON.parse(stored) as EmployerStore);
+    if (stored) {
+      const parsedStore = JSON.parse(stored) as EmployerStore;
+      if (parsedStore.mode === "demo" || parsedStore.company?.name === initialCompany.name) {
+        return createDemoEmployerStore();
+      }
+      return normalizeStore(parsedStore);
+    }
 
     const legacyCompany = window.localStorage.getItem(LEGACY_COMPANY_KEY);
     if (!legacyCompany) return null;
@@ -172,6 +240,10 @@ export function loadEmployerStore(): EmployerStore | null {
 
 export function saveEmployerStore(store: EmployerStore) {
   if (!canUseStorage()) return;
+  if (store.mode === "demo" || store.company?.name === initialCompany.name) {
+    window.localStorage.removeItem(EMPLOYER_STORE_KEY);
+    return;
+  }
   const nextStore = normalizeStore({ ...store, updatedAt: nowLabel() });
   window.localStorage.setItem(EMPLOYER_STORE_KEY, JSON.stringify(nextStore));
 }
@@ -190,16 +262,18 @@ export function authenticateEmployer(email: string, password: string) {
   if (!canUseStorage()) return null;
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedPassword = password.trim();
-  let store = loadEmployerStore();
   const isDemoCredential = normalizedEmail === "admin@talentbank.com" && normalizedPassword === "careeros";
 
-  if (
-    isDemoCredential &&
-    (!store || !store.members.some((item) => item.email.toLowerCase() === normalizedEmail))
-  ) {
-    store = createDemoEmployerStore();
-    saveEmployerStore(store);
+  if (isDemoCredential) {
+    const demoStore = createDemoEmployerStore();
+    setEmployerSession(normalizedEmail);
+    return {
+      store: demoStore,
+      member: demoStore.members.find((item) => item.email.toLowerCase() === normalizedEmail) ?? demoStore.members[0],
+    };
   }
+
+  const store = loadEmployerStore();
 
   const member = store?.members.find(
     (item) => item.email.toLowerCase() === normalizedEmail && item.password === normalizedPassword && item.status !== "Disabled"

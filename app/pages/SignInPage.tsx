@@ -41,7 +41,7 @@ function GoogleLogo() {
 }
 
 export default function SignInPage() {
-  function signInAsExistingEmployer() {
+  function handleEmployerDemoLogin() {
     if (authenticateEmployer("admin@talentbank.com", "careeros")) {
       window.location.href = "/employer";
     }
@@ -190,12 +190,12 @@ export default function SignInPage() {
 
             <button
               type="button"
-              onClick={signInAsExistingEmployer}
+              onClick={handleEmployerDemoLogin}
               className="flex w-full items-center justify-center gap-3 rounded-full border bg-[#FFF7FA] px-6 py-3.5 text-sm font-extrabold text-[#152238] transition hover:-translate-y-0.5 hover:border-[#F04D7A] hover:bg-white hover:shadow-md active:translate-y-0"
               style={{ borderColor: theme.border }}
             >
               <BriefcaseBusiness className="h-4 w-4 text-[#E00046]" />
-              Sign in as existing employer
+              Sign in to employer demo
             </button>
           </form>
 

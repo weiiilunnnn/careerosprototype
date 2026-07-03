@@ -111,9 +111,17 @@ export default function TrackApplication() {
                 BI Analyst
               </h1>
 
-              <p className="mt-1 text-lg font-bold text-[#081433]">
-                Grab
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-lg font-bold text-[#081433]">
+                  Grab
+                </p>
+                <Link
+                  href="/?view=company-profile"
+                  className="text-xs font-bold text-[#E00046] transition hover:text-[#C5003E]"
+                >
+                  View company profile
+                </Link>
+              </div>
 
               <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#64748B]">
                 <span className="flex items-center gap-1">
@@ -358,4 +366,3 @@ export default function TrackApplication() {
     </div>
   );
 }
-

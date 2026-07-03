@@ -123,7 +123,15 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
             <CompanyLogo company={job.company} size="lg" />
             <div className="min-w-0">
               <h1 className="text-2xl font-black sm:text-3xl">{job.role}</h1>
-              <p className="mt-1 text-lg font-bold">{job.company}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-lg font-bold">{job.company}</p>
+                <Link
+                  href="/?view=company-profile"
+                  className="text-xs font-bold text-[#f0184f] transition hover:text-[#d91445]"
+                >
+                  View company profile
+                </Link>
+              </div>
               <div className="mt-4 flex flex-wrap gap-4 text-xs font-semibold text-black/55">
                 <span className="flex items-center gap-1"><MapPin size={14} /> Kuala Lumpur, Malaysia</span>
                 <span className="flex items-center gap-1"><BriefcaseBusiness size={14} /> Hybrid</span>
@@ -283,7 +291,15 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
             <div className="flex items-start justify-between gap-4 border-b border-black/8 p-5 sm:p-7">
               <div>
                 <h2 className="text-xl font-black sm:text-2xl">{job.role}</h2>
-                <p className="mt-1 text-lg font-bold">{job.company}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <p className="text-lg font-bold">{job.company}</p>
+                  <Link
+                    href="/?view=company-profile"
+                    className="text-xs font-bold text-[#f0184f] transition hover:text-[#d91445]"
+                  >
+                    Company profile
+                  </Link>
+                </div>
                 <p className="mt-3 text-sm text-black/55">Kuala Lumpur, Malaysia · Hybrid · Full-time · {job.salary}</p>
               </div>
               <button onClick={() => setIsDescriptionOpen(false)} aria-label="Close job description" className="text-black/60 hover:text-[#f0184f]"><X /></button>
