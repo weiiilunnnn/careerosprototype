@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Career OS",
+  title: "CareerOS",
   description: "Your all-in-one career path advisor",
 };
 

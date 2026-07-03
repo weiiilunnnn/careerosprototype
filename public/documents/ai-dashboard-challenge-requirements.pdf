@@ -1,0 +1,265 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 9 0 R /F2 10 0 R >> >> /MediaBox [0 0 612 792] /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 9 0 R /F2 10 0 R >> >> /MediaBox [0 0 612 792] /Contents 7 0 R >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 9 0 R /F2 10 0 R >> >> /MediaBox [0 0 612 792] /Contents 8 0 R >>
+endobj
+6 0 obj
+<< /Length 1663 >>
+stream
+BT
+/F2 18 Tf
+60 760 Td
+(CareerOS Industry Project Requirements) Tj
+-60 -760 Td
+/F1 11 Tf
+60 720 Td
+(Project: AI Dashboard Challenge) Tj
+-60 -720 Td
+/F1 11 Tf
+60 704 Td
+(Employer Partner: Microsoft) Tj
+-60 -704 Td
+/F1 11 Tf
+60 688 Td
+(Duration: 12 weeks   |   Team Size: up to 24 students   |   Support: RM 5,000) Tj
+-60 -688 Td
+/F2 13 Tf
+60 662 Td
+(1. Overview) Tj
+-60 -662 Td
+/F1 11 Tf
+60 640 Td
+(Students will work with Microsoft's product team to design and build an) Tj
+-60 -640 Td
+/F1 11 Tf
+60 624 Td
+(interactive analytics dashboard using real, anonymized business data. The) Tj
+-60 -624 Td
+/F1 11 Tf
+60 608 Td
+(goal is to help business stakeholders make faster, more confident decisions) Tj
+-60 -608 Td
+/F1 11 Tf
+60 592 Td
+(by surfacing the metrics that matter most, clearly and visually.) Tj
+-60 -592 Td
+/F2 13 Tf
+60 566 Td
+(2. Objectives) Tj
+-60 -566 Td
+/F1 11 Tf
+60 544 Td
+(- Define 5-8 key business metrics relevant to the provided dataset) Tj
+-60 -544 Td
+/F1 11 Tf
+60 528 Td
+(- Design and build an interactive dashboard prototype) Tj
+-60 -528 Td
+/F1 11 Tf
+60 512 Td
+(- Validate findings with at least one round of stakeholder feedback) Tj
+-60 -512 Td
+/F1 11 Tf
+60 496 Td
+(- Present a short business case for how the dashboard drives decisions) Tj
+-60 -496 Td
+/F2 13 Tf
+60 470 Td
+(3. Team & Mentorship) Tj
+-60 -470 Td
+/F1 11 Tf
+60 448 Td
+(Each team will be paired with a Microsoft mentor for two scheduled check-in) Tj
+-60 -448 Td
+/F1 11 Tf
+60 432 Td
+(sessions during the engagement. The university career office coordinates) Tj
+-60 -432 Td
+/F1 11 Tf
+60 416 Td
+(scheduling and collects weekly progress updates from the assigned team.) Tj
+-60 -416 Td
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 1438 >>
+stream
+BT
+/F2 18 Tf
+60 760 Td
+(Scope of Work) Tj
+-60 -760 Td
+/F2 13 Tf
+60 720 Td
+(4. Deliverables) Tj
+-60 -720 Td
+/F1 11 Tf
+60 698 Td
+(  a\) Working dashboard prototype \(web-based, shareable link\)) Tj
+-60 -698 Td
+/F1 11 Tf
+60 682 Td
+(  b\) Data preparation and methodology notes) Tj
+-60 -682 Td
+/F1 11 Tf
+60 666 Td
+(  c\) One-page business case summarizing key insights and recommended) Tj
+-60 -666 Td
+/F1 11 Tf
+60 650 Td
+(     actions for stakeholders) Tj
+-60 -650 Td
+/F1 11 Tf
+60 634 Td
+(  d\) Final presentation deck \(10-12 slides\)) Tj
+-60 -634 Td
+/F2 13 Tf
+60 608 Td
+(5. Data & Tools) Tj
+-60 -608 Td
+/F1 11 Tf
+60 586 Td
+(Anonymized sample datasets will be provided by Microsoft at project kickoff.) Tj
+-60 -586 Td
+/F1 11 Tf
+60 570 Td
+(Teams may use any dashboarding tool they are comfortable with \(Power BI,) Tj
+-60 -570 Td
+/F1 11 Tf
+60 554 Td
+(Tableau, or a custom web app\). Source code and dashboard files must be) Tj
+-60 -554 Td
+/F1 11 Tf
+60 538 Td
+(submitted alongside the final presentation.) Tj
+-60 -538 Td
+/F2 13 Tf
+60 512 Td
+(6. Milestones) Tj
+-60 -512 Td
+/F1 11 Tf
+60 490 Td
+(  Week 2   - Metric definitions and data exploration plan approved) Tj
+-60 -490 Td
+/F1 11 Tf
+60 474 Td
+(  Week 6   - Dashboard prototype v1 reviewed with mentor) Tj
+-60 -474 Td
+/F1 11 Tf
+60 458 Td
+(  Week 9   - Stakeholder feedback round completed) Tj
+-60 -458 Td
+/F1 11 Tf
+60 442 Td
+(  Week 12  - Final submission and presentation) Tj
+-60 -442 Td
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 1430 >>
+stream
+BT
+/F2 18 Tf
+60 760 Td
+(Evaluation & Submission) Tj
+-60 -760 Td
+/F2 13 Tf
+60 720 Td
+(7. Evaluation Criteria) Tj
+-60 -720 Td
+/F1 11 Tf
+60 698 Td
+(  - Clarity and relevance of chosen metrics          \(25%\)) Tj
+-60 -698 Td
+/F1 11 Tf
+60 682 Td
+(  - Dashboard usability and visual design            \(25%\)) Tj
+-60 -682 Td
+/F1 11 Tf
+60 666 Td
+(  - Depth of analysis and quality of insights        \(30%\)) Tj
+-60 -666 Td
+/F1 11 Tf
+60 650 Td
+(  - Presentation and business communication          \(20%\)) Tj
+-60 -650 Td
+/F2 13 Tf
+60 624 Td
+(8. Submission Instructions) Tj
+-60 -624 Td
+/F1 11 Tf
+60 602 Td
+(Submit your project link \(dashboard + repository\) and any supporting) Tj
+-60 -602 Td
+/F1 11 Tf
+60 586 Td
+(package files through the CareerOS project page for this challenge. Include) Tj
+-60 -586 Td
+/F1 11 Tf
+60 570 Td
+(the full team name and a short summary note with your submission.) Tj
+-60 -570 Td
+/F2 13 Tf
+60 544 Td
+(9. Support & Contact) Tj
+-60 -544 Td
+/F1 11 Tf
+60 522 Td
+(For questions during the engagement, contact your assigned university) Tj
+-60 -522 Td
+/F1 11 Tf
+60 506 Td
+(career office coordinator, who will liaise directly with the Microsoft) Tj
+-60 -506 Td
+/F1 11 Tf
+60 490 Td
+(mentor team on your behalf.) Tj
+-60 -490 Td
+/F1 11 Tf
+60 454 Td
+(This document is a sample requirements brief generated for demonstration) Tj
+-60 -454 Td
+/F1 11 Tf
+60 438 Td
+(purposes within the CareerOS platform.) Tj
+-60 -438 Td
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+10 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000264 00000 n 
+0000000401 00000 n 
+0000000538 00000 n 
+0000002253 00000 n 
+0000003743 00000 n 
+0000005225 00000 n 
+0000005295 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+5371
+%%EOF
