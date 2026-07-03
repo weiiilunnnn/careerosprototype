@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
   BookOpen,
@@ -57,6 +57,7 @@ function matchesRoute(pathname: string, href: string) {
 
 export default function UniversitySidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const showFilter = filterPaths.has(pathname);
   const showQuickAccess = pathname === "/university/talent/profile";
   const [collapsed, setCollapsed] = useState(false);
@@ -167,6 +168,8 @@ export default function UniversitySidebar() {
 
       <div className="mt-auto space-y-2 pb-1">
         <button
+          type="button"
+          onClick={() => router.push("/")}
           title={collapsed ? "Log out" : undefined}
           className="flex h-10 w-full items-center gap-3 rounded-xl border border-[#e6e8ef] bg-white px-3.5 text-[13px] font-medium text-[#4b5670] shadow-sm"
         >
