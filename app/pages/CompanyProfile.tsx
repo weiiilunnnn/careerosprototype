@@ -98,13 +98,15 @@ export default function CompanyProfile() {
                   Lead with dashboard evidence, SQL confidence, and one example where your analysis changed a decision.
                 </p>
               </div>
-              <Link
-                href="/?view=jobapplication"
-                className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#E00046] px-4 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(224,0,70,0.2)] transition hover:bg-[#D81B3F]"
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title="Open roles page coming soon"
+                className="mt-5 inline-flex h-11 w-full cursor-not-allowed items-center justify-center rounded-2xl border border-[#E5E8F0] bg-[#F1F3F7] px-4 text-sm font-semibold text-[#8B95A7]"
               >
-                View open role
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+                Open roles coming soon
+              </button>
             </aside>
           </div>
         </section>
