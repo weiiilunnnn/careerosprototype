@@ -59,9 +59,13 @@ export function candidateLabels(candidate: Candidate, weights?: ScoringWeights) 
   if (candidate.stage === "Shortlisted") {
     labels.push("Shortlisted");
   } else if (candidate.stage === "Invited") {
-    labels.push("Invited");
+    labels.push("Interview");
   } else if (candidate.stage === "Approached") {
     labels.push("Approached");
+  } else if (candidate.stage === "Hired") {
+    labels.push("Hired");
+  } else if (candidate.stage === "Rejected") {
+    labels.push("Not selected");
   } else {
     labels.push(candidate.source);
   }
@@ -76,7 +80,7 @@ export function summarizeJob(jobId: number, candidates: Candidate[]) {
   return {
     applicants: scoped.filter((candidate) => candidate.appliedToJob).length,
     shortlisted: scoped.filter((candidate) =>
-      ["Shortlisted", "Invited", "Interview scheduled", "Hired"].includes(candidate.stage)
+      ["Shortlisted", "Invited", "Interview scheduled"].includes(candidate.stage)
     ).length,
     hired: scoped.filter((candidate) => candidate.stage === "Hired").length,
   };
@@ -108,7 +112,7 @@ export function getNextAction({
     return { label: "Send next-stage invitations", page: "shortlist", detail: "Shortlisted candidates are ready for interview or test invites." };
   }
   if (hiredCount === 0) {
-    return { label: "Update hiring result", page: "result", detail: "Record hires or keep reviewing if no one has been selected yet." };
+    return { label: "Decide from shortlist", page: "shortlist", detail: "Interviewed candidates can be marked hired or not selected from the shortlist." };
   }
-  return { label: "Continue hiring", page: "candidates", detail: "The job can stay open for multiple hires." };
+  return { label: "View hiring result", page: "result", detail: "Confirmed hires are recorded in the result page." };
 }

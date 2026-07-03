@@ -173,4 +173,5 @@ export type EmployerStore = {
   createdAt: string;
   updatedAt: string;
   mode?: "registered" | "demo";
+  migrations?: Record<string, boolean>;
 };

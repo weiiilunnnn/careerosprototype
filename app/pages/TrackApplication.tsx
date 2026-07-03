@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 
 import {
@@ -15,8 +12,6 @@ import {
 } from "lucide-react";
 
 export default function TrackApplication() {
-  const [isDescriptionOpen, setIsDescriptionOpen] =
-    useState(false);
   const stages = [
     {
       title: "Applied",
@@ -98,9 +93,17 @@ export default function TrackApplication() {
                 BI Analyst
               </h1>
 
-              <p className="mt-1 text-lg font-bold text-[#081433]">
-                Fintech Company
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-lg font-bold text-[#081433]">
+                  Fintech Company
+                </p>
+                <Link
+                  href="/?view=company-profile"
+                  className="text-xs font-bold text-[#E00046] transition hover:text-[#C5003E]"
+                >
+                  View company profile
+                </Link>
+              </div>
 
               <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#64748B]">
                 <span className="flex items-center gap-1">
@@ -384,4 +387,3 @@ export default function TrackApplication() {
     </div>
   );
 }
-
