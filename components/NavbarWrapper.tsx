@@ -21,7 +21,7 @@ export default function NavbarWrapper() {
     return null;
   }
 
-  if (pathname.startsWith("/employer")) {
+  if (pathname.startsWith("/employer") || pathname.startsWith("/university")) {
     return null;
   }
 

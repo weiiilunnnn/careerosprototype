@@ -49,6 +49,7 @@
 }
 
 :root {
+  --uni-sidebar-w: 252px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -656,6 +657,78 @@
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 
+  .university-motion :where(button, a, [role="button"]) {
+    transition:
+      background-color 180ms ease-out,
+      border-color 180ms ease-out,
+      box-shadow 180ms ease-out,
+      color 180ms ease-out,
+      transform 200ms ease-out;
+  }
+
+  .university-motion :where(button, a, [role="button"]):hover {
+    border-color: #d8d3ff;
+  }
+
+  .university-motion :where(button, a, [role="button"]):hover svg:last-child {
+    transform: translateX(2px);
+  }
+
+  .university-motion :where(button, a, [role="button"]) svg {
+    transition: color 250ms ease-out, transform 180ms ease-out;
+  }
+
+  .university-motion aside nav a {
+    position: relative;
+    overflow: hidden;
+    transition:
+      background-color 250ms ease-out,
+      color 250ms ease-out,
+      box-shadow 250ms ease-out;
+  }
+
+  .university-motion aside nav a::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: #f0e9ff;
+    opacity: 0;
+    transform: translateX(-12px);
+    transition: opacity 250ms ease-out, transform 250ms ease-out;
+  }
+
+  .university-motion aside nav a > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .university-motion aside nav a[class*="bg-[#f0e9ff]"]::before,
+  .university-motion aside nav a[class*="bg-\\[\\#f0e9ff\\]"]::before {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .university-card {
+    transition:
+      border-color 200ms ease-out,
+      box-shadow 200ms ease-out,
+      transform 200ms ease-out;
+  }
+
+  .university-motion [data-university-badge] {
+    animation: university-badge-in 0.24s ease-out both;
+  }
+
+  @keyframes university-badge-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   .career-sidebar-button::before,
   .career-sidebar-button::after,
   .career-sidebar-button *::before,
@@ -762,7 +835,9 @@
     .career-soft-beam::after,
     .career-progress-fill,
     .career-progress-fill::after,
-    .career-checkbox {
+    .career-checkbox,
+    .university-motion *,
+    .university-card {
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
     }
