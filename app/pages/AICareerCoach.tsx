@@ -3,15 +3,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeCheck,
-  BellRing,
   BotMessageSquare,
-  BriefcaseBusiness,
-  CalendarClock,
   CheckCircle2,
   FileText,
-  GraduationCap,
   Lightbulb,
-  PanelRightOpen,
   Plus,
   Send,
   Sparkles,
@@ -42,17 +37,17 @@ type Conversation = {
   messages: Message[];
 };
 
-type CoachSignal = {
-  icon: LucideIcon;
-  title: string;
-  source: string;
-  detail: string;
-  status: string;
-};
-
 const profile = candidateLivingCv;
 const primaryTrait = getWorkAnimal(profile.workAnimal);
 const secondaryTrait = getWorkAnimal(profile.secondaryWorkAnimal);
+
+const connectedModules: Array<[LucideIcon, string, string]> = [
+  [FileText, "Living Portfolio", "Evidence, updates, projects, skills"],
+  [Target, "Career Landscape", "Fit, gaps, paths, job moves"],
+  [BadgeCheck, "Applications", "Employer fit and interview story"],
+  [Lightbulb, "Life Chapter Designer", "Career-life trade-off planning"],
+  [CheckCircle2, "Work Traits", "Collaboration and communication advice"],
+];
 
 const initialConversations: Conversation[] = [
   {
@@ -150,37 +145,6 @@ const initialConversations: Conversation[] = [
   },
 ];
 
-const coachSignals: CoachSignal[] = [
-  {
-    icon: CalendarClock,
-    title: "No recent profile movement",
-    source: "Living Portfolio",
-    detail: "No new project, certification, skill, or work status update has been added recently.",
-    status: "Coach initiated",
-  },
-  {
-    icon: BriefcaseBusiness,
-    title: "Position growth risk",
-    source: "Career Landscape",
-    detail: "Current trajectory suggests a move toward BI Analyst if growth stays slow in the current position.",
-    status: "Action suggested",
-  },
-  {
-    icon: GraduationCap,
-    title: "Certification opportunity",
-    source: "Market signal",
-    detail: "Power BI and analytics credentials are aligned with the strongest matched path.",
-    status: "New guidance",
-  },
-  {
-    icon: FileText,
-    title: "Portfolio sync detected",
-    source: "Uploaded evidence",
-    detail: "New evidence can change profile positioning, job fit, and application stories.",
-    status: "Auto reviewed",
-  },
-];
-
 const modulePrompts = [
   "What should I update in my Living Portfolio this week?",
   "What skill gap should I close first for a BI Analyst role?",
@@ -218,30 +182,6 @@ function buildCoachReply(input: string) {
   }
 
   return "I would start from your current signals: analytics direction, Power BI and SQL evidence, and an Owl-Fox working style. The next useful step is to convert advice into action: one portfolio update, one skill proof, and one career decision you can test this week.";
-}
-
-function SignalCard({ signal }: { signal: CoachSignal }) {
-  const Icon = signal.icon;
-
-  return (
-    <div className="rounded-xl border border-[#E5E8F0] bg-white p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FFF2F6] text-[#E00046]">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-bold text-[#081433]">{signal.title}</h3>
-            <span className="rounded-md bg-[#F7F8FB] px-2 py-1 text-[11px] font-bold text-[#46536D]">
-              {signal.status}
-            </span>
-          </div>
-          <p className="mt-1 text-xs font-semibold text-[#E00046]">{signal.source}</p>
-          <p className="mt-2 text-sm leading-6 text-[#46536D]">{signal.detail}</p>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function MessageBubble({ message }: { message: Message }) {
@@ -513,18 +453,65 @@ export default function AICareerCoach() {
                   <h1 className="text-4xl font-semibold leading-tight tracking-normal text-white md:text-5xl">
                     AI Career Coach
                   </h1>
-                  <p className="mt-5 max-w-3xl text-sm leading-7 text-white/78 md:text-base">
-                    A connected coach for portfolio updates, career fit, skill gaps,
-                    applications, work traits, certifications, promotion timing, and
-                    Life Chapter decisions.
-                  </p>
+                  <div className="mt-5 max-w-5xl">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
+                        What you can ask about
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-white/82">
+                        Ask the coach for guidance across related CareerOS modules.
+                      </p>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 2xl:grid-cols-5">
+                      {connectedModules.map(([Icon, title, detail]) => (
+                        <div
+                          key={title}
+                          className="rounded-xl border border-white/15 bg-white/10 p-3 backdrop-blur-sm"
+                        >
+                          <Icon className="h-4 w-4 text-[#F8B8CA]" />
+                          <p className="mt-2 text-sm font-bold text-white">
+                            {title}
+                          </p>
+                          <p className="mt-1 text-[11px] leading-4 text-white/68">
+                            {detail}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
+                        How the coach is triggered
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-white/82">
+                        It can respond to user questions or start guidance when CareerOS detects important signals.
+                      </p>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
+                      {[
+                        ["No recent profile movement", "No new project, certification, skill, or work status update."],
+                        ["Position growth risk", "Trajectory suggests a BI Analyst move if current growth stays slow."],
+                        ["Certification opportunity", "Power BI and analytics credentials match the strongest path."],
+                        ["Portfolio sync detected", "New evidence can change profile positioning, job fit, and application stories."],
+                      ].map(([title, detail]) => (
+                        <div
+                          key={title}
+                          className="rounded-xl border border-white/15 bg-white/10 p-3 backdrop-blur-sm"
+                        >
+                          <p className="text-sm font-bold text-white">{title}</p>
+                          <p className="mt-1 text-[11px] leading-4 text-white/68">
+                            {detail}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="grid min-h-[720px] items-stretch gap-5 lg:grid-cols-[300px_minmax(0,1fr)_330px]">
+        <section className="grid min-h-[720px] items-stretch gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="flex min-h-[720px] flex-col overflow-hidden rounded-2xl border border-[#E5E8F0] bg-white">
             <div className="flex items-center justify-between border-b border-[#E5E8F0] p-4">
               <div>
@@ -710,75 +697,6 @@ export default function AICareerCoach() {
             </div>
           </section>
 
-          <aside className="space-y-5">
-            <section className="rounded-2xl border border-[#E5E8F0] bg-white p-5">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFF2F6] text-[#E00046]">
-                  <BellRing className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="text-base font-black text-[#081433]">
-                    Coach Triggers
-                  </h2>
-                  <p className="text-xs font-semibold text-[#46536D]">
-                    Bidirectional coaching signals
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {coachSignals.map((signal) => (
-                  <SignalCard key={signal.title} signal={signal} />
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-[#E5E8F0] bg-white p-5">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFF2F6] text-[#E00046]">
-                  <PanelRightOpen className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="text-base font-black text-[#081433]">
-                    Connected Modules
-                  </h2>
-                  <p className="text-xs font-semibold text-[#46536D]">
-                    CareerOS context layer
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                {[
-                  [FileText, "Living Portfolio", "Evidence, updates, projects, skills"],
-                  [Target, "Career Landscape", "Fit, gaps, paths, job moves"],
-                  [BadgeCheck, "Applications", "Employer fit and interview story"],
-                  [Lightbulb, "Life Chapter Designer", "Career-life trade-off planning"],
-                  [CheckCircle2, "Work Traits", "Collaboration and communication advice"],
-                ].map(([Icon, title, description]) => {
-                  const ModuleIcon = Icon as LucideIcon;
-
-                  return (
-                    <div
-                      key={title as string}
-                      className="flex items-center gap-3 rounded-xl border border-[#E5E8F0] bg-[#FAFBFC] p-3"
-                    >
-                      <ModuleIcon className="h-5 w-5 shrink-0 text-[#E00046]" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-[#081433]">
-                          {title as string}
-                        </p>
-                        <p className="text-xs leading-5 text-[#46536D]">
-                          {description as string}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-          </aside>
         </section>
       </div>
     </main>

@@ -479,7 +479,7 @@ export default function Home() {
         </div>
 
         <div className="rounded-2xl border bg-white p-7 shadow-sm" style={{ borderColor: theme.border }}>
-          <SectionTitle title="AI Career Coach" icon={Sparkles} />
+          <SectionTitle title="AI Review" icon={Sparkles} />
           <div className="mt-9 flex gap-5">
             <span className="text-5xl font-semibold text-[#F04D7A]">&quot;</span>
             <p className="max-w-md text-sm leading-7 text-[#46536D]">
