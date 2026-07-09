@@ -1,8 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion, type HTMLMotionProps } from "framer-motion";
 
 export const universityEase = [0.22, 1, 0.36, 1] as const;
+
+export function useLockBodyScroll() {
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
+}
 
 export const pageTransition = {
   initial: { opacity: 0, y: 20 },
