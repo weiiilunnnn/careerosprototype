@@ -26,7 +26,7 @@ const navItems = [
   { label: "Talent Readiness", icon: Users, href: "/university/talent" },
   { label: "Project Hub", icon: Map, href: "/university/industry" },
   { label: "Internship Marketplace", icon: Heart, href: "/university/industry/marketplace" },
-  { label: "AI Coach", icon: BookOpen, href: "/university/curriculum" },
+  { label: "AI Review", icon: BookOpen, href: "/university/curriculum" },
   { label: "University Profile", icon: Building2, href: "/university/profile" },
 ];
 
@@ -72,6 +72,10 @@ export default function UniversitySidebar() {
       collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
     );
   }, [collapsed]);
+
+  if (pathname === "/university/profile/public") {
+    return null;
+  }
 
   return (
     <aside

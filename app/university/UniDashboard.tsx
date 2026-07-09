@@ -22,7 +22,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { AnimatedAIPanel, AnimatedCard, AnimatedSection } from "./UniversityMotion";
+import { AnimatedAIPanel, AnimatedCard, AnimatedSection, useLockBodyScroll } from "./UniversityMotion";
 
 const metrics = [
   {
@@ -423,6 +423,7 @@ function AlertRow({ alert }: { alert: (typeof alerts)[number] }) {
 }
 
 function AlertsModal({ onClose }: { onClose: () => void }) {
+  useLockBodyScroll();
   if (typeof document === "undefined") return null;
 
   return createPortal(

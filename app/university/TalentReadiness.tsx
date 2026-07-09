@@ -21,11 +21,11 @@ import {
 import { AnimatedCard, AnimatedList, AnimatedRow, AnimatedSection, universityEase } from "./UniversityMotion";
 
 const stats = [
-  { label: "Students", value: "2,458", sub: "Active students", action: "Explore students", icon: GraduationCap, bg: "bg-[#efe7ff]", color: "text-[#6733f4]" },
-  { label: "Alumni", value: "8,764", sub: "Verified alumni", action: "Explore alumni", icon: Users, bg: "bg-[#e1f7eb]", color: "text-[#16a34a]" },
-  { label: "Top Talent", value: "312", sub: "High potential talent", action: "View top talent", icon: Star, bg: "bg-[#fff0d9]", color: "text-[#f59e0b]" },
-  { label: "Active Portfolios", value: "1,126", sub: "Student & alumni portfolios", action: "Browse portfolios", icon: Folder, bg: "bg-[#e7f0ff]", color: "text-[#2563eb]" },
-  { label: "Hiring Interest", value: "24", sub: "Employers looking now", action: "View opportunities", icon: Heart, bg: "bg-[#ffe3f1]", color: "text-[#f0185b]" },
+  { label: "Students", value: "2,458", sub: "Active students", icon: GraduationCap, bg: "bg-[#efe7ff]", color: "text-[#6733f4]" },
+  { label: "Alumni", value: "8,764", sub: "Verified alumni", icon: Users, bg: "bg-[#e1f7eb]", color: "text-[#16a34a]" },
+  { label: "Top Talent", value: "312", sub: "High potential talent", icon: Star, bg: "bg-[#fff0d9]", color: "text-[#f59e0b]" },
+  { label: "Active Portfolios", value: "1,126", sub: "Student & alumni portfolios", icon: Folder, bg: "bg-[#e7f0ff]", color: "text-[#2563eb]" },
+  { label: "Hiring Interest", value: "24", sub: "Employers looking now", icon: Heart, bg: "bg-[#ffe3f1]", color: "text-[#f0185b]" },
 ];
 
 const talentTabs = [
@@ -135,7 +135,6 @@ function StatCards({ activeView, onTabChange }: { activeView: TalentView; onTabC
               <p className="mt-3 text-xs font-bold text-[#34415e]">{stat.label}</p>
               <p className="mt-1 text-2xl font-extrabold">{stat.value}</p>
               <p className="mt-1 text-xs font-medium text-[#53607b]">{stat.sub}</p>
-              <button className={`mt-4 flex items-center gap-2 text-xs font-bold ${stat.color}`}>{stat.action} <ArrowRight size={14} /></button>
             </div>
           );
         })}
@@ -182,12 +181,6 @@ function TalentLists({ onNavigate }: { onNavigate: (view: TalentView) => void })
         <AnimatedList>
           {students.map((student) => <PersonRow key={student[0] as string} person={student as unknown as string[]} />)}
         </AnimatedList>
-        <button
-          onClick={() => onNavigate("students")}
-          className="mt-3 h-9 w-full rounded-xl bg-[#f8f5ff] text-xs font-bold text-[#5b21f3]"
-        >
-          Explore all students
-        </button>
       </Card>
 
       <Card className="p-4">
@@ -265,7 +258,6 @@ function StudentsView() {
             <h2 className="text-xl font-extrabold">Students Directory</h2>
             <p className="mt-1 text-xs font-medium text-[#53607b]">Browse high-potential active students and readiness scores.</p>
           </div>
-          <button className="rounded-xl bg-[#6733f4] px-4 py-2 text-xs font-bold text-white">Export Students</button>
         </div>
         <div className="mt-5 grid gap-3">
           <AnimatedList>
@@ -301,7 +293,6 @@ function AlumniView() {
             <h2 className="text-xl font-extrabold">Alumni Directory</h2>
             <p className="mt-1 text-xs font-medium text-[#53607b]">Connect with verified alumni mentors and industry talent.</p>
           </div>
-          <button className="rounded-xl bg-[#6733f4] px-4 py-2 text-xs font-bold text-white">Invite Alumni</button>
         </div>
         <div className="mt-5 grid gap-3">
           <AnimatedList>

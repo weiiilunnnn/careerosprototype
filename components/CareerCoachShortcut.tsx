@@ -25,7 +25,14 @@ export default function CareerCoachShortcut() {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState("");
 
-  if (pathname.startsWith("/employer") || hiddenViews.includes(view)) {
+  const isTalentReadinessPeopleView =
+    pathname === "/university/talent" && (view === "students" || view === "alumni");
+
+  if (
+    pathname.startsWith("/employer") ||
+    hiddenViews.includes(view) ||
+    isTalentReadinessPeopleView
+  ) {
     return null;
   }
 
