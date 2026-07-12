@@ -6,6 +6,7 @@ import {
   initialHiringSettings,
   initialJobs,
   initialMembers,
+  initialProjects,
 } from "./data";
 import type { Candidate, Company, EmployerStore, TeamMember } from "./types";
 
@@ -85,6 +86,7 @@ export function createEmployerStore({
       : [owner],
     jobs: seedDemo ? initialJobs : [],
     candidates: seedDemo ? initialCandidates : [],
+    projects: seedDemo ? initialProjects : [],
     settings: initialHiringSettings,
     activityLog: seedDemo ? initialActivity : [],
     createdAt: timestamp,
@@ -187,6 +189,7 @@ function normalizeStore(store: EmployerStore): EmployerStore {
     })),
     jobs,
     candidates,
+    projects: store.projects?.length ? store.projects : (isDemoLikeStore ? initialProjects : []),
     settings: store.settings ?? initialHiringSettings,
     activityLog: store.activityLog ?? [],
     createdAt: store.createdAt ?? timestamp,
