@@ -6178,7 +6178,7 @@ function FinancialReadinessCalculator({
         <StatusPill status={result.status} />
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
         <NumberField label="Current savings" prefix="RM" value={plan.savings} min={0} max={500000} onChange={(value) => update("savings", value)} />
         <NumberField label="Monthly living cost" prefix="RM" value={plan.monthlyCost} min={1} max={50000} onChange={(value) => update("monthlyCost", value)} />
         <NumberField label="Chapter duration" suffix="months" value={plan.duration} min={1} max={60} onChange={(value) => update("duration", value)} />
@@ -6194,7 +6194,7 @@ function FinancialReadinessCalculator({
         />
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         <MetricBubble label="Estimated living cost" value={formatRm(result.livingCost)} />
         <MetricBubble label="Emergency fund" value={formatRm(result.emergencyFund)} />
         <MetricBubble label="Recommended savings" value={formatRm(result.recommendedSavings)} />
@@ -6256,7 +6256,7 @@ function ReturnToWorkReadinessAssessment({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
         {result.requirements.map((item) => (
           <div key={item.area} className="rounded-[1.35rem] bg-white p-4 text-[#081433]">
             <div className="flex items-start justify-between gap-3">

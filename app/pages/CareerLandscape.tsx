@@ -2,9 +2,7 @@ import {
   ArrowRight,
   BadgeCheck,
   BarChart3,
-  BriefcaseBusiness,
   ChevronDown,
-  CircleUserRound,
   Flag,
   FolderKanban,
   GraduationCap,
@@ -80,6 +78,12 @@ const trajectories = [
       ["Growth Direction", "Head of Product Operations"],
     ],
   },
+];
+
+const progressionNotes = [
+  "Builds foundation for entry role",
+  "Practical experience unlocks next role",
+  "Specialization leads to senior direction",
 ];
 
 const matchSignals = [
@@ -210,38 +214,60 @@ function TrajectoryCard({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-6 md:grid-cols-4">
-            {trajectory.steps.map(([label, value], index) => (
-              <div
-                className="relative"
-                key={`${trajectory.title}-${label}`}
-              >
-                <div className="h-full min-h-[84px] rounded-xl border bg-white px-4 py-3 transition duration-300 hover:border-[#F04D7A] hover:bg-[#FFF7FA]" style={{ borderColor: theme.border }}>
-                  <div className="flex h-full items-center gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.soft, color: theme.rose2 }}>
-                      {index === 3 ? (
-                        <BriefcaseBusiness className="h-4 w-4" />
-                      ) : (
-                        <CircleUserRound className="h-4 w-4" />
-                      )}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#081433]">
+          <div className="mt-5 rounded-2xl border bg-[#F8FAFC] px-4 py-4" style={{ borderColor: theme.border }}>
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-[#081433]">
+                Career Progression Path
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[#667085]">
+                Each stage builds on the previous one. CareerOS uses your profile evidence to estimate the most realistic next move.
+              </p>
+            </div>
+
+            <ol className="space-y-2">
+              {trajectory.steps.map(([label, value], index) => (
+                <li
+                  className="grid min-w-0 grid-cols-[42px_minmax(0,1fr)] gap-x-3"
+                  key={`${trajectory.title}-${label}`}
+                >
+                  <div className="flex flex-col items-center">
+                    <div
+                      className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border bg-white text-xs font-black text-[#E00046] shadow-sm"
+                      style={{ borderColor: index < 2 ? theme.rose2 : theme.line }}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </div>
+                    {index < trajectory.steps.length - 1 && (
+                      <span className="my-1 h-8 w-px bg-[#F5CBD6]" aria-hidden />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 pb-2">
+                    <div
+                      className={`min-w-0 rounded-xl px-3 py-2.5 shadow-sm ring-1 ${
+                        index < 2
+                          ? "bg-white ring-[#F5CBD6]"
+                          : "bg-white/80 ring-[#EEF0F5]"
+                      }`}
+                    >
+                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#E00046]">
                         {label}
                       </p>
-                      <p className="mt-1 text-xs leading-4 text-[#46536D]">
+                      <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#081433]">
                         {value}
                       </p>
                     </div>
+
+                    {index < progressionNotes.length && (
+                      <div className="mt-2 flex items-center gap-2 rounded-full bg-[#FFF2F6] px-3 py-1.5 text-[11px] font-semibold text-[#667085]">
+                        <span className="h-px w-5 bg-[#F5CBD6]" aria-hidden />
+                        {progressionNotes[index]}
+                      </div>
+                    )}
                   </div>
-                </div>
-                {index < trajectory.steps.length - 1 && (
-                  <div className="absolute right-[-21px] top-1/2 z-10 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border bg-white text-[#46536D] shadow-sm md:flex" style={{ borderColor: theme.border }}>
-                    <ArrowRight className="h-3 w-3" />
-                  </div>
-                )}
-              </div>
-            ))}
+                </li>
+              ))}
+            </ol>
           </div>
 
           <Link
@@ -328,6 +354,14 @@ export default function CareerLandscape() {
                   AI-matched career blueprints based on similar candidate
                   histories, related skills, education, and project experience.
                 </p>
+
+                <Link
+                  href="/?view=career-path-simulator"
+                  className="mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#E00046] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(224,0,70,0.24)] transition hover:bg-[#D81B3F]"
+                >
+                  Open Career Path Simulator
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
 
                 <div className="mt-8 grid gap-4 md:grid-cols-3">
                   <div className="rounded-2xl border border-white/15 bg-white/[0.12] px-4 py-4 shadow-sm backdrop-blur-md">
@@ -500,23 +534,23 @@ export default function CareerLandscape() {
                   </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
                   {matchSignals.map((signal) => {
                     const Icon = signal.icon;
 
                     return (
                       <div
-                        className="flex h-[210px] min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-md"
+                        className="flex min-h-[190px] min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-md"
                         key={signal.title}
                       >
                         <span className="mb-3 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#E00046] text-white">
                           <Icon className="h-5 w-5" />
                         </span>
-                        <div className="flex flex-1 flex-col">
-                          <h3 className="whitespace-pre-line font-semibold text-white">
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <h3 className="break-words font-semibold leading-tight text-white">
                             {signal.title}
                           </h3>
-                          <p className="mt-1 text-sm leading-5 text-white/65">
+                          <p className="mt-2 break-words text-sm leading-5 text-white/65">
                             {signal.text}
                           </p>
                         </div>

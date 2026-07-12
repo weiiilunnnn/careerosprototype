@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye, LockKeyhole, Mail, Sparkles } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Eye, GraduationCap, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import { authenticateEmployer } from "@/features/components (employer)/store";
 
 const theme = {
@@ -41,6 +41,16 @@ function GoogleLogo() {
 }
 
 export default function SignInPage() {
+  function handleEmployerDemoLogin() {
+    if (authenticateEmployer("admin@talentbank.com", "careeros")) {
+      window.location.href = "/employer";
+    }
+  }
+
+  function handleUniversityDemoLogin() {
+    window.location.href = "/university";
+  }
+
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -57,13 +67,13 @@ export default function SignInPage() {
 
   return (
     <main
-      className="grid h-screen min-h-screen overflow-hidden bg-white text-[#081433] lg:grid-cols-[65%_35%]"
+      className="grid min-h-screen bg-white text-[#081433] lg:grid-cols-[65%_35%]"
       style={{
         fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
       }}
     >
       {/* Left image panel */}
-      <aside className="relative hidden h-screen overflow-hidden lg:block">
+      <aside className="sticky top-0 hidden h-screen overflow-hidden lg:block">
         <img
           src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80"
           alt="Professionals collaborating during a career planning session"
@@ -102,7 +112,7 @@ export default function SignInPage() {
       </aside>
 
       {/* Right sign in form */}
-      <section className="flex h-screen items-center justify-center bg-white px-6 py-10 sm:px-10 lg:px-12">
+      <section className="flex min-h-screen items-center justify-center overflow-y-auto bg-white px-6 py-10 sm:px-10 lg:px-12">
         <div className="w-full max-w-[420px]">
           <div className="mb-9 text-center">
             <div
@@ -180,6 +190,26 @@ export default function SignInPage() {
             >
               Log in
               <ArrowRight className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleEmployerDemoLogin}
+              className="flex w-full items-center justify-center gap-3 rounded-full border bg-[#FFF7FA] px-6 py-3.5 text-sm font-extrabold text-[#152238] transition hover:-translate-y-0.5 hover:border-[#F04D7A] hover:bg-white hover:shadow-md active:translate-y-0"
+              style={{ borderColor: theme.border }}
+            >
+              <BriefcaseBusiness className="h-4 w-4 text-[#E00046]" />
+              Sign in to employer demo
+            </button>
+
+            <button
+              type="button"
+              onClick={handleUniversityDemoLogin}
+              className="flex w-full items-center justify-center gap-3 rounded-full border bg-[#F7F4FF] px-6 py-3.5 text-sm font-extrabold text-[#152238] transition hover:-translate-y-0.5 hover:border-[#6D5EF7] hover:bg-white hover:shadow-md active:translate-y-0"
+              style={{ borderColor: "#DDD6FE" }}
+            >
+              <GraduationCap className="h-4 w-4 text-[#6D5EF7]" />
+              Sign in as university demo
             </button>
           </form>
 

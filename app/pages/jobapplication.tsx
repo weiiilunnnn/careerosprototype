@@ -6,12 +6,9 @@ import {
   ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
-  Building2,
   Check,
-  ChevronRight,
   CircleAlert,
   FileText,
-  FolderOpen,
   Gift,
   GraduationCap,
   HeartPulse,
@@ -20,7 +17,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import Navbar from "@/components/navbar/Navbar";
 import {
   compareCandidateToJob,
   getWorkAnimal,
@@ -29,12 +25,13 @@ import {
   type WorkAnimalSlug,
 } from "@/lib/workAnimals";
 import { candidateLivingCv } from "@/lib/candidateLivingCvData";
+import CompanyLogo from "@/components/CompanyLogo";
 
 
 const jobs = {
   "bi-analyst": {
     role: "BI Analyst",
-    company: "Fintech Company",
+    company: "Grab",
     match: "81%",
     salary: "RM4,000 - RM5,500",
     skills: ["SQL", "Analytics Experience", "Fintech Exposure", "Power BI"],
@@ -44,7 +41,7 @@ const jobs = {
   },
   "junior-bi-analyst": {
     role: "Junior BI Analyst",
-    company: "Consulting Firm",
+    company: "Accenture",
     match: "77%",
     salary: "RM3,500 - RM4,800",
     skills: ["SQL", "Dashboarding", "Stakeholder Communication"],
@@ -70,6 +67,23 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
   const managerGuide = supervisorGuide(job.supervisorAnimal);
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const reviewStrengths = [
+    "Your Power BI, SQL, and dashboard evidence aligns strongly with the BI Analyst role.",
+    "The fintech exposure makes your application more relevant because this employer operates in the same domain.",
+    "Your Living Portfolio already shows practical analytics work, so the application does not rely only on coursework.",
+  ];
+  const reviewGaps = [
+    "Your stakeholder reporting story should be more explicit, especially how your dashboard helped someone make a decision.",
+    "Add one short example of data storytelling: business problem, metric, insight, and recommended action.",
+    "Mention the Power BI certificate as proof, but connect it to a real project instead of listing it alone.",
+  ];
+  const reviewActions = [
+    "Rewrite the opening summary toward dashboard ownership, business reporting, and practical data storytelling.",
+    "Use the Sales Performance Dashboard as your main evidence story in the application answers.",
+    "Prepare one assessment example covering SQL joins, KPI interpretation, and explaining a dashboard to a non-technical stakeholder.",
+  ];
 
   return (
     <div className="min-h-screen bg-[#fdfcfa] text-[#111111]">
@@ -106,12 +120,18 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
 
         <section className="mt-5 grid gap-6 rounded-md border border-black/5 bg-white p-5 shadow-sm sm:p-6 lg:grid-cols-[1.2fr_.55fr_1.1fr] lg:items-center">
           <div className="flex flex-col gap-5 sm:flex-row">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-[#f0184f] text-white sm:h-20 sm:w-20">
-              <Building2 size={38} />
-            </span>
+            <CompanyLogo company={job.company} size="lg" />
             <div className="min-w-0">
               <h1 className="text-2xl font-black sm:text-3xl">{job.role}</h1>
-              <p className="mt-1 text-lg font-bold">{job.company}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-lg font-bold">{job.company}</p>
+                <Link
+                  href="/?view=company-profile"
+                  className="text-xs font-bold text-[#f0184f] transition hover:text-[#d91445]"
+                >
+                  View company profile
+                </Link>
+              </div>
               <div className="mt-4 flex flex-wrap gap-4 text-xs font-semibold text-black/55">
                 <span className="flex items-center gap-1"><MapPin size={14} /> Kuala Lumpur, Malaysia</span>
                 <span className="flex items-center gap-1"><BriefcaseBusiness size={14} /> Hybrid</span>
@@ -232,14 +252,28 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
                 <li>Include Power BI certification</li>
               </ul>
             </div>
-            <button className="mt-5 flex items-center gap-2 text-sm font-bold text-[#f0184f]">View full review <ArrowRight size={15} /></button>
+            <button
+              type="button"
+              onClick={() => setIsReviewOpen(true)}
+              className="mt-5 flex items-center gap-2 text-sm font-bold text-[#f0184f]"
+            >
+              View full review <ArrowRight size={15} />
+            </button>
           </div>
         </section>
 
         <section className="mt-5 grid gap-3 border-t border-black/8 pt-5 sm:grid-cols-[220px_1fr]">
-          <button className="flex h-12 items-center justify-center gap-2 rounded-md border border-black/10 bg-white text-sm font-bold">
+          <button
+            type="button"
+            onClick={() => setIsSaved((current) => !current)}
+            className={`flex h-12 items-center justify-center gap-2 rounded-md border text-sm font-bold transition ${
+              isSaved
+                ? "border-[#f0184f]/25 bg-[#fff1f5] text-[#f0184f]"
+                : "border-black/10 bg-white text-black hover:border-[#f0184f]/30 hover:text-[#f0184f]"
+            }`}
+          >
             <BookmarkIcon />
-            Save For Later
+            {isSaved ? "Saved For Later" : "Save For Later"}
           </button>
           <button
             onClick={() => setIsSubmitOpen(true)}
@@ -257,7 +291,15 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
             <div className="flex items-start justify-between gap-4 border-b border-black/8 p-5 sm:p-7">
               <div>
                 <h2 className="text-xl font-black sm:text-2xl">{job.role}</h2>
-                <p className="mt-1 text-lg font-bold">{job.company}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <p className="text-lg font-bold">{job.company}</p>
+                  <Link
+                    href="/?view=company-profile"
+                    className="text-xs font-bold text-[#f0184f] transition hover:text-[#d91445]"
+                  >
+                    Company profile
+                  </Link>
+                </div>
                 <p className="mt-3 text-sm text-black/55">Kuala Lumpur, Malaysia · Hybrid · Full-time · {job.salary}</p>
               </div>
               <button onClick={() => setIsDescriptionOpen(false)} aria-label="Close job description" className="text-black/60 hover:text-[#f0184f]"><X /></button>
@@ -281,6 +323,106 @@ export default function JobApplicationPage({ slug = "bi-analyst" }: { slug?: Job
             </div>
             <div className="border-t border-black/8 p-4 text-center">
               <button onClick={() => setIsDescriptionOpen(false)} className="w-full max-w-md rounded-md bg-[#f0184f] py-3 text-sm font-bold text-white">Close</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isReviewOpen ? (
+        <div className="fixed inset-0 z-[55] grid place-items-center bg-[#121d2d]/55 p-4">
+          <div className="max-h-[88vh] w-full max-w-4xl overflow-auto rounded-md bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-black/8 p-5 sm:p-7">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-black text-[#f0184f]">
+                  <Sparkles size={16} />
+                  AI Application Review
+                </p>
+                <h2 className="mt-2 text-xl font-black sm:text-2xl">
+                  {job.role} at {job.company}
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-black/60">
+                  CareerOS reviewed your profile evidence against the role focus,
+                  required skills, employer context, and application readiness.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReviewOpen(false)}
+                aria-label="Close AI application review"
+                className="text-black/60 hover:text-[#f0184f]"
+              >
+                <X />
+              </button>
+            </div>
+
+            <div className="grid gap-5 p-5 sm:p-7 lg:grid-cols-[260px_1fr]">
+              <aside className="rounded-md border border-[#f0184f]/12 bg-[#fff8fa] p-5">
+                <p className="text-sm font-bold text-black/70">Readiness score</p>
+                <p className="mt-2 text-4xl font-black text-[#f0184f]">
+                  {job.match}
+                </p>
+                <p className="mt-4 text-sm leading-6 text-black/65">
+                  You are a strong early-career match, but the application should
+                  make your dashboard ownership and stakeholder reporting clearer
+                  before submission.
+                </p>
+              </aside>
+
+              <div className="space-y-5">
+                <section className="rounded-md border border-black/8 p-5">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <Check size={17} className="text-[#0F8A5F]" />
+                    What already works
+                  </h3>
+                  <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-black/65">
+                    {reviewStrengths.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section className="rounded-md border border-black/8 p-5">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <CircleAlert size={17} className="text-[#C66A00]" />
+                    What to improve before applying
+                  </h3>
+                  <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-black/65">
+                    {reviewGaps.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section className="rounded-md border border-black/8 p-5">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <FileText size={17} className="text-[#f0184f]" />
+                    Recommended application edits
+                  </h3>
+                  <div className="mt-3 rounded-md bg-[#FAFBFC] p-4 text-sm leading-6 text-black/65">
+                    <p className="font-bold text-black">Suggested profile summary</p>
+                    <p className="mt-2">
+                      Analytics-focused computer science student with hands-on
+                      Power BI, SQL, and Python evidence, experienced in turning
+                      raw data into dashboards, stakeholder reporting, and
+                      practical business insights for decision-making.
+                    </p>
+                  </div>
+                  <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-black/65">
+                    {reviewActions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+            </div>
+
+            <div className="border-t border-black/8 p-4 text-center">
+              <button
+                type="button"
+                onClick={() => setIsReviewOpen(false)}
+                className="w-full max-w-md rounded-md bg-[#f0184f] py-3 text-sm font-bold text-white"
+              >
+                Close review
+              </button>
             </div>
           </div>
         </div>

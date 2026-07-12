@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   BriefcaseBusiness,
   CalendarDays,
-  ChevronRight,
   GraduationCap,
   Lightbulb,
   MapPin,
@@ -15,9 +14,12 @@ import {
   Target,
   Trophy,
   UserRound,
+  Printer,
+  X,
   LucideIcon,
 } from "lucide-react";
 import { candidateLivingCv } from "@/lib/candidateLivingCvData";
+import CompanyLogo from "@/components/CompanyLogo";
 import {
   getAnimalRoleInTrio,
   getBlendInterpretation,
@@ -38,6 +40,37 @@ const theme = {
   page: "#fbfbfc",
   dark: "#0f0f0f",
 } as const;
+
+type PrintTemplateId = "executive" | "ats" | "graduate";
+
+const printTemplates: Array<{
+  id: PrintTemplateId;
+  label: string;
+  title: string;
+  description: string;
+}> = [
+  {
+    id: "executive",
+    label: "Executive evidence CV",
+    title: "Executive evidence CV",
+    description:
+      "A polished evidence-first CV that keeps the profile summary, career alignment, projects, skills, and experience together.",
+  },
+  {
+    id: "ats",
+    label: "ATS classic CV",
+    title: "ATS classic CV",
+    description:
+      "A clean recruiter-friendly print layout with simple borders, high contrast text, and minimal visual styling.",
+  },
+  {
+    id: "graduate",
+    label: "Graduate portfolio CV",
+    title: "Graduate portfolio CV",
+    description:
+      "A project-forward graduate CV that gives extra emphasis to portfolio evidence, skills, and early-career potential.",
+  },
+];
 
 const profile = candidateLivingCv;
 const workAnimal = getWorkAnimal(profile.workAnimal);
@@ -70,16 +103,228 @@ function getDimensionLean(value: number) {
   return "Most lean slightly";
 }
 
+function CvSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="cv-section">
+      <h2>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function PrintCvDocument({
+  templateId,
+  preview = false,
+}: {
+  templateId: PrintTemplateId;
+  preview?: boolean;
+}) {
+  const bestPath = careerPaths[0];
+  const workStyleSummary = [
+    workAnimal ? `Primary: ${workAnimal.name} - ${workAnimal.short}` : null,
+    secondaryWorkAnimal ? `Secondary: ${secondaryWorkAnimal.name}` : null,
+    shadowWorkAnimal ? `Shadow: ${shadowWorkAnimal.name}` : null,
+  ].filter(Boolean);
+
+  return (
+    <article
+      className={`living-print-document cv-template-${templateId} ${
+        preview ? "is-preview" : ""
+      }`}
+    >
+      <header className="cv-header">
+        <div>
+          <p className="cv-kicker">
+            {templateId === "ats"
+              ? profile.role
+              : templateId === "graduate"
+                ? "Graduate Portfolio CV"
+                : "Evidence-Based Career Profile"}
+          </p>
+          <h1>{profile.name}</h1>
+          <p className="cv-role">{profile.direction}</p>
+          <p className="cv-contact">
+            {profile.location} | {profile.educationLabel} | {profile.experienceLabel} experience
+          </p>
+        </div>
+        <div className="cv-score">
+          <strong>{profile.profileStrength}%</strong>
+          <span>Profile strength</span>
+        </div>
+      </header>
+
+      <div className="cv-body">
+        <main className="cv-main">
+          {templateId === "graduate" ? (
+            <CvSection title="Portfolio Projects">
+              <div className="cv-list">
+                {projects.map((project) => (
+                  <div key={project.title} className="cv-item">
+                    <div className="cv-item-head">
+                      <h3>{project.title}</h3>
+                      <span>{project.date}</span>
+                    </div>
+                    <p className="cv-item-meta">{project.type}</p>
+                    <p>{project.description}</p>
+                    <p className="cv-tags">{project.tags.join(" | ")}</p>
+                  </div>
+                ))}
+              </div>
+            </CvSection>
+          ) : null}
+
+          {templateId === "graduate" ? (
+            <CvSection title="Skills Evidence">
+              <div className="cv-skill-groups">
+                <div>
+                  <h3>Technical</h3>
+                  <p>{skills.technical.join(" | ")}</p>
+                </div>
+                <div>
+                  <h3>Tools</h3>
+                  <p>{skills.tools.join(" | ")}</p>
+                </div>
+                <div>
+                  <h3>Soft Skills</h3>
+                  <p>{skills.soft.join(" | ")}</p>
+                </div>
+              </div>
+            </CvSection>
+          ) : null}
+
+          <CvSection title={templateId === "graduate" ? "Candidate Summary" : "Professional Summary"}>
+            <p>{profile.summary}</p>
+          </CvSection>
+
+          <CvSection title={templateId === "graduate" ? "Early Career Direction" : "Career Direction"}>
+            <div className="cv-list compact">
+              <div className="cv-item">
+                <h3>{profile.title}</h3>
+                <p className="cv-item-meta">{profile.role}</p>
+                <p>{profile.trajectory}</p>
+              </div>
+            </div>
+          </CvSection>
+
+          <CvSection title={templateId === "graduate" ? "Best-Fit Pathways" : "Career Path Alignment"}>
+            <div className="cv-meter-list">
+              {careerPaths.map((path) => (
+                <div key={path.title} className="cv-meter-row">
+                  <div>
+                    <strong>{path.title}</strong>
+                    {path.label ? <span>{path.label}</span> : null}
+                  </div>
+                  <p>{path.match}%</p>
+                </div>
+              ))}
+            </div>
+          </CvSection>
+
+          {templateId !== "graduate" ? (
+            <CvSection title="Impact Evidence">
+              <div className="cv-list">
+                {projects.map((project) => (
+                  <div key={project.title} className="cv-item">
+                    <div className="cv-item-head">
+                      <h3>{project.title}</h3>
+                      <span>{project.date}</span>
+                    </div>
+                    <p className="cv-item-meta">{project.type}</p>
+                    <p>{project.description}</p>
+                    <p className="cv-tags">{project.tags.join(" | ")}</p>
+                  </div>
+                ))}
+              </div>
+            </CvSection>
+          ) : null}
+
+          <CvSection title="Experience">
+            <div className="cv-list">
+              {timeline.map((item) => (
+                <div key={`${item.company}-${item.title}`} className="cv-item">
+                  <div className="cv-item-head">
+                    <h3>{item.title}</h3>
+                    <span>{item.period}</span>
+                  </div>
+                  <p className="cv-item-meta">
+                    {item.company} | {item.duration}
+                  </p>
+                  <p>{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </CvSection>
+        </main>
+
+        <aside className="cv-side">
+          <CvSection title="Career Fit">
+            <div className="cv-fit">
+              <strong>{bestPath?.match ?? profile.profileStrength}%</strong>
+              <span>{bestPath?.title ?? profile.role}</span>
+            </div>
+            <p>{profile.trajectory}</p>
+          </CvSection>
+
+          {templateId !== "graduate" ? (
+            <>
+              <CvSection title="Technical Skills">
+                <div className="cv-chip-list">
+                  {skills.technical.map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </CvSection>
+
+              <CvSection title="Tools">
+                <div className="cv-chip-list">
+                  {skills.tools.map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </CvSection>
+
+              <CvSection title="Soft Skills">
+                <div className="cv-chip-list">
+                  {skills.soft.map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </CvSection>
+            </>
+          ) : null}
+
+          <CvSection title="Working Style">
+            <div className="cv-list compact">
+              {workStyleSummary.length > 0 ? (
+                workStyleSummary.map((item) => (
+                  <p key={item}>{item}</p>
+                ))
+              ) : (
+                <p>Work trait result available in CareerOS.</p>
+              )}
+              <p>{blend.title}: {blend.summary}</p>
+            </div>
+          </CvSection>
+        </aside>
+      </div>
+    </article>
+  );
+}
+
 function SectionCard({
   title,
   icon: Icon,
   children,
-  action,
 }: {
   title: string;
   icon: LucideIcon;
   children: React.ReactNode;
-  action?: string;
 }) {
   return (
     <section
@@ -100,15 +345,6 @@ function SectionCard({
           </h2>
         </div>
 
-        {action && (
-          <button
-            className="flex cursor-pointer items-center gap-2 text-sm font-semibold transition hover:opacity-80"
-            style={{ color: theme.rose2 }}
-          >
-            {action}
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
       </div>
 
       <div className="px-5 py-5 sm:px-7">{children}</div>
@@ -342,15 +578,7 @@ function TimelineItem({
   return (
     <div className="relative flex gap-5">
       <div className="flex flex-col items-center">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-full"
-          style={{ backgroundColor: theme.soft }}
-        >
-          <BriefcaseBusiness
-            className="h-5 w-5"
-            style={{ color: theme.rose2 }}
-          />
-        </div>
+        <CompanyLogo company={company} size="sm" />
 
         {!isLast && <div className="mt-3 h-full w-px bg-[#E5E8F0]" />}
       </div>
@@ -393,10 +621,20 @@ function TimelineItem({
 
 export default function LivingPortfolio() {
   const [showTraitSummary, setShowTraitSummary] = useState(false);
+  const [selectedPrintTemplate, setSelectedPrintTemplate] =
+    useState<PrintTemplateId>("executive");
+  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
+  const activeTemplate =
+    printTemplates.find((template) => template.id === selectedPrintTemplate) ??
+    printTemplates[0];
+
+  function handlePrint() {
+    window.print();
+  }
 
   return (
     <div
-      className="min-h-screen bg-[#fbfbfc] text-[#152238]"
+      className={`living-portfolio-page living-print-template-${selectedPrintTemplate} min-h-screen bg-[#fbfbfc] text-[#152238]`}
       style={{
         fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
       }}
@@ -420,7 +658,7 @@ export default function LivingPortfolio() {
 
             <div className="relative z-10 flex min-h-[360px] flex-col justify-between px-8 py-8 text-white">
               <div>
-                <div className="mb-5 flex flex-wrap gap-2">
+                <div className="mb-5 flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
                     Profile intelligence
                   </span>
@@ -481,6 +719,36 @@ export default function LivingPortfolio() {
           </div>
         </section>
 
+        <section
+          className="living-print-control mb-5 rounded-2xl border bg-white p-5 shadow-sm"
+          style={{ borderColor: theme.border }}
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.rose2 }}>
+                Formal CV print
+              </p>
+              <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.navy }}>
+                Preview template before printing
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6" style={{ color: theme.muted }}>
+                Choose the CV design in a preview window before sending the Living Portfolio to print.
+              </p>
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => setIsPrintPreviewOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:-translate-y-0.5"
+                style={{ backgroundColor: theme.rose2 }}
+              >
+                <Printer className="h-4 w-4" />
+                Print CV
+              </button>
+            </div>
+          </div>
+        </section>
+
         <div className="space-y-5">
           <SectionCard title="Career Profile Summary" icon={UserRound}>
             <div className="grid gap-5 lg:grid-cols-[1fr_250px]">
@@ -509,7 +777,7 @@ export default function LivingPortfolio() {
                   {profile.summary}
                 </p>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
                   <InfoPill
                     icon={BriefcaseBusiness}
                     label="Experience"
@@ -734,9 +1002,8 @@ export default function LivingPortfolio() {
           <SectionCard
             title="Career Path Alignment"
             icon={Lightbulb}
-            action="View full analysis"
           >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
               {careerPaths.map((path) => (
                 <CareerPathCard
                   key={path.title}
@@ -827,6 +1094,83 @@ export default function LivingPortfolio() {
           </SectionCard>
         </div>
       </main>
+
+      <PrintCvDocument templateId={selectedPrintTemplate} />
+
+      {isPrintPreviewOpen ? (
+        <div className="living-print-control fixed inset-0 z-50 flex items-center justify-center bg-[#081433]/55 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-[#E5E8F0] bg-white shadow-[0_28px_80px_rgba(8,20,51,0.25)]">
+            <div className="flex flex-col gap-4 border-b border-[#E5E8F0] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: theme.rose2 }}>
+                  Print preview
+                </p>
+                <h2 className="mt-1 text-xl font-semibold" style={{ color: theme.navy }}>
+                  Select a CV template
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPrintPreviewOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E8F0] text-[#46536D] transition hover:bg-[#FFF2F6] hover:text-[#E00046]"
+                aria-label="Close print preview"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-5 p-5 lg:grid-cols-[260px_1fr]">
+              <div className="space-y-2">
+                {printTemplates.map((template) => {
+                  const selected = template.id === selectedPrintTemplate;
+
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedPrintTemplate(template.id)}
+                      className="w-full rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm"
+                      style={{
+                        borderColor: selected ? theme.line : theme.border,
+                        backgroundColor: selected ? theme.soft : "#fff",
+                      }}
+                    >
+                      <p
+                        className="text-sm font-semibold"
+                        style={{ color: selected ? theme.rose2 : theme.navy }}
+                      >
+                        {template.label}
+                      </p>
+                      <p className="mt-2 text-xs leading-5" style={{ color: theme.muted }}>
+                        {template.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-2xl border border-[#E5E8F0] bg-[#F8FAFC] p-4">
+                <PrintCvDocument templateId={selectedPrintTemplate} preview />
+
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm font-medium text-[#46536D]">
+                    Selected: <span className="font-bold text-[#081433]">{activeTemplate.label}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5"
+                    style={{ backgroundColor: theme.rose2 }}
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print this template
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

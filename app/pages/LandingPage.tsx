@@ -414,17 +414,8 @@ export default function LandingPage() {
           <div className="text-2xl font-black tracking-tight text-[#152238]">
             Career<span style={{ color: theme.rose2 }}>OS</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             <a href="/?view=login" className="login-btn inline-flex items-center rounded-full border px-6 py-3 text-sm font-extrabold" style={{ borderColor: theme.border, color: theme.rose2, backgroundColor: "white", textDecoration: "none" }}>Log in</a>
-            <CtaButton
-              href="/?view=employer-onboarding"
-              trigger={trigger}
-              transitioning={transitioning}
-              className="inline-flex items-center rounded-full px-6 py-3 text-sm font-extrabold text-white shadow-lg"
-              style={{ backgroundColor: theme.rose2, boxShadow: "0 4px 16px rgba(224,0,70,.25)" }}
-            >
-              Employer Site
-            </CtaButton>
           </div>
         </nav>
       </header>

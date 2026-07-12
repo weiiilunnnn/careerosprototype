@@ -49,6 +49,7 @@
 }
 
 :root {
+  --uni-sidebar-w: 252px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -130,12 +131,430 @@
   body {
     @apply bg-background text-foreground;
     cursor: default;
-    overflow-x: hidden;
     background:
       radial-gradient(circle at 12% 8%, rgba(244, 83, 124, 0.065), transparent 22rem),
       radial-gradient(circle at 92% 18%, rgba(124, 58, 237, 0.055), transparent 28rem),
       linear-gradient(180deg, #fff 0%, #fbfafc 28rem, #f6f6f7 100%);
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  }
+
+  .living-print-document {
+    display: none;
+  }
+
+  .living-print-document.is-preview {
+    display: block;
+    color: #111827;
+  }
+
+  .living-print-document {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.45;
+  }
+
+  .living-print-document .cv-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+  }
+
+  .living-print-document .cv-kicker {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #e00046;
+  }
+
+  .living-print-document h1 {
+    margin: 0;
+    color: #081433;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.05;
+  }
+
+  .living-print-document .cv-role {
+    margin: 8px 0 0;
+    color: #152238;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .living-print-document .cv-contact {
+    margin: 5px 0 0;
+    color: #46536d;
+    font-size: 12px;
+  }
+
+  .living-print-document .cv-score {
+    min-width: 116px;
+    align-self: flex-start;
+    border: 1px solid #e5e8f0;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .living-print-document .cv-score strong {
+    display: block;
+    color: #081433;
+    font-size: 26px;
+    line-height: 1;
+  }
+
+  .living-print-document .cv-score span {
+    display: block;
+    margin-top: 5px;
+    color: #46536d;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .living-print-document .cv-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 22px;
+  }
+
+  .living-print-document .cv-section {
+    break-inside: avoid;
+    margin-bottom: 18px;
+  }
+
+  .living-print-document .cv-section h2 {
+    margin: 0 0 10px;
+    color: #081433;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .living-print-document p {
+    margin: 0;
+    color: #374151;
+    font-size: 12px;
+  }
+
+  .living-print-document .cv-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .living-print-document .cv-list.compact {
+    gap: 9px;
+  }
+
+  .living-print-document .cv-item {
+    break-inside: avoid;
+  }
+
+  .living-print-document .cv-item-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .living-print-document h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .living-print-document .cv-item-head span,
+  .living-print-document .cv-item-meta {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .living-print-document .cv-tags {
+    margin-top: 5px;
+    color: #e00046;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .living-print-document .cv-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .living-print-document .cv-chip-list span {
+    border: 1px solid #e5e8f0;
+    padding: 4px 7px;
+    color: #152238;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .living-print-document .cv-skill-groups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .living-print-document .cv-skill-groups div {
+    border: 1px solid #d8dde8;
+    padding: 10px;
+  }
+
+  .living-print-document .cv-skill-groups h3 {
+    margin-bottom: 5px;
+  }
+
+  .living-print-document .cv-fit {
+    border: 1px solid #e5e8f0;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+
+  .living-print-document .cv-fit strong {
+    display: block;
+    color: #e00046;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .living-print-document .cv-fit span {
+    color: #081433;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .living-print-document .cv-meter-list {
+    display: grid;
+    gap: 7px;
+  }
+
+  .living-print-document .cv-meter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #e5e8f0;
+    padding-bottom: 6px;
+  }
+
+  .living-print-document .cv-meter-row strong {
+    display: inline-block;
+    color: #111827;
+    font-size: 12px;
+  }
+
+  .living-print-document .cv-meter-row span {
+    margin-left: 6px;
+    color: #e00046;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .living-print-document .cv-meter-row p {
+    color: #081433;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .living-print-document .cv-bullets {
+    margin: 0;
+    padding-left: 16px;
+  }
+
+  .living-print-document .cv-bullets li {
+    margin-bottom: 6px;
+    color: #374151;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .cv-template-executive {
+    padding: 28px;
+  }
+
+  .cv-template-executive .cv-header {
+    background: #081433;
+    border: 0;
+    padding: 22px;
+  }
+
+  .cv-template-executive .cv-header :where(h1, .cv-role, .cv-contact) {
+    color: #fff;
+  }
+
+  .cv-template-executive .cv-score {
+    border-color: rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .cv-template-executive .cv-score :where(strong, span) {
+    color: #fff;
+  }
+
+  .cv-template-executive .cv-side {
+    background: #eef3f8;
+    border-left: 4px solid #081433;
+    padding: 16px;
+  }
+
+  .cv-template-executive .cv-main .cv-section:first-child {
+    border: 1px solid #d8dde8;
+    padding: 14px;
+    background: #fbfdff;
+  }
+
+  .cv-template-executive .cv-main .cv-section:nth-of-type(4) .cv-item {
+    border-left: 3px solid #081433;
+    padding-left: 10px;
+  }
+
+  .cv-template-ats {
+    padding: 24px;
+  }
+
+  .cv-template-ats .cv-header,
+  .cv-template-ats .cv-score,
+  .cv-template-ats .cv-fit,
+  .cv-template-ats .cv-chip-list span {
+    border-color: #111827;
+  }
+
+  .cv-template-ats .cv-body {
+    display: block;
+  }
+
+  .cv-template-ats .cv-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 20px;
+    border-top: 1px solid #111827;
+    padding-top: 14px;
+  }
+
+  .cv-template-ats .cv-section h2 {
+    border-bottom: 1px solid #111827;
+    padding-bottom: 4px;
+  }
+
+  .cv-template-graduate {
+    padding: 24px;
+    background: #fff7fa;
+  }
+
+  .cv-template-graduate .cv-header {
+    border: 1px solid #f5cbd6;
+    border-left: 8px solid #e00046;
+    background: #fff;
+    padding: 18px;
+  }
+
+  .cv-template-graduate .cv-body {
+    grid-template-columns: minmax(0, 1.22fr) 220px;
+  }
+
+  .cv-template-graduate .cv-main .cv-section:first-child {
+    border: 1px solid #f5cbd6;
+    background: #fff;
+    padding: 16px;
+  }
+
+  .cv-template-graduate .cv-main .cv-section:first-child .cv-item {
+    border-bottom: 1px solid #f9dce4;
+    padding-bottom: 10px;
+  }
+
+  .cv-template-graduate .cv-main .cv-section:first-child .cv-item:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .cv-template-graduate .cv-skill-groups div {
+    border-color: #f5cbd6;
+    background: #fff;
+  }
+
+  .cv-template-graduate .cv-side {
+    background: #fff;
+    border: 1px solid #f5cbd6;
+    padding: 14px;
+  }
+
+  @media (min-width: 1280px) {
+    body.candidate-sidebar-active {
+      margin-left: var(--candidate-sidebar-w, 252px);
+      min-width: 0;
+      width: calc(100% - var(--candidate-sidebar-w, 252px));
+      overflow-x: hidden;
+      transition:
+        margin-left 300ms ease-out,
+        width 300ms ease-out;
+    }
+  }
+
+  @media (max-width: 1279px) {
+    body.candidate-sidebar-active {
+      padding-left: 0;
+      margin-left: 0;
+      width: 100%;
+    }
+  }
+
+  @media print {
+    @page {
+      size: A4;
+      margin: 14mm;
+    }
+
+    body {
+      padding-left: 0 !important;
+      margin-left: 0 !important;
+      width: 100% !important;
+      background: #fff !important;
+    }
+
+    header,
+    aside,
+    .living-print-control,
+    [aria-label="Open AI Career Coach shortcut"] {
+      display: none !important;
+    }
+
+    .living-portfolio-page {
+      background: #fff !important;
+      color: #111827 !important;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    .living-portfolio-page > main {
+      display: none !important;
+    }
+
+    .living-print-document:not(.is-preview) {
+      display: block !important;
+      padding: 0 !important;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .living-print-document.is-preview .cv-body,
+    .cv-template-ats.is-preview .cv-side {
+      grid-template-columns: 1fr;
+    }
+
+    .living-print-document.is-preview .cv-header {
+      flex-direction: column;
+    }
   }
 
   button,
@@ -398,68 +817,40 @@
 
   .career-command-shell {
     position: relative;
-    border: 1px solid rgba(244, 83, 124, 0.16) !important;
-    background:
-      radial-gradient(circle at 86% 12%, rgba(244, 83, 124, 0.13), transparent 20rem),
-      radial-gradient(circle at 12% 100%, rgba(124, 58, 237, 0.065), transparent 26rem),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 248, 251, 0.92) 48%, rgba(255, 255, 255, 0.98) 100%) !important;
+    border: 1px solid rgba(24, 24, 27, 0.08) !important;
+    background: #fff !important;
     color: #09090b !important;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 24px 70px rgba(24, 24, 27, 0.075),
-      0 18px 44px -30px rgba(223, 7, 70, 0.48) !important;
+      0 14px 34px rgba(24, 24, 27, 0.045) !important;
     transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .career-command-shell::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.34;
-    background-image:
-      radial-gradient(circle, rgba(216, 28, 63, 0.12) 1px, transparent 1px);
-    background-size: 42px 42px;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    content: none;
   }
 
   .career-command-shell::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.28;
-    background: linear-gradient(
-      110deg,
-      transparent 0%,
-      rgba(255, 0, 122, 0.1) 42%,
-      rgba(255, 255, 255, 0.5) 50%,
-      rgba(124, 58, 237, 0.08) 58%,
-      transparent 72%
-    );
-    transform: translateX(-120%);
-    animation: career-command-sheen 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    content: none;
   }
 
   .career-command-shell:hover {
-    border-color: rgba(223, 7, 70, 0.22) !important;
+    border-color: rgba(24, 24, 27, 0.12) !important;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.92) inset,
-      0 28px 78px rgba(24, 24, 27, 0.085),
-      0 22px 52px -32px rgba(223, 7, 70, 0.55) !important;
+      0 16px 38px rgba(24, 24, 27, 0.055) !important;
   }
 
   .career-command-shell:hover::after {
-    opacity: 0.42;
+    opacity: 0.22;
   }
 
   .career-clear-shell {
     position: relative;
     border: 1px solid var(--career-border) !important;
-    background:
-      linear-gradient(115deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 252, 0.92) 54%, rgba(250, 250, 250, 0.96) 100%) !important;
+    background: #fff !important;
     box-shadow: var(--career-shadow-soft) !important;
   }
 
@@ -469,9 +860,10 @@
 
   .career-clear-card {
     border: 1px solid var(--career-border) !important;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(252, 252, 253, 0.96)) !important;
-    box-shadow: var(--career-shadow-card) !important;
+    background: #fff !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 10px 24px rgba(24, 24, 27, 0.035) !important;
     transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -481,10 +873,10 @@
     position: relative;
     overflow: hidden;
     border: 1px solid var(--career-border) !important;
-    background:
-      radial-gradient(circle at 92% 0%, rgba(223, 7, 70, 0.06), transparent 8rem),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(250, 250, 251, 0.96) 100%) !important;
-    box-shadow: var(--career-shadow-card) !important;
+    background: #fff !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 8px 18px rgba(24, 24, 27, 0.035) !important;
     transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -497,25 +889,24 @@
 
   .career-clear-metric:hover,
   .career-clear-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     border-color: rgba(223, 7, 70, 0.12) !important;
-    box-shadow: var(--career-shadow-hover) !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.92) inset,
+      0 14px 30px rgba(24, 24, 27, 0.055) !important;
   }
 
   .career-metric-accent {
-    border-color: rgba(223, 7, 70, 0.12) !important;
-    background:
-      radial-gradient(circle at 92% 0%, rgba(223, 7, 70, 0.09), transparent 9rem),
-      linear-gradient(180deg, rgba(255, 250, 252, 0.98), rgba(255, 255, 255, 0.98)) !important;
+    border-color: rgba(223, 7, 70, 0.16) !important;
+    background: #fff !important;
   }
 
   .career-list-row {
     border: 1px solid var(--career-border) !important;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(252, 252, 253, 0.96)) !important;
+    background: #fff !important;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.92) inset,
-      0 10px 26px rgba(24, 24, 27, 0.04) !important;
+      0 6px 16px rgba(24, 24, 27, 0.032) !important;
     transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -525,18 +916,18 @@
 
   .career-list-row:hover {
     border-color: rgba(223, 7, 70, 0.14) !important;
-    background:
-      radial-gradient(circle at 96% 0%, rgba(223, 7, 70, 0.055), transparent 12rem),
-      linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(255, 250, 252, 0.96)) !important;
-    box-shadow: var(--career-shadow-hover) !important;
+    background: #fff !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.92) inset,
+      0 12px 26px rgba(24, 24, 27, 0.05) !important;
   }
 
   .career-list-row-active {
     border-color: rgba(223, 7, 70, 0.16) !important;
-    background:
-      radial-gradient(circle at 100% 0%, rgba(223, 7, 70, 0.07), transparent 14rem),
-      linear-gradient(180deg, #fff, rgba(255, 250, 252, 0.98)) !important;
-    box-shadow: var(--career-shadow-hover) !important;
+    background: #fff !important;
+    box-shadow:
+      0 0 0 1px rgba(223, 7, 70, 0.04),
+      0 12px 26px rgba(24, 24, 27, 0.05) !important;
   }
 
   .career-preview-row-active {
@@ -554,9 +945,10 @@
 
   .career-panel-muted {
     border: 1px solid var(--career-border) !important;
-    background:
-      linear-gradient(180deg, rgba(250, 250, 251, 0.96), rgba(255, 255, 255, 0.9)) !important;
-    box-shadow: var(--career-shadow-soft) !important;
+    background: #fff !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 8px 20px rgba(24, 24, 27, 0.032) !important;
     transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -568,11 +960,9 @@
   }
 
   .career-section-band {
-    border: 1px solid rgba(223, 7, 70, 0.1) !important;
-    background:
-      radial-gradient(circle at 95% 10%, rgba(223, 7, 70, 0.07), transparent 16rem),
-      linear-gradient(135deg, rgba(255, 247, 251, 0.62), rgba(255, 255, 255, 0.94)) !important;
-    box-shadow: 0 12px 32px rgba(24, 24, 27, 0.045) !important;
+    border: 1px solid rgba(24, 24, 27, 0.08) !important;
+    background: #fff !important;
+    box-shadow: 0 8px 20px rgba(24, 24, 27, 0.032) !important;
   }
 
   .career-pink-action {
@@ -580,7 +970,7 @@
     isolation: isolate;
     overflow: hidden;
     background: linear-gradient(135deg, #d81c3f, #f4537c) !important;
-    box-shadow: 0 12px 24px rgba(216, 28, 63, 0.18) !important;
+    box-shadow: 0 8px 18px rgba(216, 28, 63, 0.16) !important;
     transform: translateZ(0);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -588,34 +978,15 @@
   }
 
   .career-pink-action::before {
-    content: "";
-    position: absolute;
-    inset: -1px auto -1px -45%;
-    z-index: -1;
-    width: 38%;
-    transform: skewX(-18deg) translateX(-140%);
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.42),
-      transparent
-    );
-    opacity: 0;
-    transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    content: none;
   }
 
   .career-pink-action:hover {
     filter: brightness(0.98);
-    transform: translateY(-1px) scale(1.015);
+    transform: translateY(-1px);
     box-shadow:
-      0 16px 30px rgba(216, 28, 63, 0.22),
-      0 10px 18px rgba(255, 0, 122, 0.08) !important;
-  }
-
-  .career-pink-action:hover::before {
-    opacity: 1;
-    transform: skewX(-18deg) translateX(520%);
+      0 10px 22px rgba(216, 28, 63, 0.2),
+      0 8px 16px rgba(255, 0, 122, 0.06) !important;
   }
 
   .career-pink-action:active {
@@ -657,6 +1028,78 @@
       color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .university-motion :where(button, a, [role="button"]) {
+    transition:
+      background-color 180ms ease-out,
+      border-color 180ms ease-out,
+      box-shadow 180ms ease-out,
+      color 180ms ease-out,
+      transform 200ms ease-out;
+  }
+
+  .university-motion :where(button, a, [role="button"]):hover {
+    border-color: #d8d3ff;
+  }
+
+  .university-motion :where(button, a, [role="button"]):hover svg:last-child {
+    transform: translateX(2px);
+  }
+
+  .university-motion :where(button, a, [role="button"]) svg {
+    transition: color 250ms ease-out, transform 180ms ease-out;
+  }
+
+  .university-motion aside nav a {
+    position: relative;
+    overflow: hidden;
+    transition:
+      background-color 250ms ease-out,
+      color 250ms ease-out,
+      box-shadow 250ms ease-out;
+  }
+
+  .university-motion aside nav a::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: #f0e9ff;
+    opacity: 0;
+    transform: translateX(-12px);
+    transition: opacity 250ms ease-out, transform 250ms ease-out;
+  }
+
+  .university-motion aside nav a > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .university-motion aside nav a[class*="bg-[#f0e9ff]"]::before,
+  .university-motion aside nav a[class*="bg-\\[\\#f0e9ff\\]"]::before {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .university-card {
+    transition:
+      border-color 200ms ease-out,
+      box-shadow 200ms ease-out,
+      transform 200ms ease-out;
+  }
+
+  .university-motion [data-university-badge] {
+    animation: university-badge-in 0.24s ease-out both;
+  }
+
+  @keyframes university-badge-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .career-sidebar-button::before,
@@ -765,7 +1208,9 @@
     .career-soft-beam::after,
     .career-progress-fill,
     .career-progress-fill::after,
-    .career-checkbox {
+    .career-checkbox,
+    .university-motion *,
+    .university-card {
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
     }
