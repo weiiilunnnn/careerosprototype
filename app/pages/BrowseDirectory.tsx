@@ -5,8 +5,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  BriefcaseBusiness,
-  GraduationCap,
   MapPin,
   Search,
   ShieldCheck,
@@ -15,6 +13,8 @@ import {
 } from "lucide-react";
 import { companyProfiles } from "@/lib/companyProfileData";
 import CompanyLogo from "@/components/CompanyLogo";
+import PublicUniversityProfile from "../university/PublicUniversityProfile";
+import { defaultUniversityProfile, type UniversityProfileData } from "../university/universityProfileData";
 
 type DirectoryKind = "university" | "employer";
 type Tier = "Platinum" | "Gold" | "Silver";
@@ -119,6 +119,52 @@ const universities = [
     highlights: ["Career readiness", "Employer-linked learning", "International student community"],
   },
 ];
+
+function toDomainSlug(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
+}
+
+function buildPublicUniversityProfile(item: (typeof universities)[number] | Affiliation): UniversityProfileData {
+  if (item.name === defaultUniversityProfile.name) {
+    return defaultUniversityProfile;
+  }
+
+  const domain = toDomainSlug(item.name) || "university";
+
+  return {
+    ...defaultUniversityProfile,
+    name: item.name,
+    type: item.type,
+    country: "Malaysia",
+    location: item.location,
+    studentCountLabel: item.audience,
+    tags: [`${item.tier} CareerOS Institution`, "Verified University", item.strength],
+    mission: "Prepare future-ready graduates through purposeful learning, industry exposure and measurable career outcomes.",
+    vision: "Be a recognised institution for employer collaboration, practical education and long-term graduate success.",
+    employability: item.strength,
+    industryCollaboration:
+      "Connect academic programmes with employer needs through internships, live projects, portfolio evidence and graduate outcome tracking.",
+    contacts: {
+      careerOffice: `career@${domain}.edu.my`,
+      industryOffice: `partners@${domain}.edu.my`,
+      admissions: `admissions@${domain}.edu.my`,
+      studentAffairs: `studentaffairs@${domain}.edu.my`,
+    },
+    socials: {
+      website: `www.${domain}.edu.my`,
+      linkedin: item.name,
+      facebook: item.name,
+      instagram: `@${domain}`,
+      locationLink: "Google Maps",
+    },
+  };
+}
 
 const employers = Object.values(companyProfiles)
   .map((company) => ({
@@ -261,16 +307,17 @@ function DirectoryCard({
   relation,
   isFollowed,
   onToggleFollow,
+  onViewUniversityProfile,
 }: {
   item: DirectoryItem;
   kind: DirectoryKind;
   relation?: AffiliationRelation;
   isFollowed?: boolean;
   onToggleFollow?: () => void;
+  onViewUniversityProfile?: (item: (typeof universities)[number] | Affiliation) => void;
 }) {
   const isUniversity = kind === "university";
   const university = item as (typeof universities)[number];
-  const employer = item as (typeof employers)[number];
   const content = (
     <>
       {isUniversity ? (
@@ -279,21 +326,23 @@ function DirectoryCard({
         <CompanyLogo company={item.name} size="md" />
       )}
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="space-y-2">
           <h2 className="text-base font-extrabold text-[#152238]">{item.name}</h2>
-          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${tierStyles[item.tier]}`}>
-            <Star size={12} fill="currentColor" />
-            {item.tier}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-            <BadgeCheck size={12} />
-            Verified
-          </span>
-          {relation ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#F4BDC8] bg-[#FDE7EE] px-2.5 py-1 text-[11px] font-bold text-[#9B2335]">
-              {relation}
+          <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto pb-1">
+            <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${tierStyles[item.tier]}`}>
+              <Star size={12} fill="currentColor" />
+              {item.tier}
             </span>
-          ) : null}
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+              <BadgeCheck size={12} />
+              Verified
+            </span>
+            {relation ? (
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#F4BDC8] bg-[#FDE7EE] px-2.5 py-1 text-[11px] font-bold text-[#9B2335]">
+                {relation}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-[#46536D]">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f4f5fa] px-3 py-1">
@@ -331,6 +380,7 @@ function DirectoryCard({
         {isUniversity ? (
           <button
             type="button"
+            onClick={() => onViewUniversityProfile?.(item as (typeof universities)[number] | Affiliation)}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#E00046] px-4 text-xs font-bold text-white shadow-[0_14px_30px_rgba(224,0,70,0.18)] transition hover:bg-[#C7003E] sm:w-44"
           >
             View profile
@@ -368,6 +418,7 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
     Maybank: true,
   });
   const [showAffiliationModal, setShowAffiliationModal] = useState(false);
+  const [selectedUniversity, setSelectedUniversity] = useState<UniversityProfileData | null>(null);
   const isUniversity = kind === "university";
   const searchableItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -409,7 +460,6 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
     });
   }, [affiliations, followOnly, followedItems, query]);
   const previewAffiliationItems = affiliationItems.slice(0, 2);
-  const Icon = isUniversity ? GraduationCap : BriefcaseBusiness;
 
   return (
     <main className="min-h-screen bg-[#f8fafc] px-4 py-6 text-[#152238] sm:px-6 lg:px-8">
@@ -491,6 +541,7 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
                   kind={kind}
                   relation={item.relation}
                   isFollowed={Boolean(followedItems[item.name])}
+                  onViewUniversityProfile={(university) => setSelectedUniversity(buildPublicUniversityProfile(university))}
                   onToggleFollow={() =>
                     setFollowedItems((old) => ({
                       ...old,
@@ -540,6 +591,7 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
                   item={item}
                   kind={kind}
                   isFollowed={Boolean(followedItems[item.name])}
+                  onViewUniversityProfile={(university) => setSelectedUniversity(buildPublicUniversityProfile(university))}
                   onToggleFollow={() =>
                     setFollowedItems((old) => ({
                       ...old,
@@ -586,6 +638,7 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
                         kind={kind}
                         relation={item.relation}
                         isFollowed={Boolean(followedItems[item.name])}
+                        onViewUniversityProfile={(university) => setSelectedUniversity(buildPublicUniversityProfile(university))}
                         onToggleFollow={() =>
                           setFollowedItems((old) => ({
                             ...old,
@@ -604,6 +657,16 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
             </div>
           </div>
         )}
+        {selectedUniversity ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 p-2 sm:p-6">
+            <PublicUniversityProfile
+              profile={selectedUniversity}
+              backLabel="Back to Browse"
+              onBack={() => setSelectedUniversity(null)}
+              className="min-h-full rounded-[1.5rem]"
+            />
+          </div>
+        ) : null}
       </div>
     </main>
   );

@@ -17,31 +17,56 @@ import {
   Users,
 } from "lucide-react";
 import { AnimatedCard, AnimatedSection } from "./UniversityMotion";
-import { useUniversityProfile } from "./universityProfileData";
+import { useUniversityProfile, type UniversityProfileData } from "./universityProfileData";
 import { achievements, partners, programmes, quickStats, universityLogoUrl } from "./UniversityProfile";
 
 const bannerImageUrl = "https://upload.wikimedia.org/wikipedia/commons/8/87/Taylor%27s_Lakeside_Campus%2C_Subang_Jaya%2C_Malaysia.jpg";
+
+type PublicUniversityProfileProps = {
+  profile?: UniversityProfileData;
+  backHref?: string;
+  backLabel?: string;
+  onBack?: () => void;
+  className?: string;
+};
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <AnimatedCard className={`rounded-[24px] border-[#e9eaf2] bg-white p-5 shadow-[0_20px_55px_rgba(15,23,42,0.055)] md:p-6 ${className}`}>{children}</AnimatedCard>;
 }
 
-export default function PublicUniversityProfile() {
-  const { profile } = useUniversityProfile();
+export default function PublicUniversityProfile({
+  profile: profileOverride,
+  backHref = "/university/profile",
+  backLabel = "Back to admin view",
+  onBack,
+  className = "",
+}: PublicUniversityProfileProps = {}) {
+  const { profile: savedProfile } = useUniversityProfile();
+  const profile = profileOverride ?? savedProfile;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_82%_0%,rgba(109,94,247,0.08),transparent_28rem),linear-gradient(180deg,#fff_0%,#fbfaff_34%,#f7f8fb_100%)] text-[#070a17]">
+    <main className={`min-h-screen bg-[radial-gradient(circle_at_82%_0%,rgba(109,94,247,0.08),transparent_28rem),linear-gradient(180deg,#fff_0%,#fbfaff_34%,#f7f8fb_100%)] text-[#070a17] ${className}`}>
       <div className="mx-auto max-w-[1100px] px-4 py-8 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="text-xl font-extrabold tracking-normal text-black">
             Career<span className="text-[#f0185b]">OS</span>
           </div>
-          <Link
-            href="/university/profile"
-            className="rounded-full border border-[#e6e8f1] bg-white px-3.5 py-1.5 text-xs font-bold text-[#34415e] shadow-sm transition hover:bg-[#faf7ff]"
-          >
-            Back to admin view
-          </Link>
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-full border border-[#e6e8f1] bg-white px-3.5 py-1.5 text-xs font-bold text-[#34415e] shadow-sm transition hover:bg-[#faf7ff]"
+            >
+              {backLabel}
+            </button>
+          ) : (
+            <Link
+              href={backHref}
+              className="rounded-full border border-[#e6e8f1] bg-white px-3.5 py-1.5 text-xs font-bold text-[#34415e] shadow-sm transition hover:bg-[#faf7ff]"
+            >
+              {backLabel}
+            </Link>
+          )}
         </div>
 
         <div className="mt-6 space-y-5">
