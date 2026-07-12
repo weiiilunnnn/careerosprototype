@@ -100,7 +100,7 @@ export function getNextAction({
   hiredCount: number;
 }): { label: string; page: Page; detail: string } {
   if (!hasCompany) {
-    return { label: "Create company", page: "create-company", detail: "Create or join a company workspace to unlock hiring." };
+    return { label: "Post your first job", page: "post-job", detail: "Post a role to unlock hiring." };
   }
   if (jobs.length === 0) {
     return { label: "Post your first job", page: "post-job", detail: "A job post opens the candidate pipeline." };

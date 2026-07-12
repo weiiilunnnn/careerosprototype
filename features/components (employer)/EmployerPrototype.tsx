@@ -16,7 +16,13 @@ import {
   Gauge,
   Eye,
   FilePlus2,
+  FileText,
   FolderOpen,
+  GraduationCap,
+  Globe2,
+  Info,
+  Link as LinkIcon,
+  Loader2,
   MailPlus,
   Medal,
   Menu,
@@ -68,18 +74,30 @@ import {
   summarizeJob,
 } from "./logic";
 import { employerPageMap } from "./navigation";
-import { createEmployerStore, getEmployerSession, loadEmployerStore, roleFocus, saveEmployerStore } from "./store";
+import { getEmployerSession, loadEmployerStore, roleFocus, saveEmployerStore } from "./store";
+import { collabUniversities, projectAreas, projectAudiences, projectDeliverables, projectStatusOrder, projectTypes } from "./types";
 import type {
   ActivityEvent,
   ActivityTone,
   Candidate,
+  CollabUniversity,
   Company,
   CompanyRole,
   EmployerStore,
+  EmploymentType,
   HiringSettings,
   Job,
   JobStatus,
+  JobVisibility,
+  ProjectDifficulty,
+  ProjectFeedback,
+  ProjectMilestone,
+  ProjectStatus,
+  ProjectTeamStatus,
+  ProjectTimelineMode,
   Page,
+  Project,
+  RolePermission,
   TeamMember,
 } from "./types";
 
@@ -135,7 +153,7 @@ function insertTokenAtCursor(
 
 export function EmployerPrototype() {
   const initialStore = useMemo(() => loadEmployerStore(), []);
-  const [hasCompany, setHasCompany] = useState(Boolean(initialStore));
+  const hasCompany = Boolean(initialStore);
   const [company, setCompany] = useState<Company>(() => initialStore?.company ?? {
     name: "",
     industry: "",
@@ -144,7 +162,7 @@ export function EmployerPrototype() {
     description: "",
   });
   const [members, setMembers] = useState<TeamMember[]>(() => initialStore?.members ?? []);
-  const [currentUserEmail, setCurrentUserEmail] = useState(() => getEmployerSession() || initialStore?.currentUserEmail || initialStore?.members[0]?.email || "");
+  const [currentUserEmail] = useState(() => getEmployerSession() || initialStore?.currentUserEmail || initialStore?.members[0]?.email || "");
   const currentUser = useMemo(
     () =>
       members.find((member) => member.email.toLowerCase() === currentUserEmail.toLowerCase()) ??
@@ -157,6 +175,8 @@ export function EmployerPrototype() {
   const [jobs, setJobs] = useState<Job[]>(() => initialStore?.jobs ?? []);
   const [activeJobId, setActiveJobId] = useState(() => initialStore?.jobs[0]?.id ?? 1);
   const [candidates, setCandidates] = useState<Candidate[]>(() => initialStore?.candidates ?? []);
+  const [projects, setProjects] = useState<Project[]>(() => initialStore?.projects ?? []);
+  const [activeProjectId, setActiveProjectId] = useState(() => initialStore?.projects?.[0]?.id ?? 1);
   const [settings, setSettings] = useState<HiringSettings>(() => initialStore?.settings ?? initialHiringSettings);
   const [selectedCandidateId, setSelectedCandidateId] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -166,6 +186,12 @@ export function EmployerPrototype() {
   const [toast, setToast] = useState<{ title: string; body?: string; tone?: ActivityTone } | null>(null);
 
   useEffect(() => {
+    if (!hasCompany) {
+      window.location.replace("/");
+    }
+  }, [hasCompany]);
+
+  useEffect(() => {
     if (!hasCompany || !company.name.trim()) return;
     const store: EmployerStore = {
       company,
@@ -173,6 +199,7 @@ export function EmployerPrototype() {
       members,
       jobs,
       candidates,
+      projects,
       settings,
       activityLog,
       createdAt: initialStore?.createdAt ?? new Date().toISOString(),
@@ -180,7 +207,7 @@ export function EmployerPrototype() {
       mode: initialStore?.mode ?? "registered",
     };
     saveEmployerStore(store);
-  }, [activityLog, candidates, company, currentUser?.email, currentUserEmail, hasCompany, initialStore?.createdAt, initialStore?.mode, jobs, members, settings]);
+  }, [activityLog, candidates, company, currentUser?.email, currentUserEmail, hasCompany, initialStore?.createdAt, initialStore?.mode, jobs, members, projects, settings]);
 
   const role = rolePreview;
   const permissions = rolePermissions[role];
@@ -242,39 +269,11 @@ export function EmployerPrototype() {
   }
 
   function go(nextPage: Page) {
-    if (!hasCompany && nextPage !== "personal" && nextPage !== "create-company") {
-      setPage("personal");
-      return;
-    }
     setPage(nextPage);
   }
 
   function logOut() {
     window.location.assign("/");
-  }
-
-  function createCompany() {
-    const fallbackStore = createEmployerStore({
-      company: {
-        name: company.name || "New Company",
-        industry: company.industry || "Not specified",
-        location: company.location || "Not specified",
-        size: company.size || "Not specified",
-        description: company.description || "Employer profile created through CareerOS.",
-      },
-      ownerEmail: currentUserEmail || "admin@company.com",
-      ownerName: currentUser?.name || "Company Admin",
-    });
-    setCompany(fallbackStore.company);
-    setMembers(fallbackStore.members);
-    setCurrentUserEmail(fallbackStore.currentUserEmail ?? fallbackStore.members[0]?.email ?? "");
-    setJobs(fallbackStore.jobs);
-    setCandidates(fallbackStore.candidates);
-    setSettings(fallbackStore.settings);
-    setActivityLog(fallbackStore.activityLog);
-    setHasCompany(true);
-    setRole("Super Admin");
-    setPage("dashboard");
   }
 
   function syncJobCounts(currentJobs: Job[], nextCandidates: Candidate[]) {
@@ -308,7 +307,9 @@ export function EmployerPrototype() {
     salary: string;
     location: string;
     workMode: string;
-    employmentType: string;
+    employmentType: EmploymentType;
+    visibility: JobVisibility;
+    targetUniversities: CollabUniversity[];
     description: string;
     requirements: string;
     deadline: string;
@@ -347,7 +348,9 @@ export function EmployerPrototype() {
       status: "Open",
       location: draft.location.trim(),
       workMode: draft.workMode.trim(),
-      employmentType: draft.employmentType.trim(),
+      employmentType: draft.employmentType,
+      visibility: draft.visibility,
+      targetUniversities: draft.visibility === "collab" ? draft.targetUniversities : [],
       salary: draft.salary.trim(),
       description: draft.description.trim(),
       requirements: draft.requirements.trim(),
@@ -528,20 +531,7 @@ export function EmployerPrototype() {
 
       <div className={cn(hasCompany && (sidebarCollapsed ? "xl:pl-24" : "xl:pl-72"))}>
       <AnimatePresence mode="wait">
-      <motion.div key={`${hasCompany ? "company" : "personal"}-${page}`} {...pageMotion}>
-      {!hasCompany && page === "personal" && (
-        <PersonalGate onCreate={() => setPage("create-company")} onJoin={createCompany} />
-      )}
-
-      {page === "create-company" && (
-        <CreateCompanyPage
-          company={company}
-          onCompanyChange={setCompany}
-          onCreate={createCompany}
-          onBack={() => setPage("personal")}
-        />
-      )}
-
+      <motion.div key={`company-${page}`} {...pageMotion}>
       {hasCompany && page === "dashboard" && (
         <DashboardPage
           company={company}
@@ -574,7 +564,7 @@ export function EmployerPrototype() {
       )}
 
       {hasCompany && page === "profile" && (
-        <CompanyProfilePage company={company} permissions={permissions} onCompanyChange={setCompany} onNotify={notify} onNavigate={go} />
+        <CompanyProfilePage company={company} jobs={jobs} members={members} permissions={permissions} onCompanyChange={setCompany} onNotify={notify} onNavigate={go} />
       )}
 
       {hasCompany && page === "settings" && (
@@ -586,9 +576,8 @@ export function EmployerPrototype() {
           onNavigate={go}
           onNotify={notify}
           onRemoveWorkspace={() => {
-            setHasCompany(false);
-            setPage("personal");
-            notify("Workspace removed", "Employer access returned to the personal gate.", "zinc");
+            notify("Workspace removed", "Contact a CareerOS admin to restore this workspace.", "zinc");
+            logOut();
           }}
         />
       )}
@@ -607,42 +596,105 @@ export function EmployerPrototype() {
         />
       )}
 
-      {hasCompany && page === "job-detail" && (
-        <JobDetailPage
-          job={activeJob}
-          candidates={activeJobCandidates}
-          activityLog={activityLog}
-          showCountdown={settings.expiry.countdown}
-          promptResultUpdate={settings.expiry.promptResult}
-          onBack={() => go("jobs")}
-          onNavigate={go}
-        />
+      {hasCompany && activeJob && ["job-detail", "candidates", "shortlist", "invite", "hire-email", "result"].includes(page) && (
+        <JobWorkspaceShell job={activeJob} activePage={page} onNavigate={go}>
+          {page === "job-detail" && (
+            <JobDetailPage
+              job={activeJob}
+              candidates={activeJobCandidates}
+              activityLog={activityLog}
+              showCountdown={settings.expiry.countdown}
+              promptResultUpdate={settings.expiry.promptResult}
+              onBack={() => go("jobs")}
+              onNavigate={go}
+            />
+          )}
+
+          {page === "candidates" && (
+            <CandidateReviewPage
+              activeJob={activeJob}
+              candidates={filteredCandidates}
+              selectedCandidate={selectedCandidate}
+              permissions={permissions}
+              scoreWeights={settings.scoreWeights}
+              searchTerm={searchTerm}
+              isClosed={activeJob.status === "Closed"}
+              onSearch={setSearchTerm}
+              onSelect={setSelectedCandidateId}
+              onShortlist={shortlistCandidate}
+              onApproach={approachCandidate}
+              onMarkApplied={markCandidateApplied}
+              onOpenProfile={(candidateId) => {
+                setSelectedCandidateId(candidateId);
+                setPage("candidate-profile");
+              }}
+              onNavigate={go}
+            />
+          )}
+
+          {page === "shortlist" && (
+            <ShortlistPage
+              shortlisted={shortlisted}
+              activeJob={activeJob}
+              scoreWeights={settings.scoreWeights}
+              isClosed={activeJob.status === "Closed"}
+              onRemove={removeFromShortlist}
+              onSend={sendInvite}
+              onMarkHired={markHired}
+              onOpenInterviewSettings={(candidateId) => {
+                setSelectedCandidateId(candidateId);
+                setPage("invite");
+              }}
+              onOpenHiredSettings={(candidateId) => {
+                setSelectedCandidateId(candidateId);
+                setPage("hire-email");
+              }}
+              onNavigate={go}
+            />
+          )}
+
+          {page === "invite" && (
+            <InvitePage
+              candidate={selectedCandidate}
+              activeJob={activeJob}
+              company={company}
+              settings={settings}
+              onSettingsChange={setSettings}
+              stageType={stageType}
+              onStageTypeChange={setStageType}
+              onBack={() => go("shortlist")}
+              onNavigate={go}
+              onNotify={notify}
+            />
+          )}
+
+          {page === "hire-email" && (
+            <HiredEmailPage
+              candidate={selectedCandidate}
+              activeJob={activeJob}
+              company={company}
+              settings={settings}
+              onSettingsChange={setSettings}
+              onBack={() => go("shortlist")}
+              onNavigate={go}
+              onNotify={notify}
+            />
+          )}
+
+          {page === "result" && (
+            <ResultPage
+              candidates={activeJobCandidates}
+              permissions={permissions}
+              activeJob={activeJob}
+              onCloseJob={closeActiveJob}
+              onNavigate={go}
+            />
+          )}
+        </JobWorkspaceShell>
       )}
 
       {hasCompany && page === "post-job" && (
-          <PostJobPage jobs={jobs} settings={settings} permissions={permissions} onPublish={publishJob} onBack={() => go("jobs")} />
-      )}
-
-      {hasCompany && page === "candidates" && (
-        <CandidateReviewPage
-          activeJob={activeJob}
-          candidates={filteredCandidates}
-          selectedCandidate={selectedCandidate}
-          permissions={permissions}
-          scoreWeights={settings.scoreWeights}
-          searchTerm={searchTerm}
-          isClosed={activeJob.status === "Closed"}
-          onSearch={setSearchTerm}
-          onSelect={setSelectedCandidateId}
-          onShortlist={shortlistCandidate}
-          onApproach={approachCandidate}
-          onMarkApplied={markCandidateApplied}
-          onOpenProfile={(candidateId) => {
-            setSelectedCandidateId(candidateId);
-            setPage("candidate-profile");
-          }}
-          onNavigate={go}
-        />
+          <PostJobPage jobs={jobs} settings={settings} permissions={permissions} company={company} onPublish={publishJob} onBack={() => go("jobs")} />
       )}
 
       {hasCompany && page === "candidate-profile" && (
@@ -659,62 +711,43 @@ export function EmployerPrototype() {
         />
       )}
 
-      {hasCompany && page === "shortlist" && (
-        <ShortlistPage
-          shortlisted={shortlisted}
-          activeJob={activeJob}
-          scoreWeights={settings.scoreWeights}
-          isClosed={activeJob.status === "Closed"}
-          onRemove={removeFromShortlist}
-          onSend={sendInvite}
-          onMarkHired={markHired}
-          onOpenInterviewSettings={(candidateId) => {
-            setSelectedCandidateId(candidateId);
-            setPage("invite");
-          }}
-          onOpenHiredSettings={(candidateId) => {
-            setSelectedCandidateId(candidateId);
-            setPage("hire-email");
-          }}
-          onNavigate={go}
-        />
-      )}
-
-      {hasCompany && page === "invite" && (
-        <InvitePage
-          candidate={selectedCandidate}
-          activeJob={activeJob}
-          company={company}
-          settings={settings}
-          onSettingsChange={setSettings}
-          stageType={stageType}
-          onStageTypeChange={setStageType}
-          onBack={() => go("shortlist")}
-          onNavigate={go}
-          onNotify={notify}
-        />
-      )}
-
-      {hasCompany && page === "hire-email" && (
-        <HiredEmailPage
-          candidate={selectedCandidate}
-          activeJob={activeJob}
-          company={company}
-          settings={settings}
-          onSettingsChange={setSettings}
-          onBack={() => go("shortlist")}
-          onNavigate={go}
-          onNotify={notify}
-        />
-      )}
-
-      {hasCompany && page === "result" && (
-        <ResultPage
-          candidates={activeJobCandidates}
+      {hasCompany && page === "projects" && (
+        <ProjectsPage
+          projects={projects}
           permissions={permissions}
-          activeJob={activeJob}
-          onCloseJob={closeActiveJob}
+          onSelectProject={(projectId) => {
+            setActiveProjectId(projectId);
+            setPage("project-detail");
+          }}
           onNavigate={go}
+        />
+      )}
+
+      {hasCompany && page === "project-detail" && (
+        <ProjectDetailPage
+          project={projects.find((project) => project.id === activeProjectId) ?? projects[0]}
+          permissions={permissions}
+          onBack={() => go("projects")}
+          onNavigate={go}
+          onNotify={notify}
+          onUpdateProject={(next) =>
+            setProjects((current) => current.map((project) => (project.id === next.id ? next : project)))
+          }
+        />
+      )}
+
+      {hasCompany && page === "post-project" && (
+        <PostProjectPage
+          projects={projects}
+          permissions={permissions}
+          onBack={() => go("projects")}
+          onPublish={(newProject) => {
+            setProjects((current) => [newProject, ...current]);
+            setActiveProjectId(newProject.id);
+            addActivity(`${newProject.title} shared with ${newProject.targetUniversities.length} universit${newProject.targetUniversities.length === 1 ? "y" : "ies"}`, "violet");
+            notify("Project published", `${newProject.title} is now visible to selected universities.`, "emerald");
+            go("projects");
+          }}
         />
       )}
       </motion.div>
@@ -727,108 +760,63 @@ export function EmployerPrototype() {
   );
 }
 
-function PersonalGate({
-  onCreate,
-  onJoin,
+function JobWorkspaceShell({
+  job,
+  activePage,
+  onNavigate,
+  children,
 }: {
-  onCreate: () => void;
-  onJoin: () => void;
+  job: Job;
+  activePage: Page;
+  onNavigate: (page: Page) => void;
+  children: React.ReactNode;
 }) {
+  const tabs: Array<{ page: Page; label: string; icon: React.ElementType }> = [
+    { page: "job-detail", label: "Overview", icon: BriefcaseBusiness },
+    { page: "candidates", label: "Candidates", icon: UsersRound },
+    { page: "shortlist", label: "Shortlist", icon: ClipboardList },
+    { page: "invite", label: "Interview email", icon: MailPlus },
+    { page: "hire-email", label: "Hired email", icon: Send },
+    { page: "result", label: "Result", icon: UserCheck },
+  ];
+
   return (
-    <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 overflow-hidden px-5 py-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8">
-      <div className="min-w-0">
-        <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-200">
-          Personal CareerOS
-        </Badge>
-        <h1 className="mt-4 max-w-[21rem] break-words text-3xl font-semibold leading-tight tracking-normal sm:max-w-3xl sm:text-4xl md:text-5xl">
-          Create a company profile or accept an invite to start hiring.
-        </h1>
-        <p className="mt-4 max-w-[21rem] break-words text-sm leading-6 text-zinc-600 sm:max-w-2xl">
-          Personal career tools stay available, while company hiring features
-          unlock only after a business workspace exists.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button className="h-10" onClick={onCreate}>
-            <Building2 />
-            Create company
-          </Button>
-          <Button className="h-10" variant="outline" onClick={onJoin}>
-            <UserPlus />
-            Join invited company
-          </Button>
+    <div>
+      <div className="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl items-center gap-3 overflow-x-auto px-5 py-3 lg:px-8">
+          <button
+            type="button"
+            onClick={() => onNavigate("jobs")}
+            className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 hover:text-zinc-900"
+          >
+            <ChevronRight className="size-3.5 rotate-180" />
+            Jobs
+          </button>
+          <span className="shrink-0 truncate text-sm font-semibold text-zinc-950">{job.title}</span>
+          <div className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 p-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = tab.page === activePage;
+              return (
+                <button
+                  key={tab.page}
+                  type="button"
+                  onClick={() => onNavigate(tab.page)}
+                  className={cn(
+                    "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                    active ? "bg-white text-pink-700 shadow-sm ring-1 ring-pink-100" : "text-zinc-500 hover:text-zinc-900"
+                  )}
+                >
+                  <Icon className="size-3.5" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-
-      <Card className="rounded-lg">
-        <CardHeader>
-          <CardTitle>Hiring unlock logic</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[
-            "Personal user starts without company access.",
-            "Creating a company makes the user Super Admin.",
-            "Accepting an invite assigns the invited company role.",
-            "Employer tools then open in the CareerOS Employer sidebar.",
-          ].map((item) => (
-            <CheckRow key={item}>{item}</CheckRow>
-          ))}
-        </CardContent>
-      </Card>
-    </section>
-  );
-}
-
-function CreateCompanyPage({
-  company,
-  onCompanyChange,
-  onCreate,
-  onBack,
-}: {
-  company: Company;
-  onCompanyChange: (company: Company) => void;
-  onCreate: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <section className="mx-auto w-full max-w-4xl px-5 py-8 lg:px-8">
-      <BreadcrumbTrail items={["CareerOS", "Company Setup"]} />
-      <PageHeader
-        eyebrow="Company setup"
-        title="Create company profile"
-        description="This creates the business workspace and unlocks hiring."
-      />
-      <Card className="mt-5 rounded-lg">
-        <CardContent className="grid gap-4 pt-4 md:grid-cols-2">
-          <Field label="Company name">
-            <Input value={company.name} onChange={(e) => onCompanyChange({ ...company, name: e.target.value })} />
-          </Field>
-          <Field label="Industry">
-            <Input value={company.industry} onChange={(e) => onCompanyChange({ ...company, industry: e.target.value })} />
-          </Field>
-          <Field label="Location">
-            <Input value={company.location} onChange={(e) => onCompanyChange({ ...company, location: e.target.value })} />
-          </Field>
-          <Field label="Company size">
-            <Input value={company.size} onChange={(e) => onCompanyChange({ ...company, size: e.target.value })} />
-          </Field>
-          <div className="md:col-span-2">
-            <Field label="Short description">
-              <Input value={company.description} onChange={(e) => onCompanyChange({ ...company, description: e.target.value })} />
-            </Field>
-          </div>
-          <div className="rounded-lg border border-dashed p-4 text-sm text-zinc-500 md:col-span-2">
-            Logo/banner optional
-          </div>
-        </CardContent>
-      </Card>
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button onClick={onCreate}>
-          Create profile
-          <ArrowRight />
-        </Button>
-      </div>
-    </section>
+      {children}
+    </div>
   );
 }
 
@@ -948,14 +936,14 @@ function DashboardPage({
     },
   ];
   const dashboardKpis = [
-    { icon: UsersRound, label: "Applicants", value: String(analytics.applicants), detail: `${analytics.newApplicants} new applicants` },
-    { icon: ClipboardList, label: "Shortlisted", value: String(analytics.shortlisted), detail: "Ready for review" },
-    { icon: CalendarClock, label: "Interview", value: String(analytics.invited), detail: "Awaiting decision" },
-    { icon: ShieldCheck, label: "Hired", value: String(analytics.hired), detail: "Recorded outcomes", accent: true },
-    { icon: Gauge, label: "Avg match", value: `${analytics.averageMatch}%`, detail: "Candidate quality" },
-    { icon: MailPlus, label: "Response", value: `${analytics.responseRate}%`, detail: "Email engagement" },
-    { icon: Zap, label: "Shortlist time", value: analytics.timeToShortlist, detail: "Median decision speed" },
-    { icon: Sparkles, label: "Re-engage", value: String(analytics.reengage), detail: "Warm strong-fit talent", accent: true },
+    { icon: UsersRound, label: "Applicants", value: String(analytics.applicants), detail: `${analytics.newApplicants} new applicants`, tone: "text-[#5b21f3]", bg: "bg-[#f0e9ff]" },
+    { icon: ClipboardList, label: "Shortlisted", value: String(analytics.shortlisted), detail: "Ready for review", tone: "text-[#4338ca]", bg: "bg-[#eaf0ff]" },
+    { icon: CalendarClock, label: "Interview", value: String(analytics.invited), detail: "Awaiting decision", tone: "text-[#c026d3]", bg: "bg-[#fbe8ff]" },
+    { icon: ShieldCheck, label: "Hired", value: String(analytics.hired), detail: "Recorded outcomes", tone: "text-[#18b76b]", bg: "bg-[#dff8ee]" },
+    { icon: Gauge, label: "Avg match", value: `${analytics.averageMatch}%`, detail: "Candidate quality", tone: "text-[#2563eb]", bg: "bg-[#e8f2ff]" },
+    { icon: MailPlus, label: "Response", value: `${analytics.responseRate}%`, detail: "Email engagement", tone: "text-[#f59e0b]", bg: "bg-[#fff5e0]" },
+    { icon: Zap, label: "Shortlist time", value: analytics.timeToShortlist, detail: "Median decision speed", tone: "text-[#ec1761]", bg: "bg-[#ffe5f1]" },
+    { icon: Sparkles, label: "Re-engage", value: String(analytics.reengage), detail: "Warm strong-fit talent", tone: "text-[#B80039]", bg: "bg-[#FFF2F6]" },
   ];
   const matchDistribution = [
     {
@@ -1107,6 +1095,10 @@ function DashboardPage({
       title: "Role performance pattern",
       detail: "Product Manager has the strongest applicant volume, while Senior Product Lead carries the strongest quality score.",
     },
+    {
+      title: "Recommended next step",
+      detail: nextAction.detail,
+    },
   ];
 
   return (
@@ -1115,18 +1107,18 @@ function DashboardPage({
         <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_420px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-white text-pink-700 ring-1 ring-pink-200">
-                Hiring analytics command centre
+              <Badge className="bg-[#FFF2F6] text-[#B80039] ring-1 ring-[#F5CBD6]">
+                Live pipeline
               </Badge>
-              <Badge className="bg-violet-50 text-violet-700 ring-1 ring-violet-100">
+              <Badge className="bg-[#F7F4FF] text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
                 {company.industry}
               </Badge>
             </div>
-            <h1 className="mt-5 max-w-4xl text-3xl font-semibold leading-tight tracking-normal sm:text-5xl lg:text-6xl">
-              Hiring Analytics Command Centre
+            <h1 className="mt-5 max-w-4xl text-3xl font-semibold leading-tight tracking-tight text-[#081433] sm:text-4xl lg:text-5xl">
+              Hiring, at a glance.
             </h1>
-            <p className="mt-5 max-w-2xl text-sm leading-6 text-zinc-600">
-              Track applicant volume, funnel quality, shortlist speed, active role performance, and re-engagement opportunities in one calm hiring cockpit for {company.name}.
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600">
+              Applicant volume, funnel quality, shortlist speed, and re-engagement opportunities for {company.name} — in one view.
             </p>
 
             <motion.div
@@ -1213,7 +1205,8 @@ function DashboardPage({
             label={kpi.label}
             value={kpi.value}
             detail={kpi.detail}
-            accent={kpi.accent}
+            tone={kpi.tone}
+            bg={kpi.bg}
           />
         ))}
       </motion.div>
@@ -1281,16 +1274,22 @@ function DashboardPage({
             </CardContent>
           </Card>
 
-          <Card className="career-clear-card rounded-3xl">
+          <Card className="overflow-hidden rounded-3xl border-pink-100 bg-[linear-gradient(160deg,#fff7fb_0%,#ffffff_55%,#f7f5ff_100%)]">
             <CardHeader>
-              <CardTitle>Summary insights</CardTitle>
-              <p className="mt-1 text-sm text-zinc-500">High-level patterns from the current hiring cycle.</p>
+              <div className="flex items-center gap-2">
+                <span className="flex size-8 items-center justify-center rounded-full bg-pink-600 text-white shadow-sm shadow-pink-500/30">
+                  <Sparkles className="size-4" />
+                </span>
+                <CardTitle>AI insight</CardTitle>
+                <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-200">Auto-read</Badge>
+              </div>
+              <p className="mt-1 text-sm text-zinc-500">Plain-language read of the current hiring cycle — not a decision, just context.</p>
             </CardHeader>
             <CardContent className="space-y-3">
               {summaryInsights.map((insight) => (
                 <div
                   key={insight.title}
-                  className="rounded-2xl border border-zinc-200 bg-white p-4"
+                  className="rounded-2xl border border-pink-100/70 bg-white/80 p-4 backdrop-blur-sm"
                 >
                   <div className="flex items-start gap-3">
                     <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-pink-600 ring-1 ring-pink-100">
@@ -1974,31 +1973,27 @@ function DashboardMetricCard({
   label,
   value,
   detail,
-  accent = false,
+  tone = "text-[#B80039]",
+  bg = "bg-[#FFF2F6]",
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   detail: string;
-  accent?: boolean;
+  tone?: string;
+  bg?: string;
 }) {
   return (
     <motion.div
       variants={listItemMotion}
       whileHover={{ y: -2 }}
       whileTap={tactileTap}
-      className={cn(
-        "career-clear-metric rounded-2xl p-3.5 transition",
-        accent && "career-metric-accent"
-      )}
+      className="rounded-2xl border border-[#EEF0F6] bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition"
     >
-      <div className="flex items-center justify-between">
-        <span className="flex size-8 items-center justify-center rounded-xl bg-white text-pink-600 shadow-sm ring-1 ring-pink-100">
-          <Icon className="size-4" />
-        </span>
-        <span className="h-1 w-8 rounded-full bg-pink-200/80" />
-      </div>
-      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+      <span className={cn("flex size-9 items-center justify-center rounded-xl", bg, tone)}>
+        <Icon className="size-4.5" strokeWidth={2.3} />
+      </span>
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </p>
       <motion.p
@@ -2006,11 +2001,11 @@ function DashboardMetricCard({
         initial={{ opacity: 0, y: 6, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.26, ease: smoothEase }}
-        className="mt-1.5 text-2xl font-semibold tracking-normal"
+        className="mt-1 text-[22px] font-extrabold leading-none tracking-tight text-[#081433]"
       >
         {value}
       </motion.p>
-      <p className="mt-1 text-xs leading-5 text-zinc-500">{detail}</p>
+      <p className="mt-1.5 text-xs leading-5 text-zinc-500">{detail}</p>
     </motion.div>
   );
 }
@@ -2621,17 +2616,22 @@ function EmployerReputationPanel({
 
 function CompanyProfilePage({
   company,
+  jobs,
+  members,
   permissions,
   onCompanyChange,
   onNotify,
 }: {
   company: Company;
+  jobs: Job[];
+  members: TeamMember[];
   permissions: (typeof rolePermissions)[CompanyRole];
   onCompanyChange: (company: Company) => void;
   onNotify: (title: string, body?: string, tone?: ActivityTone) => void;
   onNavigate: (page: Page) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [draftCompany, setDraftCompany] = useState(company);
   const [reputationStatus, setReputationStatus] = useState<EmployerReputationStatus>("Gold");
   const reputationProfile = employerReputationProfiles[reputationStatus];
@@ -2653,24 +2653,26 @@ function CompanyProfilePage({
     onNotify("Brand asset queued", "Prototype upload complete. The cover/logo preview stays simulated.", "emerald");
   }
 
+  const profileFieldsComplete = [
+    company.industry && company.industry !== "Not specified",
+    company.location && company.location !== "Not specified",
+    company.size && company.size !== "Not specified",
+    company.description && company.description.length > 40,
+  ].filter(Boolean).length;
+  const profileCompleteness = Math.round((profileFieldsComplete / 4) * 100);
+  const openRoles = jobs.filter((job) => job.status !== "Closed").length;
+  const superAdminCount = members.filter((member) => member.role === "Super Admin").length;
+
   const heroStats = [
-    { label: "Profile strength", value: "86%", icon: Gauge },
-    { label: "Open roles", value: "1", icon: BriefcaseBusiness },
-    { label: "Talent pool", value: "428", icon: UsersRound },
-    { label: "Response rate", value: "74%", icon: MessageSquareText },
-  ];
-  const overviewCards = [
-    { label: "Hiring mode", value: "Structured shortlist", detail: "Re-engagement enabled", icon: ClipboardList },
-    { label: "Profile owner", value: "Super Admin", detail: "Managed workspace", icon: ShieldCheck },
-    { label: "Candidate response", value: "74%", detail: "Average reply rate", icon: MessageSquareText },
-    { label: "Public strength", value: "86%", detail: "Profile completed", icon: Gauge },
+    { label: "Profile completeness", value: `${profileCompleteness}%`, icon: Gauge },
+    { label: "Open roles", value: String(openRoles), icon: BriefcaseBusiness },
+    { label: "Team members", value: String(members.length), icon: UsersRound },
   ];
   const presenceItems = [
     ["About", "Career discovery and hiring intelligence for modern teams."],
     ["Why candidates respond", "Clear salary bands, fast next-stage emails, and transparent outcome updates."],
     ["Re-engagement promise", "High-fit past shortlist candidates can be approached before the role expires."],
     ["Hiring transparency", "Candidates see clearer stage movement, interview expectations, and next-step context."],
-    ["Communication quality", "Response behaviour contributes to employer reputation status over time."],
   ];
 
   return (
@@ -2707,12 +2709,25 @@ function CompanyProfilePage({
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Public profile</p>
                 <p className="mt-1 text-lg font-semibold text-zinc-950">Ready for candidate review</p>
               </div>
-              <Button disabled={!permissions.canEditCompany} className="bg-zinc-950 hover:bg-zinc-800" onClick={() => setEditing((current) => !current)}>
-                <PenLine />
-                {editing ? "Close edit mode" : "Edit profile"}
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="outline"
+                  className={cn("border-zinc-200 bg-white", previewMode && "border-pink-300 bg-pink-50 text-pink-700")}
+                  onClick={() => {
+                    setPreviewMode((current) => !current);
+                    setEditing(false);
+                  }}
+                >
+                  <Eye />
+                  {previewMode ? "Exit preview" : "Preview public profile"}
+                </Button>
+                <Button disabled={!permissions.canEditCompany || previewMode} className="bg-zinc-950 hover:bg-zinc-800" onClick={() => setEditing((current) => !current)}>
+                  <PenLine />
+                  {editing ? "Close edit mode" : "Edit profile"}
+                </Button>
+              </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-3 gap-2">
               {heroStats.map((stat) => {
                 const Icon = stat.icon;
                 return (
@@ -2730,6 +2745,11 @@ function CompanyProfilePage({
         </div>
       </div>
 
+      {previewMode && (
+        <PublicProfilePreview company={company} reputationProfile={reputationProfile} companyInitials={companyInitials} onExit={() => setPreviewMode(false)} />
+      )}
+
+      {!previewMode && (
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_410px]">
         <div className="space-y-4">
           {editing && (
@@ -2767,44 +2787,39 @@ function CompanyProfilePage({
           )}
           <Card className="career-clear-card rounded-2xl">
             <CardHeader>
-              <CardTitle>Company overview</CardTitle>
+              <CardTitle>Workspace summary</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-2">
-              {overviewCards.map((item) => {
-                const Icon = item.icon;
-                return (
-                <div key={item.label} className="min-h-[116px] rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm shadow-zinc-950/[0.02]">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="grid size-10 place-items-center rounded-2xl bg-pink-50 text-pink-700 ring-1 ring-pink-100">
-                      <Icon className="size-4" />
-                    </span>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>
-                  </div>
-                  <p className="mt-4 text-lg font-semibold text-zinc-950">{item.value}</p>
-                  <p className="mt-1 text-sm text-zinc-500">{item.detail}</p>
+            <CardContent className="divide-y divide-zinc-100">
+              {[
+                { label: "Hiring mode", value: "Structured shortlist with re-engagement" },
+                { label: "Workspace owner", value: members.find((member) => member.role === "Super Admin")?.name ?? "Not set" },
+                { label: "Team size", value: `${members.length} member${members.length === 1 ? "" : "s"}${superAdminCount > 1 ? " · multiple Super Admins" : ""}` },
+                { label: "Open roles", value: `${openRoles} live` },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <p className="text-sm text-zinc-500">{row.label}</p>
+                  <p className="text-sm font-medium text-[#081433]">{row.value}</p>
                 </div>
-                );
-              })}
+              ))}
             </CardContent>
           </Card>
           <Card className="career-panel-muted rounded-2xl">
             <CardHeader>
-              <CardTitle>Hiring presence</CardTitle>
+              <CardTitle>What candidates see</CardTitle>
+              <p className="mt-1 text-sm text-zinc-500">Presence signals that affect how candidates read this employer.</p>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-2">
-                {presenceItems.map(([label, body], index) => (
-                <div key={label} className={cn("rounded-2xl border bg-white p-4 shadow-sm shadow-zinc-950/[0.02]", index === 0 ? "border-pink-100 md:col-span-2" : "border-zinc-200")}>
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-8 place-items-center rounded-xl bg-pink-50 text-pink-700">
-                      {index === 0 ? <Building2 className="size-4" /> : index === 1 ? <MessageSquareText className="size-4" /> : index === 2 ? <UserCheck className="size-4" /> : index === 3 ? <Eye className="size-4" /> : <ShieldCheck className="size-4" />}
-                    </span>
-                    <p className="font-semibold text-zinc-950">{label}</p>
+            <CardContent className="space-y-2">
+              {presenceItems.map(([label, body]) => (
+                <div key={label} className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3">
+                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF2F6] text-[#B80039]">
+                    <ShieldCheck className="size-3.5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-[#081433]">{label}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-zinc-500">{body}</p>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-zinc-600">{body}</p>
                 </div>
-                ))}
-              </div>
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -2826,7 +2841,60 @@ function CompanyProfilePage({
           </Card>
         </aside>
       </div>
+      )}
     </section>
+  );
+}
+
+function PublicProfilePreview({
+  company,
+  reputationProfile,
+  companyInitials,
+  onExit,
+}: {
+  company: Company;
+  reputationProfile: { label: string; badgeClass: string };
+  companyInitials: string;
+  onExit: () => void;
+}) {
+  return (
+    <div className="mt-5">
+      <div className="mb-3 flex items-center justify-between rounded-2xl border border-pink-200 bg-pink-50 px-4 py-2.5 text-sm font-medium text-pink-800">
+        <span className="flex items-center gap-1.5">
+          <Eye className="size-4" />
+          This is what candidates and universities see. Editing is disabled here.
+        </span>
+        <button type="button" onClick={onExit} className="text-xs font-semibold underline underline-offset-2">
+          Exit preview
+        </button>
+      </div>
+      <div className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-sm shadow-zinc-950/[0.04]">
+        <div className="h-28 bg-[linear-gradient(120deg,#fdf2f8_0%,#f5f3ff_100%)]" />
+        <div className="-mt-10 px-6 pb-6 sm:px-8 sm:pb-8">
+          <div className="flex size-20 items-center justify-center rounded-3xl border-4 border-white bg-zinc-950 text-2xl font-semibold text-white shadow-lg">
+            {companyInitials}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Badge className="bg-white text-zinc-700 ring-1 ring-zinc-200">Verified company</Badge>
+            <Badge className={cn("gap-1.5 ring-1", reputationProfile.badgeClass)}>
+              <Medal className="size-3.5" />
+              {reputationProfile.label}
+            </Badge>
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold text-zinc-950 sm:text-3xl">{company.name}</h2>
+          <div className="mt-2 flex flex-wrap gap-2 text-sm font-medium text-zinc-600">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-3 py-1 ring-1 ring-zinc-200"><Building2 className="size-3.5 text-pink-600" />{company.industry}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-3 py-1 ring-1 ring-zinc-200"><MapPin className="size-3.5 text-pink-600" />{company.location}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-3 py-1 ring-1 ring-zinc-200"><UsersRound className="size-3.5 text-pink-600" />{company.size} employees</span>
+          </div>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600">{company.description}</p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button className="career-pink-action text-white" disabled>View open roles</Button>
+            <Button variant="outline" disabled>Follow company</Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -3083,8 +3151,6 @@ function JobsPage({
   const [jobFilter, setJobFilter] = useState<"Active" | "Open" | "Interviewing" | "Hired" | "Closed">("Active");
   const openJobs = jobs.filter((job) => job.status !== "Closed").length;
   const totalApplicants = jobs.reduce((sum, job) => sum + job.applicants, 0);
-  const activeJobs = jobs.filter((job) => job.status !== "Closed");
-  const nextExpiry = activeJobs.length > 0 ? Math.min(...activeJobs.map((job) => job.expiresIn)) : 0;
   const visibleJobs = jobs.filter((job) => {
     if (jobFilter === "Active") return job.status === "Open" || job.status === "Interviewing" || job.status === "Hired";
     return job.status === jobFilter;
@@ -3098,34 +3164,26 @@ function JobsPage({
 
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
-      <CommandHero
-        eyebrow="Jobs"
-        accent="Hiring queue"
-        title="Open roles, expiry, and candidate movement."
-        description="Each job opens into a workspace for applied candidates, re-engagement talent, shortlist, email, and outcome updates."
-      >
-        <div className="space-y-3">
-          {permissions.canManageJobs ? (
-            <Button className="career-pink-action h-12 w-full text-white" onClick={() => onNavigate("post-job")}>
-              <FilePlus2 />
-              Post job
-            </Button>
-          ) : (
-            <Button className="h-12 w-full border-zinc-200 bg-white text-zinc-500" variant="outline" disabled>
-              <Eye />
-              View only
-            </Button>
-          )}
-          <div className="rounded-[1.35rem] bg-zinc-950 p-4 text-white shadow-xl shadow-zinc-950/15">
-            <p className="text-xs uppercase text-white/55">Hiring queue</p>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <JobSignal label="Open" value={String(openJobs)} dark />
-              <JobSignal label="People" value={String(totalApplicants)} dark />
-              <JobSignal label="Expiry" value={`${nextExpiry}d`} dark />
-            </div>
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E00046]">Jobs</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#081433] sm:text-3xl">
+            {openJobs} open role{openJobs === 1 ? "" : "s"} · {totalApplicants} applicant{totalApplicants === 1 ? "" : "s"}
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">Each role opens into one workspace for candidates, shortlist, email, and results.</p>
         </div>
-      </CommandHero>
+        {permissions.canManageJobs ? (
+          <Button className="career-pink-action h-11 shrink-0 text-white" onClick={() => onNavigate("post-job")}>
+            <FilePlus2 />
+            Post job
+          </Button>
+        ) : (
+          <Button className="h-11 shrink-0 border-zinc-200 bg-white text-zinc-500" variant="outline" disabled>
+            <Eye />
+            View only
+          </Button>
+        )}
+      </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
         {(["Active", "Open", "Interviewing", "Hired", "Closed"] as const).map((filter) => (
@@ -3133,10 +3191,10 @@ function JobsPage({
             key={filter}
             onClick={() => setJobFilter(filter)}
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-medium ring-1 transition",
+              "rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition",
               jobFilter === filter
-                ? "bg-zinc-950 text-white ring-zinc-950"
-                : "bg-white text-zinc-600 ring-zinc-200 hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
+                ? "bg-[#081433] text-white ring-[#081433]"
+                : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#FFF2F6] hover:text-[#B80039] hover:ring-[#F5CBD6]"
             )}
           >
             {filter}
@@ -3144,16 +3202,15 @@ function JobsPage({
         ))}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm shadow-zinc-950/[0.03]">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-[#E7E9F1] bg-white">
         {jobs.length > 0 && visibleJobs.length > 0 && (
-          <div className="hidden grid-cols-[minmax(220px,1.25fr)_110px_90px_100px_80px_100px_110px_minmax(170px,0.9fr)] gap-3 border-b border-zinc-100 bg-zinc-50/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500 xl:grid">
+          <div className="hidden grid-cols-[minmax(240px,1.3fr)_140px_90px_90px_80px_90px_minmax(150px,0.8fr)] gap-3 border-b border-zinc-100 bg-zinc-50/70 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500 xl:grid">
             <span>Role</span>
-            <span>Status</span>
+            <span>Visibility</span>
             <span>Applicants</span>
             <span>Shortlist</span>
             <span>Hired</span>
             <span>Expiry</span>
-            <span>Quality</span>
             <span>Next action</span>
           </div>
         )}
@@ -3183,41 +3240,40 @@ function JobsPage({
             variants={listItemMotion}
             initial="initial"
             animate="animate"
-            whileHover={{ y: -4 }}
             whileTap={tactileTap}
             onClick={() => onSelectJob(job.id)}
             className={cn(
-              "group grid w-full gap-3 border-b border-zinc-100 px-4 py-4 text-left transition last:border-b-0 hover:bg-pink-50/40 xl:grid-cols-[minmax(220px,1.25fr)_110px_90px_100px_80px_100px_110px_minmax(170px,0.9fr)] xl:items-center",
-              activeJobId === job.id && "bg-pink-50/50"
+              "group grid w-full gap-2.5 border-b border-zinc-100 px-4 py-3.5 text-left transition-all last:border-b-0 hover:-translate-y-0.5 hover:bg-[#FFF9FB] hover:shadow-[0_8px_20px_rgba(15,23,42,0.05)] xl:grid-cols-[minmax(260px,1.3fr)_140px_90px_90px_80px_90px_minmax(150px,0.8fr)] xl:items-center",
+              activeJobId === job.id && "bg-[#FFF2F6]"
             )}
           >
-            <div className="min-w-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <h2 className="truncate text-base font-semibold tracking-normal text-zinc-950">{job.title}</h2>
-                <Badge className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200 xl:hidden">{job.department}</Badge>
-              </div>
-              <p className="mt-1 truncate text-sm text-zinc-500">{job.workMode} · {job.location} · {job.salary}</p>
-              <div className="mt-2 flex flex-wrap gap-1.5 xl:hidden">
-                {job.skills.slice(0, 3).map((skill) => <Badge key={skill} variant="secondary" className="text-[11px]">{skill}</Badge>)}
+            <div className="flex min-w-0 items-start gap-3">
+              <RowIconAvatar
+                icon={job.employmentType === "Internship" ? GraduationCap : BriefcaseBusiness}
+                tone={job.employmentType === "Internship" ? "amber" : "navy"}
+              />
+              <div className="min-w-0">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <OpportunityTypeChip kind={jobOpportunityKind(job)} />
+                  <StatusBadge status={job.status} />
+                  <h2 className="truncate text-[15px] font-semibold tracking-tight text-[#081433]">{job.title}</h2>
+                </div>
+                <p className="mt-1 truncate text-sm text-zinc-500">{job.department} · {job.workMode} · {job.location} · {job.salary}</p>
+                <div className="mt-1.5 xl:hidden">
+                  <VisibilityChip visibility={job.visibility} />
+                </div>
               </div>
             </div>
-            <StatusBadge status={job.status} />
+            <div className="hidden xl:block">
+              <VisibilityChip visibility={job.visibility} />
+            </div>
             <CompactMetric value={String(job.applicants)} label="Applicants" />
             <CompactMetric value={String(job.shortlisted)} label="Shortlist" />
             <CompactMetric value={String(job.hired)} label="Hired" />
             <span className="text-sm text-zinc-600">
               {showCountdown && job.status !== "Closed" ? `${job.expiresIn}d` : job.status === "Closed" ? "Closed" : "Hidden"}
             </span>
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-pink-700">{Math.min(96, Math.max(62, job.applicants * 4 + job.shortlisted * 8))}%</span>
-                <span className="text-xs text-zinc-400">Fit</span>
-              </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-                <AnimatedProgress value={Math.min(96, Math.max(62, job.applicants * 4 + job.shortlisted * 8))} />
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-3 text-sm font-medium text-pink-600 xl:justify-start">
+            <div className="flex items-center justify-between gap-3 text-sm font-medium text-[#B80039] xl:justify-start">
               <span>{jobNextActionLabel(job)}</span>
               <ChevronRight className="size-4 transition group-hover:translate-x-0.5" />
             </div>
@@ -3258,6 +3314,8 @@ function JobDetailPage({
   const managerAnimal = getWorkAnimal(job.supervisorAnimal);
   const managerGuide = supervisorGuide(job.supervisorAnimal);
 
+  const elevated = "rounded-2xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
       <WorkflowGuide
@@ -3266,18 +3324,23 @@ function JobDetailPage({
         onBack={onBack}
         onNavigate={onNavigate}
       />
-      <div className="career-clear-shell overflow-hidden rounded-3xl">
-        <div className="h-px bg-gradient-to-r from-transparent via-pink-200 to-transparent" />
-        <div className="p-5">
+      <div className={cn(elevated, "overflow-hidden")}>
+        <div className="h-1 bg-[linear-gradient(90deg,#E00046,#F04D7A)]" />
+        <div className="p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
               <StatusBadge status={job.status} />
+              <OpportunityTypeChip kind={jobOpportunityKind(job)} />
+              <VisibilityChip visibility={job.visibility} />
               <Badge className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200">{job.department}</Badge>
               <JobCountdownBadge job={job} show={showCountdown} />
             </div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">{job.title}</h1>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#081433] md:text-4xl">{job.title}</h1>
             <p className="mt-2 text-sm text-zinc-500">{job.workMode} · {job.location} · {job.salary}</p>
+            {job.visibility !== "open" && job.targetUniversities.length > 0 && (
+              <p className="mt-1 text-xs text-[#5B4FCF]">Visible to: {job.targetUniversities.join(", ")}</p>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
               {job.skills.map((skill) => (
                 <Badge key={skill} variant="secondary">{skill}</Badge>
@@ -3293,120 +3356,209 @@ function JobDetailPage({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Card className="career-form-panel rounded-2xl">
-          <CardHeader>
-            <CardTitle>Job workflow</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-3">
-            <button onClick={() => onNavigate("candidates")} className="rounded-xl border bg-white p-4 text-left transition hover:border-pink-200 hover:bg-pink-50">
-              <UsersRound className="size-5 text-pink-600" />
-              <p className="mt-3 font-medium">Review candidates</p>
-              <p className="mt-1 text-sm text-zinc-500">Applied and re-engagement talent.</p>
-            </button>
-            <button onClick={() => onNavigate("shortlist")} className="rounded-xl border bg-white p-4 text-left transition hover:border-pink-200 hover:bg-pink-50">
-              <ClipboardList className="size-5 text-pink-600" />
-              <p className="mt-3 font-medium">Shortlist</p>
-              <p className="mt-1 text-sm text-zinc-500">Invite, hire, or mark not selected.</p>
-            </button>
-            <button onClick={() => onNavigate("result")} className="rounded-xl border bg-white p-4 text-left transition hover:border-pink-200 hover:bg-pink-50">
-              <ShieldCheck className="size-5 text-pink-600" />
-              <p className="mt-3 font-medium">Hiring result</p>
-              <p className="mt-1 text-sm text-zinc-500">{promptResultUpdate ? "Expiry prompts a final review." : "View confirmed hires and close the role."}</p>
-            </button>
-          </CardContent>
-        </Card>
-
-        <Card className="career-form-panel rounded-2xl">
-          <CardHeader>
-            <CardTitle>Hiring Activity Timeline</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {activityLog.length === 0 ? (
-              <p className="text-sm text-zinc-500">No hiring activity has been logged yet.</p>
-            ) : activityLog.slice(0, 5).map(({ id, label, time, tone }, index) => (
-              <TimelineItem
-                key={id}
-                label={label}
-                time={time}
-                tone={tone}
-                last={index === Math.min(activityLog.length, 5) - 1}
-              />
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card className="career-form-panel rounded-2xl">
-          <CardHeader>
-            <CardTitle>Menagerie role signal</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {topAnimalMatches.map((match) => (
-              <div key={match.animal.slug} className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold">
-                    <span className="mr-1">{match.animal.emoji}</span>
-                    {match.animal.name}
-                  </p>
-                  <span className="text-sm font-semibold text-pink-700">{match.score}%</span>
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+        <div className={cn(elevated, "overflow-hidden bg-[linear-gradient(160deg,#fff7fb_0%,#ffffff_55%)]")}>
+          <div className="p-5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-8 items-center justify-center rounded-full bg-[#E00046] text-white shadow-sm">
+                <Sparkles className="size-4" />
+              </span>
+              <p className="text-base font-semibold text-[#081433]">AI opportunity coach</p>
+            </div>
+            <p className="mt-1 text-sm text-zinc-500">Specific, actionable reads on this role — not a decision, just context.</p>
+            <div className="mt-3 space-y-2">
+              {jobAiInsights(job, candidates).map((insight, index) => (
+                <div key={index} className="flex items-start gap-2.5 rounded-xl border border-[#F5CBD6]/70 bg-white/80 p-3 text-sm leading-5 text-zinc-700">
+                  <Sparkles className="mt-0.5 size-3.5 shrink-0 text-[#E00046]" />
+                  <span>{insight}</span>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-pink-50">
-                  <div className="h-full rounded-full bg-pink-500" style={{ width: `${match.score}%` }} />
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-[#F5CBD6]/60 bg-white/60 p-5">
+            <p className="text-sm font-semibold text-[#081433]">Recent activity</p>
+            <div className="mt-3 space-y-3">
+              {activityLog.length === 0 ? (
+                <p className="text-sm text-zinc-500">No hiring activity has been logged yet.</p>
+              ) : activityLog.slice(0, 4).map(({ id, label, time, tone }, index) => (
+                <TimelineItem
+                  key={id}
+                  label={label}
+                  time={time}
+                  tone={tone}
+                  last={index === Math.min(activityLog.length, 4) - 1}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className={cn(elevated, "p-5")}>
+          <p className="text-base font-semibold text-[#081433]">Menagerie role signal</p>
+          <p className="mt-1 text-sm text-zinc-500">Trait match, ranked from role + historical candidate data.</p>
+          <div className="mt-3 space-y-1.5">
+            {topAnimalMatches.map((match, index) => (
+              <div key={match.animal.slug} className="flex items-center gap-3 rounded-xl bg-zinc-50/70 px-3 py-2.5">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-zinc-500 ring-1 ring-zinc-200">{index + 1}</span>
+                <span className="text-base">{match.animal.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-[#081433]">{match.animal.name}</p>
+                  <p className="truncate text-xs text-zinc-500">{match.animal.archetype}</p>
                 </div>
-                <p className="mt-1 text-xs text-zinc-500">{match.animal.archetype}</p>
+                <span className="shrink-0 text-sm font-semibold text-[#B80039]">{match.score}%</span>
               </div>
             ))}
-            <div className="rounded-2xl border border-pink-100 bg-pink-50 p-3 text-sm leading-5 text-pink-900">
-              AI converts this role and historical successful candidates into a 100% animal-trait breakdown, then highlights the top 3 shares.
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="career-form-panel rounded-2xl">
-          <CardHeader>
-            <CardTitle>Reporting manager</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-6 text-zinc-600">
-            <p className="font-semibold text-zinc-950">{job.supervisorName || "Not set"}</p>
-            <p>
+          </div>
+          <div className="mt-4 border-t border-zinc-100 pt-4">
+            <p className="text-sm font-semibold text-[#081433]">Reporting manager</p>
+            <p className="mt-2 text-sm font-medium text-zinc-800">{job.supervisorName || "Not set"}</p>
+            <p className="text-sm text-zinc-500">
               {managerAnimal ? `${managerAnimal.emoji} ${managerAnimal.name}, ${managerAnimal.archetype}` : "Animal trait not set"}
             </p>
-            <div className="space-y-2">
-              <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+            <div className="mt-3 space-y-2 text-sm leading-6 text-zinc-600">
+              <div className="rounded-xl bg-zinc-50/70 p-3">
                 <p className="font-medium text-zinc-900">Candidate guidance</p>
                 <p className="mt-1">{managerGuide.candidateResponse}</p>
               </div>
-              <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-100">
+              <div className="rounded-xl bg-zinc-50/70 p-3">
                 <p className="font-medium text-zinc-900">Why it works</p>
                 <p className="mt-1">{managerGuide.whyItWorks}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </section>
   );
+}
+
+/** Genuinely specific, decision-oriented AI copy — matching, university suggestions, skill gaps, wording. */
+function jobAiInsights(job: Job, candidates: Candidate[]): string[] {
+  const insights: string[] = [];
+  const strongMatches = candidates.filter((candidate) => candidate.skillFit >= 85).length;
+  if (strongMatches > 0) {
+    insights.push(
+      `${strongMatches} candidate${strongMatches === 1 ? "" : "s"} in the pipeline score 85%+ on skill fit for ${job.title} — review them first in Candidates.`
+    );
+  } else if (candidates.length > 0) {
+    insights.push(`No candidate in the current pipeline scores above 85% skill fit yet — widening sourcing or re-engagement may help.`);
+  }
+
+  const techSkills = job.skills.filter((skill) => /data|software|engineer|analytics|product|design/i.test(skill));
+  if (job.visibility === "open" && techSkills.length > 0) {
+    insights.push(
+      `AI suggests opening this role to collaborating universities because the required skills (${techSkills.slice(0, 2).join(", ")}) match software engineering and data analytics students.`
+    );
+  }
+
+  if (job.skills.length < 3) {
+    insights.push(`Only ${job.skills.length} skill${job.skills.length === 1 ? "" : "s"} listed — adding 2-3 more will sharpen candidate matching.`);
+  }
+
+  if (job.requirements && job.requirements.length > 0 && !/must-have|nice-to-have/i.test(job.requirements)) {
+    insights.push(`This role may attract stronger candidates if requirements are split into must-have and nice-to-have skills.`);
+  }
+
+  if (insights.length === 0) {
+    insights.push("This role's fundamentals look solid — no urgent AI recommendations right now.");
+  }
+
+  return insights.slice(0, 4);
+}
+
+type JobLevel = "Intern" | "Junior" | "Mid-level" | "Senior" | "Lead";
+
+const jobLevelSalaryBands: Record<JobLevel, string> = {
+  Intern: "RM 1.2k-1.8k/mo",
+  Junior: "RM 4k-6k",
+  "Mid-level": "RM 7k-11k",
+  Senior: "RM 12k-18k",
+  Lead: "RM 18k-28k",
+};
+
+function generateJobDraft(title: string, level: JobLevel, employmentType: EmploymentType, companyLocation?: string) {
+  const cleanTitle = title.trim() || "this role";
+  const titleLower = cleanTitle.toLowerCase();
+  const skillLibrary: Array<{ match: RegExp; skills: string[] }> = [
+    { match: /product/i, skills: ["Product strategy", "Discovery", "Roadmapping"] },
+    { match: /design/i, skills: ["Design systems", "User research", "Prototyping"] },
+    { match: /data|analy/i, skills: ["SQL", "Data storytelling", "Dashboards"] },
+    { match: /engineer|develop|software/i, skills: ["System design", "Code review", "Testing"] },
+    { match: /market/i, skills: ["Campaign strategy", "Growth analytics", "Positioning"] },
+    { match: /sales|account/i, skills: ["Pipeline management", "Negotiation", "Client relationships"] },
+  ];
+  const matchedSkills = skillLibrary.find((entry) => entry.match.test(titleLower))?.skills ?? [
+    "Stakeholder communication",
+    "Problem solving",
+    "Ownership",
+  ];
+  const levelPhrase: Record<JobLevel, string> = {
+    Intern: "You'll support the team hands-on while building foundational skills under close mentorship.",
+    Junior: "You'll own well-scoped pieces of the work with regular guidance from senior teammates.",
+    "Mid-level": "You'll independently own outcomes end-to-end and collaborate across functions.",
+    Senior: "You'll set direction for your area, mentor others, and influence cross-team decisions.",
+    Lead: "You'll define strategy for the function, align stakeholders, and be accountable for outcomes at scale.",
+  };
+  const requirementsByLevel: Record<JobLevel, string> = {
+    Intern: `Currently studying or a recent graduate, comfortable learning quickly, and excited about ${titleLower} fundamentals.`,
+    Junior: `1-2 years of relevant experience with a foundation in ${matchedSkills[0].toLowerCase()} and a willingness to learn fast.`,
+    "Mid-level": `3-5 years of hands-on experience in ${matchedSkills.slice(0, 2).join(" and ").toLowerCase()}, with a track record of shipped outcomes.`,
+    Senior: `6+ years of experience leading ${matchedSkills[0].toLowerCase()} work, with strong judgment under ambiguity.`,
+    Lead: `8+ years of experience, including leading teams or functions, with a strong track record of ${matchedSkills[0].toLowerCase()} at scale.`,
+  };
+  const suggestedEmploymentType = level === "Intern" ? ("Internship" as EmploymentType) : employmentType || ("Full-time" as EmploymentType);
+
+  const techMatch = /data|software|engineer|analytics|product|design/i.test(titleLower);
+  const suggestedVisibility: JobVisibility = suggestedEmploymentType === "Internship" || techMatch ? "collab" : "open";
+  const suggestedUniversities: CollabUniversity[] = suggestedVisibility === "collab"
+    ? ["Asia Pacific University", "Sunway University"]
+    : [];
+  const visibilityReason = suggestedEmploymentType === "Internship"
+    ? `CareerOS suggests collaborating universities because ${cleanTitle} is an internship — students are the primary applicant pool.`
+    : techMatch
+      ? `AI suggests opening this role to collaborating universities because the required skills (${matchedSkills.slice(0, 2).join(", ").toLowerCase()}) match software engineering and data analytics students well.`
+      : `AI suggests keeping this role open to public candidates — the title doesn't strongly match a specific student population.`;
+
+  const deadline = addDays(new Date(), 30);
+
+  return {
+    description: `As ${cleanTitle}, you will drive ${matchedSkills.join(", ").toLowerCase()} for the team. ${levelPhrase[level]}`,
+    requirements: requirementsByLevel[level],
+    skills: matchedSkills,
+    salary: jobLevelSalaryBands[level],
+    salaryReason: `Estimated from aggregated market data for ${level.toLowerCase()} "${cleanTitle}" roles in ${companyLocation || "Malaysia"} — adjust to match your budget.`,
+    screeningQuestion: `Tell us about a time you made an impact through ${matchedSkills[0].toLowerCase()}.`,
+    suggestedEmploymentType,
+    location: companyLocation || "Kuala Lumpur",
+    workMode: "Hybrid",
+    deadline,
+    suggestedVisibility,
+    suggestedUniversities,
+    visibilityReason,
+  };
 }
 
 function PostJobPage({
   jobs,
   settings,
   permissions,
+  company,
   onPublish,
   onBack,
 }: {
   jobs: Job[];
   settings: HiringSettings;
   permissions: (typeof rolePermissions)[CompanyRole];
+  company?: Company;
   onPublish: (draft: {
     title: string;
     department: string;
     salary: string;
     location: string;
     workMode: string;
-    employmentType: string;
+    employmentType: EmploymentType;
+    visibility: JobVisibility;
+    targetUniversities: CollabUniversity[];
     description: string;
     requirements: string;
     deadline: string;
@@ -3418,11 +3570,14 @@ function PostJobPage({
   onBack: () => void;
 }) {
   const [title, setTitle] = useState("");
+  const [level, setLevel] = useState<JobLevel>("Mid-level");
   const [department, setDepartment] = useState("");
   const [salary, setSalary] = useState("");
   const [location, setLocation] = useState("");
   const [workMode, setWorkMode] = useState("");
-  const [employmentType, setEmploymentType] = useState("");
+  const [employmentType, setEmploymentType] = useState<EmploymentType | "">("");
+  const [visibility, setVisibility] = useState<JobVisibility>("open");
+  const [targetUniversities, setTargetUniversities] = useState<CollabUniversity[]>([]);
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -3432,12 +3587,40 @@ function PostJobPage({
   const [supervisorName, setSupervisorName] = useState("");
   const [supervisorAnimal, setSupervisorAnimal] = useState<WorkAnimalSlug | "">("");
   const [publishAttempted, setPublishAttempted] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [salaryReason, setSalaryReason] = useState("");
+  const [visibilityReason, setVisibilityReason] = useState("");
+  const [stage, setStage] = useState<"basics" | "review">("basics");
+
+  function runAiGeneration() {
+    if (!title.trim()) return;
+    setAiGenerating(true);
+    window.setTimeout(() => {
+      const draft = generateJobDraft(title, level, employmentType || "Full-time", company?.location);
+      setDescription(draft.description);
+      setRequirements(draft.requirements);
+      setSkills((current) => (current.length > 0 ? current : draft.skills));
+      setSalary((current) => current || draft.salary);
+      setSalaryReason(draft.salaryReason);
+      setScreeningQuestion((current) => current || draft.screeningQuestion);
+      setEmploymentType((current) => current || draft.suggestedEmploymentType);
+      setLocation((current) => current || draft.location);
+      setWorkMode((current) => current || draft.workMode);
+      setDeadline((current) => current || draft.deadline);
+      setVisibility(draft.suggestedVisibility);
+      setTargetUniversities((current) => (current.length > 0 ? current : draft.suggestedUniversities));
+      setVisibilityReason(draft.visibilityReason);
+      setAiGenerating(false);
+      setAiGenerated(true);
+      setStage("review");
+    }, 900);
+  }
 
   const normalizedTitle = title.trim();
   const normalizedDepartment = department.trim();
   const normalizedSalary = salary.trim();
   const normalizedLocation = location.trim();
-  const normalizedEmploymentType = employmentType.trim();
   const normalizedDescription = description.trim();
   const normalizedRequirements = requirements.trim();
   const normalizedQuestion = screeningQuestion.trim();
@@ -3481,6 +3664,11 @@ function PostJobPage({
       label: "Employment type selected",
       detail: "Choose Full-time, Contract, Part-time, or Internship.",
       complete: ["Full-time", "Contract", "Part-time", "Internship"].includes(employmentType),
+    },
+    {
+      label: "Visibility scoped",
+      detail: "Choose Open to all or pick at least one collab university.",
+      complete: visibility === "open" || targetUniversities.length > 0,
     },
     {
       label: "Job description added",
@@ -3542,7 +3730,9 @@ function PostJobPage({
       salary: normalizedSalary,
       location: normalizedLocation,
       workMode,
-      employmentType: normalizedEmploymentType,
+      employmentType: (employmentType || "Full-time") as EmploymentType,
+      visibility,
+      targetUniversities,
       description: normalizedDescription,
       requirements: normalizedRequirements,
       deadline,
@@ -3553,217 +3743,2338 @@ function PostJobPage({
     });
   }
 
+  const elevated = "rounded-3xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+
+  if (stage === "basics") {
+    return (
+      <section className="mx-auto w-full max-w-4xl px-5 py-6 lg:px-8">
+        <WorkflowGuide trail={["Jobs"]} current="Post job" onBack={onBack} />
+        <PageHeader
+          eyebrow="Post job"
+          title="Start with the basics"
+          description="Give AI a title and level — it drafts the rest. You review and edit everything before it publishes."
+        />
+        <div className="mt-5 overflow-hidden rounded-3xl border border-[#F5CBD6] bg-[linear-gradient(160deg,#fff7fb_0%,#ffffff_55%,#fff7fb_100%)] p-6 shadow-[0_16px_40px_rgba(224,0,70,0.08)] sm:p-8">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-10 items-center justify-center rounded-full bg-[#E00046] text-white shadow-[0_10px_24px_rgba(224,0,70,0.28)]">
+              <Sparkles className="size-4.5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-[#B80039]">AI draft assistant</p>
+              <p className="text-xs text-zinc-500">Description, requirements, skills, salary, location, deadline, and who sees it — generated for you. Edit anything after.</p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            <Field label="Job title *">
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Senior Product Manager" className="h-11 bg-white" />
+            </Field>
+            <Field label="Department *">
+              <Input value={department} onChange={(event) => setDepartment(event.target.value)} placeholder="e.g. Product" className="h-11 bg-white" />
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="Level">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {(["Intern", "Junior", "Mid-level", "Senior", "Lead"] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setLevel(option)}
+                    className={cn(
+                      "h-10 rounded-xl text-xs font-medium ring-1 transition sm:text-sm",
+                      level === option
+                        ? "bg-[#081433] text-white ring-[#081433] shadow-md"
+                        : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                    )}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </div>
+
+          {settings.validation.duplicateTitle && duplicateTitle && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              A live job with this title already exists in this department. Use the existing post for multiple hires instead of opening a duplicate.
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Button
+              type="button"
+              disabled={!title.trim() || aiGenerating}
+              onClick={runAiGeneration}
+              className="career-pink-action h-12 flex-1 text-base text-white"
+            >
+              {aiGenerating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+              {aiGenerating ? "Generating…" : "Generate draft with AI"}
+            </Button>
+            <Button type="button" variant="outline" className="h-12 border-zinc-200 bg-white" onClick={() => setStage("review")}>
+              Skip — I&apos;ll write it myself
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-8">
-      <WorkflowGuide
-        trail={["Jobs"]}
-        current="Post job"
-        onBack={onBack}
-      />
-      <PageHeader
-        eyebrow="Post job"
-        title="Guided job creation"
-        description="Walk through basics, salary, skills, screening questions, and publish."
-      />
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <Card className="career-form-panel rounded-2xl">
-          <CardContent className="space-y-4 pt-4">
-            <StepBlock step="1" title="Job basics">
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Job title *">
-                  <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Senior Product Manager" />
-                </Field>
-                <Field label="Department *">
-                  <Input value={department} onChange={(event) => setDepartment(event.target.value)} placeholder="e.g. Product" />
-                </Field>
-              </div>
-              {settings.validation.duplicateTitle && duplicateTitle && (
-                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  A live job with this title already exists in this department. Use the existing post for multiple hires instead of opening a duplicate.
+      <WorkflowGuide trail={["Jobs"]} current="Post job" onBack={onBack} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageHeader
+          eyebrow="Post job"
+          title={title.trim() || "Review the draft"}
+          description={aiGenerated ? "AI drafted the fields below — review and edit anything before publishing." : "Fill in the role details, then publish."}
+        />
+        <button type="button" onClick={() => setStage("basics")} className="mb-6 flex items-center gap-1 text-sm font-medium text-[#B80039] hover:underline">
+          <ChevronRight className="size-4 rotate-180" />
+          Back to basics
+        </button>
+      </div>
+
+      <div className="mt-1 grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className={cn(elevated, "divide-y divide-zinc-100 p-6")}>
+          <div className="pb-6">
+            <p className="text-sm font-semibold text-[#081433]">Where, and who sees it</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <Field label="Salary range *" hint={aiGenerated && salaryReason ? salaryReason : undefined}>
+                <Input value={salary} onChange={(event) => setSalary(event.target.value)} placeholder="e.g. RM 8k-12k" />
+              </Field>
+              <Field label="Location *">
+                <Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="e.g. Kuala Lumpur" />
+              </Field>
+              <Field label="Application deadline *">
+                <Input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} />
+              </Field>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <Field label="Work mode *">
+                <div className="grid grid-cols-3 gap-2">
+                  {(["On site", "Hybrid", "Remote"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setWorkMode(mode)}
+                      className={cn(
+                        "h-10 rounded-xl text-sm font-medium ring-1 transition",
+                        workMode === mode ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                      )}
+                    >
+                      {mode}
+                    </button>
+                  ))}
                 </div>
-              )}
-              {missingDepartment && (
-                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Department is required because duplicate validation is tracked by department.
+              </Field>
+              <Field label="Employment type *">
+                <div className="grid grid-cols-2 gap-2">
+                  {(["Full-time", "Contract", "Part-time", "Internship"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setEmploymentType(type)}
+                      className={cn(
+                        "h-10 rounded-xl text-sm font-medium ring-1 transition",
+                        employmentType === type ? "bg-[#E00046] text-white ring-[#E00046]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                      )}
+                    >
+                      {type}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </StepBlock>
-            <StepBlock step="2" title="Salary / location / work mode">
-              <div className="grid gap-3 md:grid-cols-3">
-                <Field label="Salary range *">
-                  <Input value={salary} onChange={(event) => setSalary(event.target.value)} placeholder="e.g. RM 8k-12k" />
-                </Field>
-                <Field label="Location *">
-                  <Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="e.g. Kuala Lumpur" />
-                </Field>
-                <Field label="Work mode *">
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["On site", "Hybrid", "Remote"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => setWorkMode(mode)}
-                        className={cn(
-                          "h-10 rounded-xl text-sm font-medium ring-1 transition",
-                          workMode === mode
-                            ? "bg-zinc-950 text-white ring-zinc-950 shadow-lg shadow-zinc-950/10"
-                            : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
-                        )}
-                      >
-                        {mode}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
+              </Field>
+            </div>
+            {missingDepartment && (
+              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Department is required because duplicate validation is tracked by department.
               </div>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <Field label="Employment type *">
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["Full-time", "Contract", "Part-time", "Internship"] as const).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setEmploymentType(type)}
-                        className={cn(
-                          "h-10 rounded-xl text-sm font-medium ring-1 transition",
-                          employmentType === type
-                            ? "bg-pink-600 text-white ring-pink-600 shadow-lg shadow-pink-500/15"
-                            : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
-                        )}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-                <Field label="Application deadline *">
-                  <Input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} />
-                </Field>
+            )}
+
+            <div className="mt-4 flex items-center gap-1.5">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Who sees it</p>
+              {aiGenerated && visibilityReason && <AiFieldHint text={visibilityReason} />}
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              {(
+                [
+                  { value: "open" as const, label: "Public candidates", detail: "Any candidate can discover and apply.", icon: Globe2 },
+                  { value: "collab" as const, label: "Collaborating universities", detail: "Only selected partner universities can see it.", icon: GraduationCap },
+                  { value: "both" as const, label: "Public + University", detail: "Open to all, and pushed to selected universities.", icon: Sparkles },
+                ]
+              ).map((option) => {
+                const Icon = option.icon;
+                const active = visibility === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setVisibility(option.value)}
+                    className={cn(
+                      "flex items-start gap-2.5 rounded-xl border p-3 text-left transition",
+                      active ? "border-[#F5CBD6] bg-[#FFF2F6] ring-1 ring-[#F5CBD6]" : "border-zinc-200 hover:bg-zinc-50"
+                    )}
+                  >
+                    <Icon className="mt-0.5 size-4 shrink-0 text-[#B80039]" />
+                    <span>
+                      <span className="block text-sm font-semibold text-zinc-950">{option.label}</span>
+                      <span className="block text-xs text-zinc-500">{option.detail}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {!aiGenerated && title.trim() && visibility === "open" && /data|software|engineer|analytics|product|design/i.test(title) && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-[#F5CBD6] bg-[#FFF2F6] p-3 text-xs leading-5 text-[#B80039]">
+                <Sparkles className="mt-0.5 size-3.5 shrink-0" />
+                AI suggests adding collaborating universities — this title typically matches software engineering and data/analytics students well.
               </div>
-            </StepBlock>
-            <StepBlock step="3" title="Role details">
-              <div className="grid gap-3">
-                <Field label="Job description *">
-                  <textarea
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    placeholder="Summarize what this role owns and why it matters."
-                    className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
-                  />
-                </Field>
-                <Field label="Requirements *">
-                  <textarea
-                    value={requirements}
-                    onChange={(event) => setRequirements(event.target.value)}
-                    placeholder="Add experience, skills, or working style requirements."
-                    className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
-                  />
-                </Field>
-              </div>
-            </StepBlock>
-            <StepBlock step="4" title="Required skills">
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={skillInput}
-                    onChange={(event) => setSkillInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addSkill();
+            )}
+            {(visibility === "collab" || visibility === "both") && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {collabUniversities.map((uni) => {
+                  const active = targetUniversities.includes(uni);
+                  return (
+                    <button
+                      key={uni}
+                      type="button"
+                      onClick={() =>
+                        setTargetUniversities((current) =>
+                          active ? current.filter((item) => item !== uni) : [...current, uni]
+                        )
                       }
-                    }}
-                    placeholder="Add a skill, e.g. Discovery"
-                  />
-                  <Button variant="outline" type="button" onClick={addSkill}>
-                    Add
-                  </Button>
-                </div>
-                {cleanSkills.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {cleanSkills.map((skill) => (
-                      <button
-                        key={skill}
-                        type="button"
-                        onClick={() => setSkills((current) => current.filter((item) => item !== skill))}
-                        className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 transition hover:bg-pink-50 hover:text-pink-700"
-                        aria-label={`Remove ${skill}`}
-                      >
-                        {skill} <span className="text-zinc-400">×</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500">Add the core skills applicants must match.</p>
-                )}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
+                        active ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#FFF2F6]"
+                      )}
+                    >
+                      {uni}
+                    </button>
+                  );
+                })}
               </div>
-            </StepBlock>
-            <StepBlock step="5" title="Screening questions">
-              <Field label="Screening question *">
+            )}
+          </div>
+
+          <div className="py-6">
+            <p className="text-sm font-semibold text-[#081433]">Role details {aiGenerated && <span className="font-normal text-zinc-400">— AI drafted, edit freely</span>}</p>
+            <div className="mt-3 grid gap-3">
+              <Field label="Job description *">
                 <textarea
-                  value={screeningQuestion}
-                  onChange={(event) => setScreeningQuestion(event.target.value)}
-                  placeholder="Ask one question applicants should answer before review."
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Summarize what this role owns and why it matters."
                   className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
                 />
               </Field>
-            </StepBlock>
-            <StepBlock step="6" title="Reporting manager fit">
-              <div className="grid gap-3 md:grid-cols-[1fr_1.4fr]">
-                <Field label="Reports to *">
-                  <Input
-                    value={supervisorName}
-                    onChange={(event) => setSupervisorName(event.target.value)}
-                    placeholder="e.g. Sarah Lee"
-                  />
-                </Field>
-                <Field label="Manager work animal *">
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {workAnimals.map((animal) => (
-                      <button
-                        key={animal.slug}
-                        type="button"
-                        onClick={() => setSupervisorAnimal(animal.slug)}
-                        className={cn(
-                          "min-h-12 rounded-xl px-3 text-left text-sm font-medium ring-1 transition",
-                          supervisorAnimal === animal.slug
-                            ? "bg-pink-600 text-white ring-pink-600 shadow-lg shadow-pink-500/15"
-                            : "bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50"
-                        )}
-                      >
-                        <span className="mr-1">{animal.emoji}</span>
-                        {animal.name}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
+              <Field label="Requirements *">
+                <textarea
+                  value={requirements}
+                  onChange={(event) => setRequirements(event.target.value)}
+                  placeholder="Add experience, skills, or working style requirements."
+                  className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="py-6">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold text-[#081433]">Required skills</p>
+              {aiGenerated && <AiFieldHint text={`Matched from common skill patterns for "${title.trim() || "this role"}" postings — add or remove any.`} />}
+            </div>
+            <div className="mt-3 flex flex-col gap-3">
+              <div className="flex gap-2">
+                <Input
+                  value={skillInput}
+                  onChange={(event) => setSkillInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addSkill();
+                    }
+                  }}
+                  placeholder="Add a skill, e.g. Discovery"
+                />
+                <Button variant="outline" type="button" onClick={addSkill}>Add</Button>
               </div>
-              <p className="mt-3 text-sm leading-6 text-zinc-500">
-                Candidates will see how to prepare for this supervisor&apos;s working style before applying.
-              </p>
-            </StepBlock>
-            {publishAttempted && !canPublish && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                Complete the missing publish checks before publishing this job.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="career-panel-muted rounded-2xl">
-          <CardHeader>
-            <CardTitle>Publish check</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+              {cleanSkills.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {cleanSkills.map((skill) => (
+                    <button
+                      key={skill}
+                      type="button"
+                      onClick={() => setSkills((current) => current.filter((item) => item !== skill))}
+                      className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 transition hover:bg-pink-50 hover:text-pink-700"
+                      aria-label={`Remove ${skill}`}
+                    >
+                      {skill} <span className="text-zinc-400">×</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500">Add the core skills applicants must match.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="py-6">
+            <p className="text-sm font-semibold text-[#081433]">Screening question</p>
+            <div className="mt-3">
+              <textarea
+                value={screeningQuestion}
+                onChange={(event) => setScreeningQuestion(event.target.value)}
+                placeholder="Ask one question applicants should answer before review."
+                className="min-h-20 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
+              />
+            </div>
+          </div>
+
+          <div className="pt-6">
+            <p className="text-sm font-semibold text-[#081433]">Reporting manager fit</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1.4fr]">
+              <Field label="Reports to *">
+                <Input value={supervisorName} onChange={(event) => setSupervisorName(event.target.value)} placeholder="e.g. Sarah Lee" />
+              </Field>
+              <Field label="Manager work animal *">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {workAnimals.map((animal) => (
+                    <button
+                      key={animal.slug}
+                      type="button"
+                      onClick={() => setSupervisorAnimal(animal.slug)}
+                      className={cn(
+                        "min-h-12 rounded-xl px-3 text-left text-sm font-medium ring-1 transition",
+                        supervisorAnimal === animal.slug
+                          ? "bg-[#E00046] text-white ring-[#E00046] shadow-md"
+                          : "bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50"
+                      )}
+                    >
+                      <span className="mr-1">{animal.emoji}</span>
+                      {animal.name}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-zinc-500">
+              Candidates will see how to prepare for this supervisor&apos;s working style before applying.
+            </p>
+          </div>
+
+          {publishAttempted && !canPublish && (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Complete the missing publish checks before publishing this job.
+            </div>
+          )}
+        </div>
+
+        <div className={cn(elevated, "h-fit space-y-3 p-5")}>
+          <p className="text-sm font-semibold text-[#081433]">Ready to publish?</p>
+          <div className="space-y-2.5">
             {checks.map((check) => (
               <PublishCheckRow key={check.label} complete={check.complete} label={check.label} detail={check.detail} />
             ))}
-            <Button className="career-pink-action w-full text-white" disabled={!canPublish} onClick={handlePublish}>
-              <Send />
-              Publish job
+          </div>
+          <Button className="career-pink-action w-full text-white" disabled={!canPublish} onClick={handlePublish}>
+            <Send />
+            Publish job
+          </Button>
+          <Button variant="outline" className="w-full" onClick={onBack}>Back to jobs</Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const projectStatusTone: Record<ProjectStatus, string> = {
+  Draft: "bg-zinc-100 text-zinc-600 ring-zinc-200",
+  Published: "bg-sky-50 text-sky-700 ring-sky-200",
+  "Open for Interest": "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  "Team Assigned": "bg-amber-50 text-amber-800 ring-amber-200",
+  "In Progress": "bg-[#F7F4FF] text-[#5B4FCF] ring-[#E4DEFB]",
+  Submitted: "bg-cyan-50 text-cyan-700 ring-cyan-200",
+  Completed: "bg-[#FFF2F6] text-[#B80039] ring-[#F5CBD6]",
+  Closed: "bg-zinc-100 text-zinc-500 ring-zinc-200",
+};
+
+function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
+  return <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium ring-1", projectStatusTone[status])}>{status}</span>;
+}
+
+function ProjectsPage({
+  projects,
+  permissions,
+  onSelectProject,
+  onNavigate,
+}: {
+  projects: Project[];
+  permissions: (typeof rolePermissions)[CompanyRole];
+  onSelectProject: (id: number) => void;
+  onNavigate: (page: Page) => void;
+}) {
+  const published = projects.filter((project) => project.status === "Published").length;
+  const totalStudents = projects.reduce((sum, project) => sum + project.teams.reduce((teamSum, team) => teamSum + team.students.length, 0), 0);
+
+  return (
+    <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5B4FCF]">Projects</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#081433] sm:text-3xl">
+            {published} published · {totalStudents} student{totalStudents === 1 ? "" : "s"} assigned
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">Employer-posted project briefs, visible only to your collaborating universities.</p>
+        </div>
+        {permissions.canManageJobs ? (
+          <Button className="career-pink-action h-11 shrink-0 text-white" onClick={() => onNavigate("post-project")}>
+            <FilePlus2 />
+            New project
+          </Button>
+        ) : (
+          <Button className="h-11 shrink-0 border-zinc-200 bg-white text-zinc-500" variant="outline" disabled>
+            <Eye />
+            View only
+          </Button>
+        )}
+      </div>
+
+      <div className="mt-5 overflow-hidden rounded-2xl border border-[#E7E9F1] bg-white">
+        {projects.length === 0 ? (
+          <div className="p-4">
+            <EmptyState
+              icon={FolderOpen}
+              title="No projects yet"
+              description="Create a project brief for students — a hackathon, dashboard build, research task, or case study."
+              actionLabel="New project"
+              onAction={() => onNavigate("post-project")}
+            />
+          </div>
+        ) : (
+          projects.map((project) => (
+            <motion.button
+              key={project.id}
+              variants={listItemMotion}
+              initial="initial"
+              animate="animate"
+              whileTap={tactileTap}
+              onClick={() => onSelectProject(project.id)}
+              className="group flex w-full flex-col gap-2 border-b border-zinc-100 px-4 py-3.5 text-left transition-all last:border-b-0 hover:-translate-y-0.5 hover:bg-[#F9F8FF] hover:shadow-[0_8px_20px_rgba(91,79,207,0.06)] sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex min-w-0 items-start gap-3">
+                <RowIconAvatar icon={FolderOpen} tone="violet" />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <ProjectTypeChip projectType={project.projectType} />
+                    <ProjectStatusBadge status={project.status} />
+                    <h2 className="truncate text-[15px] font-semibold tracking-tight text-[#081433]">{project.title}</h2>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-zinc-500">{project.projectArea} · {project.duration}</p>
+                  <div className="mt-1">
+                    <VisibilityChip visibility={project.visibility} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-3 pl-[52px] sm:pl-0">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F7F4FF] px-2.5 py-1 text-xs font-semibold text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
+                  <UsersRound className="size-3" />
+                  {project.teams.length} team{project.teams.length === 1 ? "" : "s"}
+                </span>
+                <ChevronRight className="size-4 text-[#5B4FCF] transition group-hover:translate-x-0.5" />
+              </div>
+            </motion.button>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Horizontal lifecycle tracker for a project's 7 stages — the primary visual for the workspace hero. */
+function ProjectStageTracker({
+  status,
+  canManage,
+  onSetStatus,
+}: {
+  status: ProjectStatus;
+  canManage: boolean;
+  onSetStatus: (status: ProjectStatus) => void;
+}) {
+  const currentIndex = projectStatusOrder.indexOf(status);
+  return (
+    <div className="flex items-start">
+      {projectStatusOrder.map((stage, index) => {
+        const isDone = index < currentIndex;
+        const isCurrent = index === currentIndex;
+        return (
+          <div key={stage} className={cn("flex items-center", index < projectStatusOrder.length - 1 ? "flex-1" : "")}>
+            <button
+              type="button"
+              disabled={!canManage}
+              onClick={() => onSetStatus(stage)}
+              title={stage}
+              className="group flex shrink-0 flex-col items-center gap-1.5 disabled:cursor-not-allowed"
+            >
+              <span
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ring-2 transition",
+                  isCurrent
+                    ? "bg-[#5B4FCF] text-white ring-[#5B4FCF] shadow-[0_0_0_4px_rgba(91,79,207,0.15)]"
+                    : isDone
+                      ? "bg-[#E4DEFB] text-[#5B4FCF] ring-[#E4DEFB]"
+                      : "bg-white text-zinc-400 ring-zinc-200 group-hover:ring-zinc-300"
+                )}
+              >
+                {isDone ? <Check className="size-3.5" /> : index + 1}
+              </span>
+              <span
+                className={cn(
+                  "hidden max-w-16 text-center text-[10px] font-medium leading-tight sm:block",
+                  isCurrent ? "text-[#5B4FCF]" : isDone ? "text-zinc-500" : "text-zinc-400"
+                )}
+              >
+                {stage}
+              </span>
+            </button>
+            {index < projectStatusOrder.length - 1 && (
+              <span className={cn("mx-1.5 h-0.5 flex-1 rounded-full sm:mx-2", index < currentIndex ? "bg-[#E4DEFB]" : "bg-zinc-100")} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Vertical timeline visual plotting start date, milestones, and submission deadline as connected nodes. */
+function ProjectTimelineVisual({ project }: { project: Project }) {
+  const nodes: Array<{ label: string; date?: string; kind: "start" | "milestone" | "end" }> = [];
+  if (project.startDate) nodes.push({ label: "Project start", date: project.startDate, kind: "start" });
+  project.milestones.forEach((milestone) => nodes.push({ label: milestone.label, date: milestone.date, kind: "milestone" }));
+  if (project.submissionDate) nodes.push({ label: "Submission deadline", date: project.submissionDate, kind: "end" });
+
+  if (nodes.length === 0) {
+    return <p className="mt-3 text-sm text-zinc-500">No timeline set yet. AI can suggest a paced timeline when you regenerate the draft.</p>;
+  }
+
+  return (
+    <div className="mt-4">
+      {nodes.map((node, index) => (
+        <div key={`${node.label}-${index}`} className="relative flex gap-3 pb-6 last:pb-0">
+          {index < nodes.length - 1 && <span className="absolute left-[7px] top-4 bottom-0 w-px bg-zinc-200" />}
+          <span
+            className={cn(
+              "z-10 mt-1 flex size-3.5 shrink-0 rounded-full ring-4 ring-white",
+              node.kind === "start" ? "bg-emerald-500" : node.kind === "end" ? "bg-[#E00046]" : "bg-[#5B4FCF]"
+            )}
+          />
+          <div className="flex-1 pb-0.5">
+            <p className="text-sm font-medium text-zinc-800">{node.label}</p>
+            <p className="text-xs text-zinc-400">{node.date ? new Date(node.date).toLocaleDateString() : "No date set"}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Ongoing/project-based projects have no fixed deadline — milestones render as a togglable checklist instead of a dated timeline. */
+function ProjectMilestoneChecklist({
+  project,
+  permissions,
+  onUpdateProject,
+}: {
+  project: Project;
+  permissions: RolePermission;
+  onUpdateProject: (project: Project) => void;
+}) {
+  if (project.milestones.length === 0) {
+    return <p className="mt-3 text-sm text-zinc-500">No milestones set yet. This is an ongoing, project-based collaboration with no fixed deadline.</p>;
+  }
+
+  const doneCount = project.milestones.filter((milestone) => milestone.done).length;
+
+  function toggleMilestone(index: number) {
+    if (!permissions.canManageJobs) return;
+    const milestones = project.milestones.map((milestone, i) => (i === index ? { ...milestone, done: !milestone.done } : milestone));
+    onUpdateProject({ ...project, milestones });
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="rounded-full bg-[#F7F4FF] px-2 py-0.5 text-[11px] font-medium text-[#5B4FCF] ring-1 ring-[#E4DEFB]">Ongoing — no fixed deadline</span>
+        <span className="text-xs text-zinc-500">{doneCount}/{project.milestones.length} complete</span>
+      </div>
+      <div className="space-y-2">
+        {project.milestones.map((milestone, index) => (
+          <button
+            key={`${milestone.label}-${index}`}
+            type="button"
+            onClick={() => toggleMilestone(index)}
+            disabled={!permissions.canManageJobs}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition",
+              milestone.done ? "border-emerald-200 bg-emerald-50/70" : "border-zinc-100 bg-zinc-50/70",
+              permissions.canManageJobs ? "cursor-pointer hover:border-zinc-200" : "cursor-default"
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-5 shrink-0 items-center justify-center rounded-full ring-1",
+                milestone.done ? "bg-emerald-500 ring-emerald-500" : "bg-white ring-zinc-300"
+              )}
+            >
+              {milestone.done && <Check className="size-3 text-white" />}
+            </span>
+            <span className={cn("text-sm", milestone.done ? "text-emerald-800 line-through" : "text-zinc-700")}>{milestone.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const teamStatusTone: Record<ProjectTeamStatus, string> = {
+  Confirmed: "bg-zinc-100 text-zinc-600 ring-zinc-200",
+  "In Progress": "bg-[#F7F4FF] text-[#5B4FCF] ring-[#E4DEFB]",
+  "Draft Submitted": "bg-amber-50 text-amber-800 ring-amber-200",
+  "Final Submitted": "bg-cyan-50 text-cyan-700 ring-cyan-200",
+  Reviewed: "bg-sky-50 text-sky-700 ring-sky-200",
+  "Revision Requested": "bg-rose-50 text-rose-700 ring-rose-200",
+  Accepted: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+};
+
+const teamSubmittedStatuses: ProjectTeamStatus[] = ["Draft Submitted", "Final Submitted", "Reviewed", "Revision Requested", "Accepted"];
+
+function TeamStatusBadge({ status }: { status: ProjectTeamStatus }) {
+  return <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1", teamStatusTone[status])}>{status}</span>;
+}
+
+/** Assigned Teams — grouped by university, since one university may assign more than one team.
+ * Uses <details> for progressive disclosure so student rosters aren't all expanded by default. */
+function AssignedTeamsSection({ project }: { project: Project }) {
+  const elevated = "rounded-2xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+  const groups = project.targetUniversities.map((university) => ({
+    university,
+    teams: project.teams.filter((team) => team.university === university),
+  }));
+
+  return (
+    <div className={cn(elevated, "p-5")}>
+      <p className="text-sm font-semibold text-[#081433]">Assigned Teams</p>
+      <p className="mt-1 text-xs text-zinc-500">Grouped by collaborating university — a university may assign more than one team.</p>
+      <div className="mt-4 space-y-3">
+        {groups.map(({ university, teams }) => {
+          const studentCount = teams.reduce((sum, team) => sum + team.students.length, 0);
+          return (
+            <div key={university} className="rounded-xl border border-zinc-100 p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="size-4 text-[#5B4FCF]" />
+                  <p className="text-sm font-semibold text-zinc-900">{university}</p>
+                </div>
+                <span className="text-xs text-zinc-500">
+                  {teams.length} team{teams.length === 1 ? "" : "s"} · {studentCount} student{studentCount === 1 ? "" : "s"}
+                </span>
+              </div>
+              {teams.length === 0 ? (
+                <p className="mt-2 text-sm text-zinc-500">No team assigned yet.</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {teams.map((team) => (
+                    <details key={team.id} className="group rounded-lg bg-zinc-50/70 px-3 py-2.5">
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 text-sm">
+                        <span className="flex items-center gap-2">
+                          <ChevronRight className="size-3.5 shrink-0 text-zinc-400 transition group-open:rotate-90" />
+                          <span className="font-medium text-zinc-800">{team.name}</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs text-zinc-500">{team.students.length} student{team.students.length === 1 ? "" : "s"}</span>
+                          <TeamStatusBadge status={team.status} />
+                        </span>
+                      </summary>
+                      <div className="mt-2.5 space-y-1.5 pl-[22px]">
+                        {team.supervisor && <p className="text-xs text-zinc-500">Supervisor: {team.supervisor}</p>}
+                        <div className="space-y-1">
+                          {team.students.map((student) => (
+                            <p key={student.id} className="text-sm text-zinc-700">
+                              <span className="font-medium text-zinc-800">{student.name}</span>
+                              <span className="text-zinc-500"> — {student.program}{student.role ? ` — ${student.role}` : ""}</span>
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Team Submissions / Submission Review — tracked per team with mock files/links and Accept/Request revision actions. */
+function SubmissionReviewSection({
+  project,
+  permissions,
+  onUpdateTeamStatus,
+  onNotify,
+}: {
+  project: Project;
+  permissions: (typeof rolePermissions)[CompanyRole];
+  onUpdateTeamStatus: (teamId: number, status: ProjectTeamStatus) => void;
+  onNotify: (title: string, body?: string, tone?: ActivityTone) => void;
+}) {
+  const elevated = "rounded-2xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+
+  return (
+    <div className={cn(elevated, "p-5")}>
+      <p className="text-sm font-semibold text-[#081433]">Team Submissions</p>
+      <p className="mt-1 text-xs text-zinc-500">Tracked per team, not just at project level.</p>
+      {project.teams.length === 0 ? (
+        <p className="mt-3 text-sm text-zinc-500">No teams assigned yet — submissions will appear here once a university assigns a team.</p>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {project.teams.map((team) => {
+            const hasSubmitted = teamSubmittedStatuses.includes(team.status);
+            return (
+              <div key={team.id} className="rounded-xl border border-zinc-100 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-900">{team.name}</p>
+                    <p className="truncate text-xs text-zinc-500">{team.university}</p>
+                  </div>
+                  <TeamStatusBadge status={team.status} />
+                </div>
+                {hasSubmitted ? (
+                  <>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      Submitted {team.submittedAt ? new Date(team.submittedAt).toLocaleDateString() : "recently"}
+                      {team.submittedBy ? ` by ${team.submittedBy}` : ""}
+                    </p>
+                    {team.files.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {team.files.map((file) => (
+                          <span key={file.name} className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700">
+                            {file.kind === "link" ? <LinkIcon className="size-3" /> : <FileText className="size-3" />}
+                            {file.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {permissions.canManageJobs && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={() => onNotify("Submission opened", `Viewing ${team.name}'s submission (prototype preview).`, "violet")}>
+                          View submission
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => onNotify("Download started", "Prototype file download simulated.", "violet")}>
+                          Download files
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={team.status === "Accepted"}
+                          onClick={() => onUpdateTeamStatus(team.id, "Revision Requested")}
+                        >
+                          Request revision
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="career-pink-action text-white"
+                          disabled={team.status === "Accepted"}
+                          onClick={() => onUpdateTeamStatus(team.id, "Accepted")}
+                        >
+                          Accept submission
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-2 text-xs text-zinc-500">
+                    {team.status === "Confirmed" ? "Not yet started." : "In progress — not submitted yet."}
+                    {" "}Expected submission: {team.expectedSubmissionDate ? new Date(team.expectedSubmissionDate).toLocaleDateString() : "Not set"}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const projectOutcomeOptions: Array<{ value: ProjectFeedback["finalOutcome"]; label: string }> = [
+  { value: "", label: "Not set" },
+  { value: "Successful", label: "Successful" },
+  { value: "Partially successful", label: "Partially successful" },
+  { value: "Needs follow-up", label: "Needs follow-up" },
+];
+
+/** Employer Feedback — recorded at the project level (what worked well / needs improvement / final comments / outcome). */
+function EmployerFeedbackSection({
+  project,
+  permissions,
+  onSaveFeedback,
+}: {
+  project: Project;
+  permissions: (typeof rolePermissions)[CompanyRole];
+  onSaveFeedback: (feedback: ProjectFeedback) => void;
+}) {
+  const elevated = "rounded-2xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+  const [whatWorkedWell, setWhatWorkedWell] = useState(project.feedback?.whatWorkedWell ?? "");
+  const [whatNeedsImprovement, setWhatNeedsImprovement] = useState(project.feedback?.whatNeedsImprovement ?? "");
+  const [finalComments, setFinalComments] = useState(project.feedback?.finalComments ?? "");
+  const [finalOutcome, setFinalOutcome] = useState<ProjectFeedback["finalOutcome"]>(project.feedback?.finalOutcome ?? "");
+
+  return (
+    <div className={cn(elevated, "p-5")}>
+      <p className="text-sm font-semibold text-[#081433]">Employer Feedback</p>
+      <p className="mt-1 text-xs text-zinc-500">Record how this project went — visible only inside your workspace.</p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <Field label="What worked well">
+          <textarea
+            value={whatWorkedWell}
+            onChange={(event) => setWhatWorkedWell(event.target.value)}
+            disabled={!permissions.canManageJobs}
+            placeholder="e.g. Strong dashboard storytelling and clear funnel visualisation."
+            className="min-h-20 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100 disabled:bg-zinc-50"
+          />
+        </Field>
+        <Field label="What needs improvement">
+          <textarea
+            value={whatNeedsImprovement}
+            onChange={(event) => setWhatNeedsImprovement(event.target.value)}
+            disabled={!permissions.canManageJobs}
+            placeholder="e.g. Improve filter controls and add clearer explanation for non-technical users."
+            className="min-h-20 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100 disabled:bg-zinc-50"
+          />
+        </Field>
+      </div>
+      <div className="mt-3">
+        <Field label="Final comments">
+          <textarea
+            value={finalComments}
+            onChange={(event) => setFinalComments(event.target.value)}
+            disabled={!permissions.canManageJobs}
+            placeholder="Any closing notes for this collaboration."
+            className="min-h-16 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100 disabled:bg-zinc-50"
+          />
+        </Field>
+      </div>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+        <Field label="Final outcome">
+          <div className="flex flex-wrap gap-2">
+            {projectOutcomeOptions.map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                disabled={!permissions.canManageJobs}
+                onClick={() => setFinalOutcome(option.value)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
+                  finalOutcome === option.value ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+        {permissions.canManageJobs && (
+          <Button
+            className="career-pink-action text-white"
+            onClick={() => onSaveFeedback({ whatWorkedWell, whatNeedsImprovement, finalComments, finalOutcome })}
+          >
+            Save feedback
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Draft is the only stage where the brief is directly editable — once published, teams may already be
+ * looking at it, so the brief locks and only status/teams/submissions/feedback change from there. */
+function ProjectDraftEditor({
+  project,
+  permissions,
+  onSave,
+  onPublish,
+}: {
+  project: Project;
+  permissions: (typeof rolePermissions)[CompanyRole];
+  onSave: (updates: Partial<Project>) => void;
+  onPublish: (updates: Partial<Project>) => void;
+}) {
+  const elevated = "rounded-2xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+  const canEdit = permissions.canManageJobs;
+
+  const [title, setTitle] = useState(project.title);
+  const [projectArea, setProjectArea] = useState(project.projectArea);
+  const [projectType, setProjectType] = useState(project.projectType);
+  const [duration, setDuration] = useState(project.duration);
+  const [goal, setGoal] = useState(project.goal);
+  const [description, setDescription] = useState(project.description ?? "");
+  const [targetUniversities, setTargetUniversities] = useState<CollabUniversity[]>(project.targetUniversities);
+  const [targetAudience, setTargetAudience] = useState<string[]>(project.targetAudience);
+  const [skillInput, setSkillInput] = useState("");
+  const [skills, setSkills] = useState<string[]>(project.skills);
+  const [toolInput, setToolInput] = useState("");
+  const [tools, setTools] = useState<string[]>(project.tools);
+  const [deliverables, setDeliverables] = useState<string[]>(project.deliverables);
+  const [difficulty, setDifficulty] = useState<ProjectDifficulty>(project.difficulty);
+  const [teamSize, setTeamSize] = useState(project.teamSize ?? "");
+  const [timelineMode, setTimelineMode] = useState<ProjectTimelineMode>(project.timelineMode);
+  const [startDate, setStartDate] = useState(project.startDate ?? "");
+  const [submissionDate, setSubmissionDate] = useState(project.submissionDate ?? "");
+  const [milestones, setMilestones] = useState<ProjectMilestone[]>(project.milestones);
+  const [milestoneLabelInput, setMilestoneLabelInput] = useState("");
+  const [milestoneDateInput, setMilestoneDateInput] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [publishAttempted, setPublishAttempted] = useState(false);
+
+  function toggle<T>(list: T[], setList: (value: T[]) => void, value: T) {
+    setSaved(false);
+    setList(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  }
+
+  function addSkill() {
+    const next = skillInput.trim();
+    if (!next || skills.includes(next)) { setSkillInput(""); return; }
+    setSaved(false);
+    setSkills((current) => [...current, next]);
+    setSkillInput("");
+  }
+
+  function addTool() {
+    const next = toolInput.trim();
+    if (!next || tools.includes(next)) { setToolInput(""); return; }
+    setSaved(false);
+    setTools((current) => [...current, next]);
+    setToolInput("");
+  }
+
+  function addMilestone() {
+    const label = milestoneLabelInput.trim();
+    if (!label) return;
+    setSaved(false);
+    setMilestones((current) => [
+      ...current,
+      timelineMode === "fixed" ? { label, date: milestoneDateInput || undefined } : { label, done: false },
+    ]);
+    setMilestoneLabelInput("");
+    setMilestoneDateInput("");
+  }
+
+  function removeMilestone(index: number) {
+    setSaved(false);
+    setMilestones((current) => current.filter((_, i) => i !== index));
+  }
+
+  function buildUpdates(): Partial<Project> {
+    return {
+      title: title.trim(),
+      projectArea: projectArea.trim(),
+      projectType: projectType.trim(),
+      duration: duration.trim() || "Flexible",
+      goal: goal.trim(),
+      description: description.trim(),
+      targetUniversities,
+      targetAudience,
+      skills,
+      tools,
+      deliverables,
+      difficulty,
+      teamSize: teamSize.trim() || undefined,
+      timelineMode,
+      startDate: timelineMode === "fixed" ? (startDate || undefined) : undefined,
+      submissionDate: timelineMode === "fixed" ? (submissionDate || undefined) : undefined,
+      milestones,
+    };
+  }
+
+  const normalizedTitle = title.trim();
+  const visibilityComplete = targetUniversities.length > 0;
+  const canPublish = canEdit && normalizedTitle.length > 0 && projectArea.trim().length > 0 && projectType.trim().length > 0 && visibilityComplete;
+
+  return (
+    <div className={cn(elevated, "p-5 sm:p-6")}>
+      <div className="flex items-center gap-2">
+        <PenLine className="size-4 text-[#5B4FCF]" />
+        <p className="text-sm font-semibold text-[#081433]">Editing draft</p>
+      </div>
+      <p className="mt-1 text-xs text-zinc-500">
+        This brief is only editable while in Draft — once published, it locks so assigned teams always see a stable brief.
+      </p>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <Field label="Project title *">
+          <Input value={title} onChange={(event) => { setSaved(false); setTitle(event.target.value); }} disabled={!canEdit} />
+        </Field>
+        <Field label="Duration">
+          <Input value={duration} onChange={(event) => { setSaved(false); setDuration(event.target.value); }} disabled={!canEdit} placeholder="e.g. 2 weeks" />
+        </Field>
+      </div>
+
+      <div className="mt-3">
+        <Field label="Project area *">
+          <div className="flex flex-wrap gap-1.5">
+            {projectAreas.map((area) => (
+              <button
+                key={area}
+                type="button"
+                disabled={!canEdit}
+                onClick={() => { setSaved(false); setProjectArea(area); }}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition disabled:cursor-not-allowed",
+                  projectArea === area ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
+                )}
+              >
+                {area}
+              </button>
+            ))}
+          </div>
+        </Field>
+      </div>
+
+      <div className="mt-3">
+        <Field label="Project type *">
+          <div className="flex flex-wrap gap-1.5">
+            {projectTypes.map((type) => (
+              <button
+                key={type}
+                type="button"
+                disabled={!canEdit}
+                onClick={() => { setSaved(false); setProjectType(type); }}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
+                  projectType === type ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
+                )}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </Field>
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        <Field label="Short project goal">
+          <textarea
+            value={goal}
+            onChange={(event) => { setSaved(false); setGoal(event.target.value); }}
+            disabled={!canEdit}
+            className="min-h-16 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100 disabled:bg-zinc-50"
+          />
+        </Field>
+        <Field label="Full description">
+          <textarea
+            value={description}
+            onChange={(event) => { setSaved(false); setDescription(event.target.value); }}
+            disabled={!canEdit}
+            className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100 disabled:bg-zinc-50"
+          />
+        </Field>
+      </div>
+
+      <div className="mt-5 border-t border-zinc-100 pt-4">
+        <p className="text-sm font-semibold text-[#081433]">Who sees it</p>
+        <p className="mt-1 text-xs text-zinc-500">Projects are only visible to collaborating universities — never public candidates.</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {collabUniversities.map((uni) => {
+            const active = targetUniversities.includes(uni);
+            return (
+              <button
+                key={uni}
+                type="button"
+                disabled={!canEdit}
+                onClick={() => toggle(targetUniversities, setTargetUniversities, uni)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
+                  active ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
+                )}
+              >
+                {uni}
+              </button>
+            );
+          })}
+        </div>
+        {publishAttempted && !visibilityComplete && <p className="mt-2 text-xs text-amber-700">Select at least one university before publishing.</p>}
+        <div className="mt-3">
+          <Field label="Target audience">
+            <div className="flex flex-wrap gap-2">
+              {projectAudiences.map((audience) => {
+                const active = targetAudience.includes(audience);
+                return (
+                  <button
+                    key={audience}
+                    type="button"
+                    disabled={!canEdit}
+                    onClick={() => toggle(targetAudience, setTargetAudience, audience)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
+                      active ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                    )}
+                  >
+                    {audience}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-zinc-100 pt-4">
+        <p className="text-sm font-semibold text-[#081433]">Skills, tools &amp; deliverables</p>
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="flex gap-2">
+            <Input
+              value={skillInput}
+              onChange={(event) => setSkillInput(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addSkill(); } }}
+              disabled={!canEdit}
+              placeholder="Add a skill"
+            />
+            <Button variant="outline" type="button" onClick={addSkill} disabled={!canEdit}>Add</Button>
+          </div>
+          {skills.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {skills.map((skill) => (
+                <button key={skill} type="button" disabled={!canEdit} onClick={() => { setSaved(false); setSkills((current) => current.filter((item) => item !== skill)); }} className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 hover:bg-violet-50 hover:text-violet-700 disabled:cursor-not-allowed">
+                  {skill} <span className="text-zinc-400">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="flex gap-2">
+            <Input
+              value={toolInput}
+              onChange={(event) => setToolInput(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTool(); } }}
+              disabled={!canEdit}
+              placeholder="Add a tool"
+            />
+            <Button variant="outline" type="button" onClick={addTool} disabled={!canEdit}>Add</Button>
+          </div>
+          {tools.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {tools.map((tool) => (
+                <button key={tool} type="button" disabled={!canEdit} onClick={() => { setSaved(false); setTools((current) => current.filter((item) => item !== tool)); }} className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 hover:bg-violet-50 hover:text-violet-700 disabled:cursor-not-allowed">
+                  {tool} <span className="text-zinc-400">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="mt-3">
+          <Field label="Expected deliverables">
+            <div className="flex flex-wrap gap-2">
+              {projectDeliverables.map((item) => {
+                const active = deliverables.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    disabled={!canEdit}
+                    onClick={() => toggle(deliverables, setDeliverables, item)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
+                      active ? "bg-emerald-600 text-white ring-emerald-600" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-emerald-50"
+                    )}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <Field label="Difficulty">
+            <div className="grid grid-cols-3 gap-2">
+              {(["Beginner", "Intermediate", "Advanced"] as const).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  disabled={!canEdit}
+                  onClick={() => { setSaved(false); setDifficulty(level); }}
+                  className={cn(
+                    "h-10 rounded-xl text-xs font-medium ring-1 transition disabled:cursor-not-allowed sm:text-sm",
+                    difficulty === level ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                  )}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Team size (optional)">
+            <Input value={teamSize} onChange={(event) => { setSaved(false); setTeamSize(event.target.value); }} disabled={!canEdit} placeholder="e.g. 3-4 students" />
+          </Field>
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-zinc-100 pt-4">
+        <p className="text-sm font-semibold text-[#081433]">Timeline</p>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:w-96">
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => { setSaved(false); setTimelineMode("fixed"); }}
+            className={cn(
+              "rounded-xl px-3 py-2 text-left text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
+              timelineMode === "fixed" ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+            )}
+          >
+            <span className="block font-semibold">Fixed deadline</span>
+            <span className={cn("block", timelineMode === "fixed" ? "text-white/70" : "text-zinc-400")}>e.g. a hackathon or sprint</span>
+          </button>
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => { setSaved(false); setTimelineMode("ongoing"); }}
+            className={cn(
+              "rounded-xl px-3 py-2 text-left text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
+              timelineMode === "ongoing" ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+            )}
+          >
+            <span className="block font-semibold">Ongoing / project-based</span>
+            <span className={cn("block", timelineMode === "ongoing" ? "text-white/70" : "text-zinc-400")}>No fixed deadline</span>
+          </button>
+        </div>
+
+        {timelineMode === "fixed" ? (
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <Field label="Project start date">
+              <Input type="date" value={startDate} onChange={(event) => { setSaved(false); setStartDate(event.target.value); }} disabled={!canEdit} />
+            </Field>
+            <Field label="Submission / deadline date">
+              <Input type="date" value={submissionDate} onChange={(event) => { setSaved(false); setSubmissionDate(event.target.value); }} disabled={!canEdit} />
+            </Field>
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-zinc-500">No fixed submission deadline. Milestones below act as a checklist instead of dated checkpoints.</p>
+        )}
+
+        <div className="mt-3">
+          <Field label={timelineMode === "fixed" ? "Milestones / checkpoints" : "Milestones / checklist"}>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                value={milestoneLabelInput}
+                onChange={(event) => setMilestoneLabelInput(event.target.value)}
+                placeholder="e.g. Working draft review"
+                disabled={!canEdit}
+                className="sm:flex-1"
+              />
+              {timelineMode === "fixed" && (
+                <Input type="date" value={milestoneDateInput} onChange={(event) => setMilestoneDateInput(event.target.value)} disabled={!canEdit} className="sm:w-44" />
+              )}
+              <Button variant="outline" type="button" onClick={addMilestone} disabled={!canEdit}>Add</Button>
+            </div>
+            {milestones.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {milestones.map((milestone, index) => (
+                  <div key={`${milestone.label}-${index}`} className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-zinc-500 ring-1 ring-zinc-200">{index + 1}</span>
+                    <span className="flex-1">{milestone.label}</span>
+                    {milestone.date && <span className="text-xs text-zinc-400">{new Date(milestone.date).toLocaleDateString()}</span>}
+                    <button type="button" disabled={!canEdit} onClick={() => removeMilestone(index)} className="text-zinc-400 hover:text-zinc-600 disabled:cursor-not-allowed">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Field>
+        </div>
+      </div>
+
+      {publishAttempted && !canPublish && (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Complete the title, project area, project type, and at least one university before publishing.
+        </div>
+      )}
+
+      {canEdit && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
+          <Button
+            variant="outline"
+            onClick={() => { onSave(buildUpdates()); setSaved(true); }}
+          >
+            {saved ? <Check className="size-4" /> : null}
+            {saved ? "Saved" : "Save changes"}
+          </Button>
+          <Button
+            className="career-pink-action text-white"
+            disabled={!canPublish}
+            onClick={() => { setPublishAttempted(true); if (!canPublish) return; onPublish(buildUpdates()); }}
+          >
+            <Send />
+            Publish project
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function nextStageActionLabel(next: ProjectStatus): string {
+  switch (next) {
+    case "Team Assigned":
+      return "Mark Team Assigned";
+    case "In Progress":
+      return "Start Project";
+    case "Submitted":
+      return "Mark Submitted";
+    case "Completed":
+      return "Mark Completed";
+    case "Closed":
+      return "Close Project";
+    default:
+      return `Advance to ${next}`;
+  }
+}
+
+function ProjectDetailPage({
+  project,
+  permissions,
+  onBack,
+  onNavigate,
+  onNotify,
+  onUpdateProject,
+}: {
+  project?: Project;
+  permissions: (typeof rolePermissions)[CompanyRole];
+  onBack: () => void;
+  onNavigate: (page: Page) => void;
+  onNotify: (title: string, body?: string, tone?: ActivityTone) => void;
+  onUpdateProject: (project: Project) => void;
+}) {
+  if (!project) {
+    return (
+      <section className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-8">
+        <EmptyState icon={FolderOpen} title="No project selected" description="Choose a project from the list." actionLabel="Back to projects" onAction={onBack} />
+      </section>
+    );
+  }
+
+  function setStatus(next: ProjectStatus) {
+    if (next === project!.status) return;
+    onUpdateProject({ ...project!, status: next });
+    onNotify("Project status updated", `${project!.title} is now ${next}.`, "violet");
+  }
+
+  function updateTeamStatus(teamId: number, status: ProjectTeamStatus) {
+    const team = project!.teams.find((t) => t.id === teamId);
+    onUpdateProject({
+      ...project!,
+      teams: project!.teams.map((t) => (t.id === teamId ? { ...t, status } : t)),
+    });
+    if (team) {
+      onNotify(
+        status === "Accepted" ? "Submission accepted" : "Revision requested",
+        `${team.name}'s submission was marked ${status}.`,
+        status === "Accepted" ? "emerald" : "amber"
+      );
+    }
+  }
+
+  function saveFeedback(feedback: ProjectFeedback) {
+    onUpdateProject({ ...project!, feedback });
+    onNotify("Feedback saved", "Employer feedback was updated for this project.", "emerald");
+  }
+
+  function saveDraft(updates: Partial<Project>) {
+    onUpdateProject({ ...project!, ...updates });
+    onNotify("Draft saved", `${updates.title || project!.title} was updated.`, "violet");
+  }
+
+  function publishDraft(updates: Partial<Project>) {
+    onUpdateProject({ ...project!, ...updates, status: "Published" });
+    onNotify("Project published", `${updates.title || project!.title} is now visible to selected universities.`, "emerald");
+  }
+
+  const elevated = "rounded-2xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+  const currentIndex = projectStatusOrder.indexOf(project.status);
+  const nextStatus = projectStatusOrder[currentIndex + 1];
+  const prevStatus = currentIndex > 0 ? projectStatusOrder[currentIndex - 1] : undefined;
+  const isDraft = project.status === "Draft";
+  const teamsUnlocked = currentIndex >= projectStatusOrder.indexOf("Team Assigned");
+  const feedbackUnlocked = currentIndex >= projectStatusOrder.indexOf("Submitted");
+
+  const teamCount = project.teams.length;
+  const studentCount = project.teams.reduce((sum, team) => sum + team.students.length, 0);
+  const submissionsReceived = project.teams.filter((team) => teamSubmittedStatuses.includes(team.status)).length;
+  const submissionsAccepted = project.teams.filter((team) => team.status === "Accepted").length;
+
+  return (
+    <section className="mx-auto w-full max-w-6xl px-5 py-6 lg:px-8">
+      <WorkflowGuide trail={["Projects"]} current="Project workspace" onBack={onBack} onNavigate={onNavigate} />
+
+      {/* 1. Project Header */}
+      <div className={cn(elevated, "overflow-hidden")}>
+        <div className="h-1.5 bg-[linear-gradient(90deg,#5B4FCF,#8A7FEA)]" />
+        <div className="p-5 sm:p-7">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <ProjectTypeChip projectType={project.projectType} />
+            <Badge className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200">{project.difficulty}</Badge>
+          </div>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#081433] md:text-3xl">{project.title}</h1>
+          <p className="mt-2 text-sm text-zinc-500">
+            {project.projectArea} · {project.duration}{project.teamSize ? ` · Expected team size ${project.teamSize}` : ""}
+          </p>
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-zinc-600">{project.description || project.goal}</p>
+
+          {/* 2. Project Stage Tracker */}
+          <div className="mt-6 border-t border-zinc-100 pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Project stage</p>
+              <ProjectStatusBadge status={project.status} />
+            </div>
+            <div className="mt-4">
+              <ProjectStageTracker status={project.status} canManage={permissions.canManageJobs} onSetStatus={setStatus} />
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {nextStatus && (
+                <Button
+                  type="button"
+                  disabled={!permissions.canManageJobs}
+                  onClick={() => setStatus(nextStatus)}
+                  className="career-pink-action h-9 text-sm text-white"
+                >
+                  {nextStageActionLabel(nextStatus)}
+                  <ChevronRight className="size-4" />
+                </Button>
+              )}
+              {prevStatus && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!permissions.canManageJobs}
+                  onClick={() => setStatus(prevStatus)}
+                  className="h-9 text-sm"
+                >
+                  Move back to {prevStatus}
+                </Button>
+              )}
+              {!nextStatus && <p className="text-xs text-zinc-500">This project has reached its final stage.</p>}
+            </div>
+            {project.status === "In Progress" && teamCount > 0 && submissionsAccepted < teamCount && (
+              <p className="mt-3 text-xs text-zinc-500">Move to Completed once all required team submissions are accepted, or close the project manually.</p>
+            )}
+          </div>
+
+          {/* Project summary stats */}
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-5 sm:grid-cols-5">
+            <MiniStat label="Universities" value={String(project.targetUniversities.length)} />
+            <MiniStat label="Teams assigned" value={String(teamCount)} />
+            <MiniStat label="Students" value={String(studentCount)} />
+            <MiniStat label="Submissions received" value={`${submissionsReceived} / ${teamCount || 0}`} />
+            <MiniStat label="Submissions accepted" value={`${submissionsAccepted} / ${teamCount || 0}`} />
+          </div>
+        </div>
+      </div>
+
+      {isDraft ? (
+        /* Draft: the brief is directly editable here — locks once published */
+        <div className="mt-4">
+          <ProjectDraftEditor project={project} permissions={permissions} onSave={saveDraft} onPublish={publishDraft} />
+        </div>
+      ) : (
+        <>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {/* 3. Project Brief Summary */}
+            <div className={cn(elevated, "p-5")}>
+              <p className="text-sm font-semibold text-[#081433]">Project brief</p>
+              <div className="mt-3 space-y-3">
+                {project.skills.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Required skills</p>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {project.skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                {project.tools.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Tools</p>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {project.tools.map((tool) => <Badge key={tool} className="bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200">{tool}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                {project.deliverables.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Expected deliverables</p>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {project.deliverables.map((item) => (
+                        <Badge key={item} className="gap-1 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                          <Check className="size-3" />
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 4. Visibility & Audience */}
+            <div className={cn(elevated, "p-5")}>
+              <p className="text-sm font-semibold text-[#081433]">Visibility &amp; audience</p>
+              <div className="mt-2 flex items-center gap-1.5">
+                <VisibilityChip visibility={project.visibility} />
+              </div>
+              <p className="mt-1 text-xs text-zinc-500">Visibility: Collaborating universities only.</p>
+              {project.targetUniversities.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Visible to</p>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {project.targetUniversities.map((uni) => (
+                      <Badge key={uni} className="gap-1 bg-[#F7F4FF] text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
+                        <GraduationCap className="size-3" />
+                        {uni}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {project.targetAudience.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Target student groups</p>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {project.targetAudience.map((audience) => (
+                      <Badge key={audience} variant="secondary">{audience}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-zinc-100 bg-zinc-50/70 px-3 py-2.5 text-xs leading-5 text-zinc-500">
+                <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-zinc-400" />
+                Not visible in public candidate search.
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Milestones / Timeline */}
+          <div className={cn(elevated, "mt-4 p-5")}>
+            <p className="text-sm font-semibold text-[#081433]">Timeline</p>
+            {project.timelineMode === "ongoing" ? (
+              <ProjectMilestoneChecklist project={project} permissions={permissions} onUpdateProject={onUpdateProject} />
+            ) : (
+              <ProjectTimelineVisual project={project} />
+            )}
+          </div>
+
+          {/* 5. Assigned Teams — only once a university could plausibly have assigned one */}
+          {teamsUnlocked ? (
+            <div className="mt-4">
+              <AssignedTeamsSection project={project} />
+            </div>
+          ) : (
+            <div className={cn(elevated, "mt-4 p-5")}>
+              <p className="text-sm font-semibold text-[#081433]">Assigned Teams</p>
+              <p className="mt-2 text-sm text-zinc-500">
+                No teams yet — this project is at &quot;{project.status}&quot;. Teams appear here once a university assigns one and the project reaches &quot;Team Assigned&quot;.
+              </p>
+            </div>
+          )}
+
+          {/* 7. Team Submissions / Submission Review */}
+          {teamsUnlocked && (
+            <div className="mt-4">
+              <SubmissionReviewSection project={project} permissions={permissions} onUpdateTeamStatus={updateTeamStatus} onNotify={onNotify} />
+            </div>
+          )}
+
+          {/* 8. Employer Feedback — relevant once there's something to review */}
+          {feedbackUnlocked && (
+            <div className="mt-4">
+              <EmployerFeedbackSection project={project} permissions={permissions} onSaveFeedback={saveFeedback} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 9. AI Insight — stage-aware, comes last */}
+      <div className={cn(elevated, "mt-4 overflow-hidden")}>
+        <div className="flex items-center gap-2 border-b border-zinc-100 bg-[#FAFAFF] px-5 py-3">
+          <span className="flex size-7 items-center justify-center rounded-full bg-[#5B4FCF] text-white">
+            <Sparkles className="size-3.5" />
+          </span>
+          <p className="text-sm font-semibold text-[#081433]">AI insight</p>
+        </div>
+        <div className="divide-y divide-zinc-100">
+          {projectAiInsights(project).map((insight, index) => (
+            <div key={index} className="flex items-start gap-2.5 px-5 py-3 text-sm leading-5 text-zinc-700">
+              <Sparkles className="mt-0.5 size-3.5 shrink-0 text-[#5B4FCF]" />
+              <span>{insight}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Workspace-level AI insight — stage-aware, and grounded in real team/submission data rather than templates. */
+function projectAiInsights(project: Project): string[] {
+  const insights: string[] = [];
+  const teams = project.teams;
+  const universityCount = project.targetUniversities.length;
+  const universitiesWithTeams = new Set(teams.map((team) => team.university)).size;
+
+  if (universityCount === 0) {
+    insights.push(
+      "No collaborating universities selected yet — add at least one so a university can assign a student team. Projects are only visible to universities, never public candidates."
+    );
+  }
+
+  switch (project.status) {
+    case "Draft":
+      insights.push(
+        `This project is suitable for collaborating universities only because it requires supervised student team coordination${project.projectArea ? ` in ${project.projectArea}` : ""}.`
+      );
+      if (project.deliverables.length === 0) {
+        insights.push("No deliverables set yet — students respond better when they know exactly what to submit.");
+      }
+      break;
+    case "Published":
+      insights.push(
+        `Published to ${universityCount} collaborating universit${universityCount === 1 ? "y" : "ies"} — no teams assigned yet. Move to "Open for Interest" once universities can start proposing teams.`
+      );
+      break;
+    case "Open for Interest":
+      insights.push(
+        teams.length === 0
+          ? "No teams assigned yet. A sharper project goal or a shorter first milestone often helps a university commit a team faster."
+          : `${teams.length} team${teams.length === 1 ? "" : "s"} assigned across ${universitiesWithTeams} universit${universitiesWithTeams === 1 ? "y" : "ies"} so far.`
+      );
+      break;
+    case "Team Assigned":
+    case "In Progress": {
+      if (teams.length > 0) {
+        const submitted = teams.filter((team) => teamSubmittedStatuses.includes(team.status));
+        const inProgress = teams.filter((team) => !teamSubmittedStatuses.includes(team.status));
+        insights.push(
+          `${teams.length} team${teams.length === 1 ? " is" : "s are"} assigned across ${universitiesWithTeams} universit${universitiesWithTeams === 1 ? "y" : "ies"}. ${
+            submitted.length > 0
+              ? `${submitted.length} team${submitted.length === 1 ? " has" : "s have"} submitted deliverables, while ${inProgress.length} ${inProgress.length === 1 ? "is" : "are"} still in progress.`
+              : "No team has submitted yet."
+          }`
+        );
+        const readyTeam = teams.find((team) => team.status === "Final Submitted");
+        const laggingTeam = teams.find((team) => team.status === "Confirmed" || team.status === "In Progress");
+        if (readyTeam && laggingTeam) {
+          insights.push(`${readyTeam.name} is ready for employer review. ${laggingTeam.name} has not submitted yet.`);
+        }
+        if (project.deliverables.length > 0) {
+          insights.push(
+            `The current submission should include ${project.deliverables.join(" and ").toLowerCase()} before the employer marks the project completed.`
+          );
+        }
+        const programCounts = new Map<string, number>();
+        teams.forEach((team) => team.students.forEach((student) => programCounts.set(student.program, (programCounts.get(student.program) ?? 0) + 1)));
+        const programs = [...programCounts.entries()].sort((a, b) => b[1] - a[1]);
+        if (programs.length > 2) {
+          const [topProgram] = programs[0];
+          const [rareProgram, rareCount] = programs[programs.length - 1];
+          if (rareCount === 1) {
+            insights.push(`Most teams include ${topProgram} students, but only one team includes a ${rareProgram} student, which may affect implementation depth.`);
+          }
+        }
+      } else {
+        insights.push("No teams assigned yet — this project can't move forward until at least one university commits a team.");
+      }
+      break;
+    }
+    case "Submitted": {
+      const accepted = teams.filter((team) => team.status === "Accepted").length;
+      insights.push(
+        `The project is ready to move into review once final deliverables are submitted. ${accepted}/${teams.length || 0} team submission${teams.length === 1 ? "" : "s"} accepted so far.`
+      );
+      break;
+    }
+    case "Completed":
+    case "Closed":
+      insights.push(`${teams.filter((team) => team.status === "Accepted").length} of ${teams.length} team submissions were accepted for this collaboration.`);
+      break;
+  }
+
+  if (insights.length === 0) {
+    insights.push("This brief looks complete and well-targeted — no urgent AI recommendations right now.");
+  }
+  return insights.slice(0, 4);
+}
+
+function parseDurationWeeks(duration: string): number {
+  const weekMatch = duration.match(/(\d+)\s*week/i);
+  if (weekMatch) return Math.max(1, parseInt(weekMatch[1], 10));
+  const dayMatch = duration.match(/(\d+)\s*day/i);
+  if (dayMatch) return Math.max(1, Math.round(parseInt(dayMatch[1], 10) / 7));
+  const monthMatch = duration.match(/(\d+)\s*month/i);
+  if (monthMatch) return Math.max(1, parseInt(monthMatch[1], 10) * 4);
+  return 3;
+}
+
+function addDays(base: Date, days: number): string {
+  const next = new Date(base);
+  next.setDate(next.getDate() + days);
+  return next.toISOString().slice(0, 10);
+}
+
+const projectAreaLibrary: Array<{
+  match: RegExp;
+  skills: string[];
+  tools: string[];
+  deliverables: string[];
+  audience: string[];
+  universities: CollabUniversity[];
+  difficulty: ProjectDifficulty;
+  teamSize: string;
+}> = [
+  {
+    match: /data|analy/i,
+    skills: ["Data analysis", "Data visualization", "Dashboard storytelling"],
+    tools: ["Power BI", "Excel"],
+    deliverables: ["Dashboard prototype", "Presentation slides"],
+    audience: ["Data Analytics students", "Business students"],
+    universities: ["Asia Pacific University", "Sunway University"],
+    difficulty: "Intermediate",
+    teamSize: "3-4 students",
+  },
+  {
+    match: /software|engineer|develop|web|automation|cyber/i,
+    skills: ["System design", "Prototyping", "Code review"],
+    tools: ["GitHub", "VS Code"],
+    deliverables: ["GitHub repository", "Automation workflow demo"],
+    audience: ["Software Engineering students"],
+    universities: ["Asia Pacific University", "Swinburne University of Technology Sarawak Campus"],
+    difficulty: "Advanced",
+    teamSize: "2-3 students",
+  },
+  {
+    match: /design|ux|ui/i,
+    skills: ["User research", "Prototyping", "Design systems"],
+    tools: ["Figma"],
+    deliverables: ["Figma prototype", "Presentation slides"],
+    audience: ["UI/UX students"],
+    universities: ["Taylor's University", "Sunway University"],
+    difficulty: "Intermediate",
+    teamSize: "2-3 students",
+  },
+  {
+    match: /market|brand|communicat/i,
+    skills: ["Brand audit", "Research", "Presentation"],
+    tools: [],
+    deliverables: ["Report", "Presentation slides"],
+    audience: ["Marketing students"],
+    universities: ["Taylor's University", "INTI International University"],
+    difficulty: "Beginner",
+    teamSize: "3-4 students",
+  },
+  {
+    match: /business|finance|account/i,
+    skills: ["Market analysis", "Financial modelling", "Reporting"],
+    tools: ["Excel"],
+    deliverables: ["Report", "Presentation slides"],
+    audience: ["Business students"],
+    universities: ["Sunway University", "INTI International University"],
+    difficulty: "Intermediate",
+    teamSize: "3-4 students",
+  },
+];
+
+/** Generates a full project draft — description, skills, tools, deliverables, timeline, audience, and
+ * university suggestions — from minimal input (title + project area/type + rough duration). */
+function generateProjectDraft(title: string, projectArea: string, projectType: string, duration?: string) {
+  const cleanTitle = title.trim() || "this project";
+  const combined = `${cleanTitle} ${projectArea} ${projectType}`.toLowerCase();
+  const matched = projectAreaLibrary.find((entry) => entry.match.test(combined)) ?? {
+    skills: ["Problem framing", "Research", "Presentation"],
+    tools: [] as string[],
+    deliverables: ["Report", "Presentation slides"],
+    audience: ["Open to all suitable students"],
+    universities: ["Taylor's University", "Asia Pacific University"] as CollabUniversity[],
+    difficulty: "Intermediate" as ProjectDifficulty,
+    teamSize: "3-4 students",
+  };
+
+  const suggestedDuration = duration && duration.trim() ? duration.trim() : "3 weeks";
+  const weeks = parseDurationWeeks(suggestedDuration);
+  const totalDays = weeks * 7;
+  const startDate = addDays(new Date(), 7);
+  const submissionDate = addDays(new Date(startDate), totalDays);
+  const midDate = addDays(new Date(startDate), Math.round(totalDays / 2));
+  const milestones: ProjectMilestone[] = [
+    { label: "Kickoff and problem framing", date: startDate },
+    { label: "Working draft review", date: midDate },
+    { label: "Final submission and walkthrough", date: submissionDate },
+  ];
+  const audienceLabel = matched.audience.join(" and ").replace(" students", "").toLowerCase();
+
+  return {
+    description: `Students will apply ${matched.skills.join(", ").toLowerCase()} to ${cleanTitle.toLowerCase()}, working from a real brief with employer feedback checkpoints along the way. A strong submission includes ${matched.deliverables.join(" and ").toLowerCase()}.`,
+    duration: suggestedDuration,
+    skills: matched.skills,
+    skillsReason: `Matched from common skill sets for ${projectArea || "this"} briefs — add or remove any.`,
+    tools: matched.tools,
+    deliverables: matched.deliverables,
+    difficulty: matched.difficulty,
+    difficultyReason: `Set to ${matched.difficulty} based on the scope typical for ${projectType || "this project type"} briefs.`,
+    teamSize: matched.teamSize,
+    startDate,
+    submissionDate,
+    milestones,
+    timelineReason: `Paced across ${suggestedDuration} — a kickoff, a midpoint review, and a final walkthrough.`,
+    suggestedAudience: matched.audience,
+    suggestedUniversities: matched.universities,
+    visibilityReason: `CareerOS suggests ${matched.universities.join(" and ")} because this project matches ${audienceLabel} student profiles.`,
+  };
+}
+
+function PostProjectPage({
+  projects,
+  permissions,
+  onBack,
+  onPublish,
+}: {
+  projects: Project[];
+  permissions: (typeof rolePermissions)[CompanyRole];
+  onBack: () => void;
+  onPublish: (project: Project) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [projectArea, setProjectArea] = useState("");
+  const [projectType, setProjectType] = useState("");
+  const [duration, setDuration] = useState("");
+  const [goal, setGoal] = useState("");
+  const [description, setDescription] = useState("");
+  const [targetUniversities, setTargetUniversities] = useState<CollabUniversity[]>([]);
+  const [targetAudience, setTargetAudience] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [toolInput, setToolInput] = useState("");
+  const [tools, setTools] = useState<string[]>([]);
+  const [deliverables, setDeliverables] = useState<string[]>([]);
+  const [difficulty, setDifficulty] = useState<ProjectDifficulty>("Intermediate");
+  const [teamSize, setTeamSize] = useState("");
+  const [timelineMode, setTimelineMode] = useState<ProjectTimelineMode>("fixed");
+  const [startDate, setStartDate] = useState("");
+  const [submissionDate, setSubmissionDate] = useState("");
+  const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
+  const [milestoneLabelInput, setMilestoneLabelInput] = useState("");
+  const [milestoneDateInput, setMilestoneDateInput] = useState("");
+  const [publishAttempted, setPublishAttempted] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [skillsReason, setSkillsReason] = useState("");
+  const [difficultyReason, setDifficultyReason] = useState("");
+  const [timelineReason, setTimelineReason] = useState("");
+  const [visibilityReason, setVisibilityReason] = useState("");
+  const [stage, setStage] = useState<"basics" | "review">("basics");
+
+  function toggle<T>(list: T[], setList: (value: T[]) => void, value: T) {
+    setList(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  }
+
+  function addSkill() {
+    const next = skillInput.trim();
+    if (!next || skills.includes(next)) { setSkillInput(""); return; }
+    setSkills((current) => [...current, next]);
+    setSkillInput("");
+  }
+
+  function addTool() {
+    const next = toolInput.trim();
+    if (!next || tools.includes(next)) { setToolInput(""); return; }
+    setTools((current) => [...current, next]);
+    setToolInput("");
+  }
+
+  function addMilestone() {
+    const label = milestoneLabelInput.trim();
+    if (!label) return;
+    setMilestones((current) => [
+      ...current,
+      timelineMode === "fixed" ? { label, date: milestoneDateInput || undefined } : { label, done: false },
+    ]);
+    setMilestoneLabelInput("");
+    setMilestoneDateInput("");
+  }
+
+  function removeMilestone(index: number) {
+    setMilestones((current) => current.filter((_, i) => i !== index));
+  }
+
+  function runAiGeneration() {
+    if (!title.trim()) return;
+    setAiGenerating(true);
+    window.setTimeout(() => {
+      const draft = generateProjectDraft(title, projectArea, projectType, duration);
+      setDescription(draft.description);
+      setDuration((current) => current || draft.duration);
+      setSkills(draft.skills);
+      setSkillsReason(draft.skillsReason);
+      setTools(draft.tools);
+      setDeliverables(draft.deliverables);
+      setDifficulty(draft.difficulty);
+      setDifficultyReason(draft.difficultyReason);
+      setTeamSize(draft.teamSize);
+      if (timelineMode === "fixed") {
+        setStartDate(draft.startDate);
+        setSubmissionDate(draft.submissionDate);
+        setMilestones(draft.milestones);
+        setTimelineReason(draft.timelineReason);
+      } else {
+        setMilestones(draft.milestones.map((milestone) => ({ label: milestone.label, done: false })));
+      }
+      setTargetAudience(draft.suggestedAudience);
+      setTargetUniversities(draft.suggestedUniversities);
+      setVisibilityReason(draft.visibilityReason);
+      setAiGenerating(false);
+      setAiGenerated(true);
+      setStage("review");
+    }, 900);
+  }
+
+  const normalizedTitle = title.trim();
+  const visibilityComplete = targetUniversities.length > 0;
+  const checks = [
+    { label: "Title added", detail: "Add a clear project title.", complete: normalizedTitle.length > 0 },
+    { label: "Project area added", detail: "e.g. Data Analytics, UI/UX Design.", complete: projectArea.trim().length > 0 },
+    { label: "Project type selected", detail: "e.g. Hackathon, Dashboard project.", complete: projectType.trim().length > 0 },
+    { label: "At least one university selected", detail: "Required — projects are university-only.", complete: visibilityComplete },
+    { label: "Description added", detail: "Describe what students will work on.", complete: description.trim().length >= 20 },
+    { label: "Skills added", detail: "Add at least one required skill.", complete: skills.length > 0 },
+    { label: "Deliverables added", detail: "Add at least one expected deliverable.", complete: deliverables.length > 0 },
+  ];
+  const canPublish = permissions.canManageJobs && checks.every((check) => check.complete);
+
+  function buildProject(status: ProjectStatus): Project {
+    return {
+      id: projects.length > 0 ? Math.max(...projects.map((project) => project.id)) + 1 : 1,
+      title: normalizedTitle,
+      projectArea: projectArea.trim(),
+      projectType: projectType.trim(),
+      duration: duration.trim() || "Flexible",
+      goal: goal.trim(),
+      description: description.trim(),
+      visibility: "collab",
+      targetUniversities,
+      targetAudience,
+      skills,
+      tools,
+      deliverables,
+      difficulty,
+      teamSize: teamSize.trim() || undefined,
+      timelineMode,
+      startDate: timelineMode === "fixed" ? (startDate || undefined) : undefined,
+      submissionDate: timelineMode === "fixed" ? (submissionDate || undefined) : undefined,
+      milestones,
+      status,
+      createdAt: new Date().toISOString(),
+      teams: [],
+    };
+  }
+
+  function handlePublish() {
+    setPublishAttempted(true);
+    if (!canPublish) return;
+    onPublish(buildProject("Published"));
+  }
+
+  function handleSaveDraft() {
+    if (!normalizedTitle) return;
+    onPublish(buildProject("Draft"));
+  }
+
+  const elevated = "rounded-3xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
+  const basicsComplete = normalizedTitle.length > 0 && projectArea.trim().length > 0 && projectType.trim().length > 0;
+
+  if (stage === "basics") {
+    return (
+      <section className="mx-auto w-full max-w-4xl px-5 py-6 lg:px-8">
+        <WorkflowGuide trail={["Projects"]} current="New project" onBack={onBack} />
+        <PageHeader
+          eyebrow="New project"
+          title="Start with the basics"
+          description="Give AI a title, project area, and type — it drafts everything else. You review and edit before publishing."
+        />
+        <div className="mt-5 overflow-hidden rounded-3xl border border-[#E4DEFB] bg-[linear-gradient(160deg,#f9f8ff_0%,#ffffff_55%,#f9f8ff_100%)] p-6 shadow-[0_16px_40px_rgba(91,79,207,0.08)] sm:p-8">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-10 items-center justify-center rounded-full bg-[#5B4FCF] text-white shadow-[0_10px_24px_rgba(91,79,207,0.28)]">
+              <Sparkles className="size-4.5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-[#5B4FCF]">AI draft assistant</p>
+              <p className="text-xs text-zinc-500">Description, skills, deliverables, timeline, and which universities to target — generated for you. Edit anything after.</p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            <Field label="Project title *">
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Hiring Funnel Visualization Sprint" className="h-11 bg-white" />
+            </Field>
+            <Field label="Duration (optional)">
+              <Input value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="e.g. 2 weeks" className="h-11 bg-white" />
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="Project area *">
+              <div className="flex flex-wrap gap-1.5">
+                {projectAreas.map((area) => (
+                  <button
+                    key={area}
+                    type="button"
+                    onClick={() => setProjectArea(area)}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition",
+                      projectArea === area ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
+                    )}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="Project type *">
+              <div className="flex flex-wrap gap-1.5">
+                {projectTypes.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setProjectType(type)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
+                      projectType === type ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
+                    )}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Button
+              type="button"
+              disabled={!basicsComplete || aiGenerating}
+              onClick={runAiGeneration}
+              className="h-12 flex-1 bg-[#5B4FCF] text-base text-white hover:bg-[#4b41ac]"
+            >
+              {aiGenerating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+              {aiGenerating ? "Generating…" : "Generate draft with AI"}
             </Button>
-            <Button variant="outline" className="w-full" onClick={onBack}>Back to jobs</Button>
-          </CardContent>
-        </Card>
+            <Button type="button" variant="outline" className="h-12 border-zinc-200 bg-white" onClick={() => setStage("review")}>
+              Skip — I&apos;ll write it myself
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-8">
+      <WorkflowGuide trail={["Projects"]} current="New project" onBack={onBack} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageHeader
+          eyebrow="New project"
+          title={title.trim() || "Review the draft"}
+          description={aiGenerated ? "AI drafted the fields below — review and edit anything before publishing." : "Fill in the project details, then publish."}
+        />
+        <button type="button" onClick={() => setStage("basics")} className="mb-6 flex items-center gap-1 text-sm font-medium text-[#5B4FCF] hover:underline">
+          <ChevronRight className="size-4 rotate-180" />
+          Back to basics
+        </button>
+      </div>
+
+      <div className="mt-1 grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className={cn(elevated, "divide-y divide-zinc-100 p-6")}>
+          <div className="pb-6">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold text-[#081433]">Who sees it</p>
+              {aiGenerated && visibilityReason && <AiFieldHint text={visibilityReason} />}
+            </div>
+            <div className="mt-2 flex items-start gap-2.5 rounded-xl border border-[#E4DEFB] bg-[#F9F8FF] p-3 text-xs leading-5 text-[#5B4FCF]">
+              <GraduationCap className="mt-0.5 size-4 shrink-0" />
+              Projects are only visible to your collaborating universities — candidates never see projects.
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {collabUniversities.map((uni) => {
+                const active = targetUniversities.includes(uni);
+                return (
+                  <button
+                    key={uni}
+                    type="button"
+                    onClick={() => toggle(targetUniversities, setTargetUniversities, uni)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
+                      active ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
+                    )}
+                  >
+                    {uni}
+                  </button>
+                );
+              })}
+            </div>
+            {publishAttempted && !visibilityComplete && (
+              <p className="mt-2 text-xs text-amber-700">Select at least one university.</p>
+            )}
+            <div className="mt-4">
+              <Field label="Target audience">
+                <div className="flex flex-wrap gap-2">
+                  {projectAudiences.map((audience) => {
+                    const active = targetAudience.includes(audience);
+                    return (
+                      <button
+                        key={audience}
+                        type="button"
+                        onClick={() => toggle(targetAudience, setTargetAudience, audience)}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
+                          active ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                        )}
+                      >
+                        {audience}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          <div className="py-6">
+            <p className="text-sm font-semibold text-[#081433]">Project details {aiGenerated && <span className="font-normal text-zinc-400">— AI drafted, edit freely</span>}</p>
+            <div className="mt-3 grid gap-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Duration">
+                  <Input value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="e.g. 2 weeks" />
+                </Field>
+                <Field label="Team size (optional)">
+                  <Input value={teamSize} onChange={(event) => setTeamSize(event.target.value)} placeholder="e.g. 3-4 students" />
+                </Field>
+              </div>
+              <Field label="Short project goal">
+                <textarea
+                  value={goal}
+                  onChange={(event) => setGoal(event.target.value)}
+                  placeholder="One line students see first."
+                  className="min-h-16 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                />
+              </Field>
+              <Field label="Full description *">
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="What will students work on, and what does success look like?"
+                  className="min-h-24 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="py-6">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold text-[#081433]">Skills, tools &amp; deliverables</p>
+              {aiGenerated && skillsReason && <AiFieldHint text={skillsReason} />}
+            </div>
+            <div className="mt-3 flex flex-col gap-3">
+              <div className="flex gap-2">
+                <Input
+                  value={skillInput}
+                  onChange={(event) => setSkillInput(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addSkill(); } }}
+                  placeholder="Add a skill, e.g. Data visualisation"
+                />
+                <Button variant="outline" type="button" onClick={addSkill}>Add</Button>
+              </div>
+              {skills.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill) => (
+                    <button key={skill} type="button" onClick={() => setSkills((current) => current.filter((item) => item !== skill))} className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 hover:bg-violet-50 hover:text-violet-700">
+                      {skill} <span className="text-zinc-400">×</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500">Add the core skills students must match.</p>
+              )}
+            </div>
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="flex gap-2">
+                <Input
+                  value={toolInput}
+                  onChange={(event) => setToolInput(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTool(); } }}
+                  placeholder="Add a tool, e.g. Power BI"
+                />
+                <Button variant="outline" type="button" onClick={addTool}>Add</Button>
+              </div>
+              {tools.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {tools.map((tool) => (
+                    <button key={tool} type="button" onClick={() => setTools((current) => current.filter((item) => item !== tool))} className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 hover:bg-violet-50 hover:text-violet-700">
+                      {tool} <span className="text-zinc-400">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mt-4">
+              <Field label="Expected deliverables">
+                <div className="flex flex-wrap gap-2">
+                  {projectDeliverables.map((item) => {
+                    const active = deliverables.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => toggle(deliverables, setDeliverables, item)}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
+                          active ? "bg-emerald-600 text-white ring-emerald-600" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-emerald-50"
+                        )}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+            <div className="mt-4">
+              <Field label="Difficulty" hint={aiGenerated && difficultyReason ? difficultyReason : undefined}>
+                <div className="grid grid-cols-3 gap-2 sm:w-72">
+                  {(["Beginner", "Intermediate", "Advanced"] as const).map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setDifficulty(level)}
+                      className={cn(
+                        "h-10 rounded-xl text-xs font-medium ring-1 transition sm:text-sm",
+                        difficulty === level ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                      )}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          <div className="pt-6">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold text-[#081433]">Timeline</p>
+              {aiGenerated && timelineReason && timelineMode === "fixed" && <AiFieldHint text={timelineReason} />}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:w-96">
+              <button
+                type="button"
+                onClick={() => setTimelineMode("fixed")}
+                className={cn(
+                  "rounded-xl px-3 py-2 text-left text-xs font-medium ring-1 transition",
+                  timelineMode === "fixed" ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                )}
+              >
+                <span className="block font-semibold">Fixed deadline</span>
+                <span className={cn("block", timelineMode === "fixed" ? "text-white/70" : "text-zinc-400")}>e.g. a hackathon or sprint</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimelineMode("ongoing")}
+                className={cn(
+                  "rounded-xl px-3 py-2 text-left text-xs font-medium ring-1 transition",
+                  timelineMode === "ongoing" ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                )}
+              >
+                <span className="block font-semibold">Ongoing / project-based</span>
+                <span className={cn("block", timelineMode === "ongoing" ? "text-white/70" : "text-zinc-400")}>No fixed deadline</span>
+              </button>
+            </div>
+
+            {timelineMode === "fixed" ? (
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <Field label="Project start date">
+                  <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+                </Field>
+                <Field label="Submission / deadline date">
+                  <Input type="date" value={submissionDate} onChange={(event) => setSubmissionDate(event.target.value)} />
+                </Field>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-zinc-500">This project has no fixed submission deadline. Milestones below become a simple checklist instead of dated checkpoints.</p>
+            )}
+
+            <div className="mt-3">
+              <Field label={timelineMode === "fixed" ? "Milestones / checkpoints" : "Milestones / checklist"}>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={milestoneLabelInput}
+                    onChange={(event) => setMilestoneLabelInput(event.target.value)}
+                    placeholder="e.g. Working draft review"
+                    className="sm:flex-1"
+                  />
+                  {timelineMode === "fixed" && (
+                    <Input
+                      type="date"
+                      value={milestoneDateInput}
+                      onChange={(event) => setMilestoneDateInput(event.target.value)}
+                      className="sm:w-44"
+                    />
+                  )}
+                  <Button variant="outline" type="button" onClick={addMilestone}>Add</Button>
+                </div>
+                {milestones.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    {milestones.map((milestone, index) => (
+                      <div key={`${milestone.label}-${index}`} className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-zinc-500 ring-1 ring-zinc-200">{index + 1}</span>
+                        <span className="flex-1">{milestone.label}</span>
+                        {milestone.date && <span className="text-xs text-zinc-400">{new Date(milestone.date).toLocaleDateString()}</span>}
+                        <button type="button" onClick={() => removeMilestone(index)} className="text-zinc-400 hover:text-zinc-600">×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Field>
+            </div>
+          </div>
+
+          {publishAttempted && !canPublish && (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Complete the missing publish checks before publishing this project.
+            </div>
+          )}
+        </div>
+
+        <div className={cn(elevated, "h-fit space-y-3 p-5")}>
+          <p className="text-sm font-semibold text-[#081433]">Ready to publish?</p>
+          <div className="space-y-2.5">
+            {checks.map((check) => (
+              <PublishCheckRow key={check.label} complete={check.complete} label={check.label} detail={check.detail} />
+            ))}
+          </div>
+          <Button className="career-pink-action w-full text-white" disabled={!canPublish} onClick={handlePublish}>
+            <Send />
+            Publish project
+          </Button>
+          <Button variant="outline" className="w-full" onClick={handleSaveDraft} disabled={!normalizedTitle}>Save draft</Button>
+          <Button variant="outline" className="w-full" onClick={onBack}>Back to projects</Button>
+        </div>
       </div>
     </section>
   );
@@ -5532,12 +7843,15 @@ function CompanyNav({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const activeSection =
-    active === "job-detail" || active === "candidates" || active === "candidate-profile" || active === "shortlist" || active === "invite" || active === "hire-email"
+    active === "job-detail" || active === "candidates" || active === "candidate-profile" || active === "shortlist" || active === "invite" || active === "hire-email" || active === "post-job"
       ? "jobs"
-      : active;
+      : active === "project-detail" || active === "post-project"
+        ? "projects"
+        : active;
   const navIcon = {
     dashboard: BriefcaseBusiness,
     jobs: ClipboardList,
+    projects: FolderOpen,
     team: UsersRound,
     profile: Building2,
     settings: ShieldCheck,
@@ -6209,6 +8523,20 @@ function CompactMetric({ value, label }: { value: string; label: string }) {
   );
 }
 
+/** Small colored icon avatar used to give list rows (Jobs, Projects) visual identity instead of plain text rows. */
+function RowIconAvatar({ icon: Icon, tone }: { icon: React.ElementType; tone: "navy" | "amber" | "violet" }) {
+  const toneStyles: Record<typeof tone, string> = {
+    navy: "bg-[#081433] text-white",
+    amber: "bg-amber-100 text-amber-700",
+    violet: "bg-[#F0ECFF] text-[#5B4FCF]",
+  };
+  return (
+    <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", toneStyles[tone])}>
+      <Icon className="size-4.5" />
+    </span>
+  );
+}
+
 function AnimatedProgress({
   value,
   className,
@@ -6316,10 +8644,26 @@ function ScoreBar({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** Small "i" icon with a hover tooltip — used to justify an AI-generated value (e.g. why this salary, why this university). */
+function AiFieldHint({ text }: { text: string }) {
+  return (
+    <span className="group/hint relative inline-flex align-middle">
+      <Info className="size-3.5 cursor-help text-zinc-400 transition hover:text-[#5B4FCF]" />
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-lg bg-[#081433] px-3 py-2 text-[11px] font-normal leading-4 text-white opacity-0 shadow-lg transition group-hover/hint:opacity-100">
+        {text}
+        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[#081433]" />
+      </span>
+    </span>
+  );
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
+      <span className="inline-flex items-center gap-1.5">
+        {label}
+        {hint && <AiFieldHint text={hint} />}
+      </span>
       {children}
     </label>
   );
@@ -6515,6 +8859,58 @@ function StatusBadge({ status }: { status: JobStatus }) {
   }[status];
 
   return <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium ring-1", tone)}>{status}</span>;
+}
+
+/* ── Employer-only CareerOS visual tokens (navy ink / rose accent) ──
+   Scoped to this file so candidate & university pages are untouched.
+   Used inline as Tailwind arbitrary values (#081433 ink, #E00046/#B80039 rose, #E7E9F1 border). */
+
+/** Opportunity type — derived from existing employmentType / project format, no schema change. */
+function OpportunityTypeChip({ kind }: { kind: "Job role" | "Internship" | "Project" | "Collaboration" }) {
+  const style: Record<typeof kind, { tone: string; icon: React.ElementType }> = {
+    "Job role": { tone: "bg-[#081433] text-white ring-[#081433]", icon: BriefcaseBusiness },
+    Internship: { tone: "bg-amber-50 text-amber-800 ring-amber-200", icon: GraduationCap },
+    Project: { tone: "bg-[#F7F4FF] text-[#5B4FCF] ring-[#E4DEFB]", icon: FolderOpen },
+    Collaboration: { tone: "bg-[#F7F4FF] text-[#5B4FCF] ring-[#E4DEFB]", icon: UsersRound },
+  } as const;
+  const { tone, icon: Icon } = style[kind];
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1", tone)}>
+      <Icon className="size-3" />
+      {kind}
+    </span>
+  );
+}
+
+function jobOpportunityKind(job: Job): "Job role" | "Internship" {
+  return job.employmentType === "Internship" ? "Internship" : "Job role";
+}
+
+/** Projects show their own free-text projectType label directly instead of forcing it into the Job taxonomy. */
+function ProjectTypeChip({ projectType }: { projectType: string }) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#F7F4FF] px-2 py-0.5 text-[11px] font-semibold text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
+      <FolderOpen className="size-3" />
+      {projectType}
+    </span>
+  );
+}
+
+const visibilityChipStyles: Record<JobVisibility, { label: string; tone: string; icon: React.ElementType }> = {
+  open: { label: "Public candidates", tone: "bg-zinc-50 text-zinc-700 ring-zinc-200", icon: Globe2 },
+  collab: { label: "Collaborating universities", tone: "bg-[#F7F4FF] text-[#5B4FCF] ring-[#E4DEFB]", icon: GraduationCap },
+  both: { label: "Public + University", tone: "bg-[#FFF2F6] text-[#B80039] ring-[#F5CBD6]", icon: Sparkles },
+};
+
+/** Clean visibility chip: who can currently see this opportunity. */
+function VisibilityChip({ visibility }: { visibility: JobVisibility }) {
+  const { label, tone, icon: Icon } = visibilityChipStyles[visibility];
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1", tone)}>
+      <Icon className="size-3" />
+      {label}
+    </span>
+  );
 }
 
 function CandidateLabel({ label }: { label: string }) {
