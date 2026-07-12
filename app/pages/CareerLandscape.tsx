@@ -224,40 +224,49 @@ function TrajectoryCard({
               </p>
             </div>
 
-            <ol>
-            {trajectory.steps.map(([label, value], index) => (
-              <li
-                className="relative grid min-w-0 grid-cols-[42px_minmax(0,1fr)] gap-3 pb-8 last:pb-0"
-                key={`${trajectory.title}-${label}`}
-              >
-                {index < trajectory.steps.length - 1 && (
-                  <span className="absolute bottom-2 left-5 top-10 w-px bg-[#F5CBD6]" aria-hidden />
-                )}
-                <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border bg-white text-xs font-black text-[#E00046] shadow-sm" style={{ borderColor: index < 2 ? theme.rose2 : theme.line }}>
-                  {String(index + 1).padStart(2, "0")}
-                </div>
-                <div
-                  className={`min-w-0 rounded-xl px-3 py-2.5 shadow-sm ring-1 ${
-                    index < 2
-                      ? "bg-white ring-[#F5CBD6]"
-                      : "bg-white/80 ring-[#EEF0F5]"
-                  }`}
+            <ol className="space-y-2">
+              {trajectory.steps.map(([label, value], index) => (
+                <li
+                  className="grid min-w-0 grid-cols-[42px_minmax(0,1fr)] gap-x-3"
+                  key={`${trajectory.title}-${label}`}
                 >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#E00046]">
-                    {label}
-                  </p>
-                  <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#081433]">
-                    {value}
-                  </p>
-                  {index < progressionNotes.length && (
-                    <div className="absolute bottom-2 left-[52px] flex items-center gap-2 text-[11px] font-semibold text-[#667085]">
-                      <span className="h-px w-5 bg-[#F5CBD6]" aria-hidden />
-                      {progressionNotes[index]}
+                  <div className="flex flex-col items-center">
+                    <div
+                      className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border bg-white text-xs font-black text-[#E00046] shadow-sm"
+                      style={{ borderColor: index < 2 ? theme.rose2 : theme.line }}
+                    >
+                      {String(index + 1).padStart(2, "0")}
                     </div>
-                  )}
-                </div>
-              </li>
-            ))}
+                    {index < trajectory.steps.length - 1 && (
+                      <span className="my-1 h-8 w-px bg-[#F5CBD6]" aria-hidden />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 pb-2">
+                    <div
+                      className={`min-w-0 rounded-xl px-3 py-2.5 shadow-sm ring-1 ${
+                        index < 2
+                          ? "bg-white ring-[#F5CBD6]"
+                          : "bg-white/80 ring-[#EEF0F5]"
+                      }`}
+                    >
+                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#E00046]">
+                        {label}
+                      </p>
+                      <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#081433]">
+                        {value}
+                      </p>
+                    </div>
+
+                    {index < progressionNotes.length && (
+                      <div className="mt-2 flex items-center gap-2 rounded-full bg-[#FFF2F6] px-3 py-1.5 text-[11px] font-semibold text-[#667085]">
+                        <span className="h-px w-5 bg-[#F5CBD6]" aria-hidden />
+                        {progressionNotes[index]}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
             </ol>
           </div>
 
