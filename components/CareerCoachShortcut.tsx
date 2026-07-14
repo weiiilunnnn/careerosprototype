@@ -11,7 +11,6 @@ const hiddenViews = [
   "signup",
   "forgot-password",
   "onboarding",
-  "employer-onboarding",
   "ai-career-coach",
 ];
 
