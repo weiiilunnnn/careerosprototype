@@ -5,8 +5,12 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
+  BriefcaseBusiness,
+  Building2,
   CheckCircle2,
+  Clock3,
   MapPin,
+  MessageSquareText,
   Search,
   ShieldCheck,
   Sparkles,
@@ -15,8 +19,9 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { companyProfiles } from "@/lib/companyProfileData";
+import { companyProfiles, type PublicCompanyProfile } from "@/lib/companyProfileData";
 import CompanyLogo from "@/components/CompanyLogo";
+import { getWorkAnimal } from "@/lib/workAnimals";
 import PublicUniversityProfile from "../university/PublicUniversityProfile";
 import { defaultUniversityProfile, type UniversityProfileData } from "../university/universityProfileData";
 
@@ -47,7 +52,6 @@ type CompareOpportunity = {
   nextMove: string;
   evidence: string;
   aiVerdict: string;
-  href?: string;
 };
 
 type PlannerSetup = {
@@ -273,7 +277,6 @@ const employers: CompareOpportunity[] = [
     nextMove: index === 0 ? "Prioritise applications after strengthening data storytelling." : "Ask AI Coach to tailor your portfolio to this company.",
     evidence: company.description,
     aiVerdict: index === 0 ? "Best near-term fit for a candidate who wants structured growth and stable hiring signals." : "Relevant if the candidate wants practical responsibility and faster project exposure.",
-    href: "/?view=company-profile",
   })),
   {
       id: "microsoft",
@@ -296,7 +299,6 @@ const employers: CompareOpportunity[] = [
       nextMove: "Treat as a long-term target while building technical proof.",
       evidence: "Enterprise cloud, AI engineering, and regional digital transformation work.",
       aiVerdict: "Highest long-term ceiling, but the candidate needs stronger technical evidence before it becomes realistic.",
-      href: "/?view=company-profile",
     },
     {
       id: "grab",
@@ -320,7 +322,6 @@ const employers: CompareOpportunity[] = [
       nextMove: "Use your past relationship to target a focused return pathway.",
       evidence: "Past employee signal, operations context, analytics-friendly roles.",
       aiVerdict: "Strong growth option if the candidate can show product thinking and operating speed.",
-      href: "/?view=company-profile",
     },
     {
       id: "maybank",
@@ -344,7 +345,6 @@ const employers: CompareOpportunity[] = [
       nextMove: "Convert current employee status into internal mobility proof.",
       evidence: "Current employee signal, strong access, structured analytics roles.",
       aiVerdict: "Best immediate option because the candidate already has access and a credible domain pathway.",
-      href: "/?view=company-profile",
     },
     {
       id: "shopee",
@@ -367,7 +367,6 @@ const employers: CompareOpportunity[] = [
       nextMove: "Build one commercial analytics project before applying.",
       evidence: "Regional marketplace exposure and performance-driven roles.",
       aiVerdict: "Good growth option if the candidate wants commercial speed and can prove analytics impact.",
-      href: "/?view=company-profile",
     },
 ];
 
@@ -859,6 +858,77 @@ function buildPublicUniversityProfile(item: CompareOpportunity): UniversityProfi
   };
 }
 
+function buildPublicEmployerProfile(item: CompareOpportunity): PublicCompanyProfile {
+  const existingProfile = Object.values(companyProfiles).find(
+    (company) => company.name.toLowerCase() === item.name.toLowerCase()
+  );
+
+  if (existingProfile) return existingProfile;
+
+  const roleTitles = item.rolePath
+    .split(",")
+    .map((role) => role.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  return {
+    slug: item.id,
+    name: item.name,
+    initials: item.initials,
+    industry: item.type,
+    location: item.location,
+    size: item.audience,
+    founded: item.id === "microsoft" ? "1975" : item.id === "grab" ? "2012" : item.id === "maybank" ? "1960" : "2015",
+    tier: item.tier,
+    verified: true,
+    description: item.strength,
+    mission: `Create strong ${item.rolePath.split(",")[0].toLowerCase()} pathways through practical work, team learning, and measurable candidate growth.`,
+    hiringScore: item.fit,
+    responseRate: item.access,
+    averageReply: item.access >= 85 ? "2.0 days" : "3.4 days",
+    hiredThroughCareerOS: Math.max(12, Math.round(item.network / 2)),
+    interviewClarity: item.growth,
+    teamTraits: [
+      { slug: "owl", label: "Analytical decision makers", percent: 34 },
+      { slug: "fox", label: "Strategic problem solvers", percent: 26 },
+      { slug: "dolphin", label: "Collaborative communicators", percent: 22 },
+      { slug: "ant", label: "Structured operators", percent: 18 },
+    ],
+    workStyle: [
+      { label: "Decision pace", value: item.id === "grab" || item.id === "shopee" ? "Fast, experiment-led" : "Structured and evidence-led" },
+      { label: "Communication", value: "Clear updates, concise proof, and direct follow-through" },
+      { label: "Team rhythm", value: item.id === "microsoft" ? "Cross-functional planning and technical reviews" : "Weekly goals with role-specific checkpoints" },
+      { label: "Best fit", value: item.bestFor },
+    ],
+    hiringProcess: [
+      { step: "Profile screen", detail: "CareerOS Living Portfolio, role evidence, and target-fit signals are reviewed first." },
+      { step: "Hiring conversation", detail: `A focused discussion on ${item.rolePath.split(",")[0].trim()} readiness, motivation, and team fit.` },
+      { step: "Practical assessment", detail: getScreeningPrep(item.rolePath, item.name).summary },
+      { step: "Decision and feedback", detail: "Candidate outcome and next-step guidance are shared after the hiring team review." },
+    ],
+    openRoles: roleTitles.map((role, index) => ({
+      title: role,
+      location: item.location,
+      workMode: index === 0 ? "Hybrid" : "On-site / Hybrid",
+      salary: index === 0 ? "Market-aligned graduate package" : "Depends on role and experience",
+      match: Math.max(65, item.fit - index * 5),
+    })),
+    proofPoints: [
+      item.evidence,
+      item.aiVerdict,
+      `CareerOS detected ${item.matchType.toLowerCase()} for candidates preparing for ${item.rolePath}.`,
+    ],
+  };
+}
+
+function getEmployerBannerImage(profile: PublicCompanyProfile) {
+  if (profile.slug === "maybank" || profile.name.toLowerCase() === "maybank") {
+    return "https://focusmalaysia.my/wp-content/uploads/WhatsApp-Image-2025-09-30-at-13.16.42.jpeg";
+  }
+
+  return "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=80";
+}
+
 function UniversityLogo({ item, size = "md" }: { item: CompareOpportunity; size?: "sm" | "md" }) {
   const styles: Record<string, { background: string; color: string; border: string; label: string }> = {
     taylors: { background: "#ffffff", color: "#E00046", border: "#F5CBD6", label: "T" },
@@ -930,6 +1000,264 @@ function StatusBadges({ item }: { item: CompareOpportunity }) {
   );
 }
 
+function PublicEmployerProfile({
+  profile,
+  onBack,
+}: {
+  profile: PublicCompanyProfile;
+  onBack: () => void;
+}) {
+  return (
+    <main className="min-h-full rounded-[1.5rem] bg-[radial-gradient(circle_at_82%_0%,rgba(224,0,70,0.08),transparent_28rem),linear-gradient(180deg,#fff_0%,#fbfaff_34%,#f7f8fb_100%)] text-[#070a17]">
+      <div className="mx-auto max-w-[1100px] px-4 py-8 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-xl font-extrabold tracking-normal text-black">
+            Career<span className="text-[#f0185b]">OS</span>
+          </div>
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-full border border-[#e6e8f1] bg-white px-3.5 py-1.5 text-xs font-bold text-[#34415e] shadow-sm transition hover:bg-[#fff7fb]"
+          >
+            Back to Planner
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-5">
+          <section
+            aria-label={`${profile.name} workplace`}
+            role="img"
+            className="relative h-56 overflow-hidden rounded-[24px] bg-[#eef0f6] bg-cover bg-center shadow-[0_20px_55px_rgba(15,23,42,0.1)] md:h-64"
+            style={{ backgroundImage: `url(${getEmployerBannerImage(profile)})` }}
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,12,27,0.03),rgba(8,12,27,0.42))]" />
+          </section>
+
+          <section className="overflow-hidden rounded-[24px] border border-[#e4e3fb] bg-white p-5 shadow-[0_20px_55px_rgba(15,23,42,0.055)] md:p-6">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center">
+              <CompanyLogo company={profile.name} size="lg" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-extrabold tracking-normal text-[#070a17] md:text-3xl">{profile.name}</h1>
+                  {profile.verified ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eefcf4] px-3 py-1 text-xs font-bold text-[#15803d]">
+                      <ShieldCheck size={14} />
+                      Verified on CareerOS
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-[#4b5670]">
+                  <span className="rounded-full bg-[#f4f5fa] px-3 py-1.5">{profile.industry}</span>
+                  <span className="rounded-full bg-[#f4f5fa] px-3 py-1.5">{profile.size}</span>
+                  <span className="rounded-full bg-[#f4f5fa] px-3 py-1.5">Founded {profile.founded}</span>
+                  <span className="flex items-center gap-1.5 rounded-full bg-[#f4f5fa] px-3 py-1.5">
+                    <MapPin size={12} />
+                    {profile.location}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[
+                    `${profile.tier} Employer`,
+                    "Read-only Public Profile",
+                    "Candidate Fit Insight",
+                  ].map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-[#dedcff] bg-[#f7f5ff] px-3 py-1.5 text-xs font-bold text-[#5b21f3]">
+                      <CheckCircle2 size={14} />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <EmployerStat icon={ShieldCheck} label="Hiring score" value={`${profile.hiringScore}%`} />
+            <EmployerStat icon={MessageSquareText} label="Response rate" value={`${profile.responseRate}%`} />
+            <EmployerStat icon={Clock3} label="Average reply" value={profile.averageReply} />
+            <EmployerStat icon={BriefcaseBusiness} label="CareerOS hires" value={String(profile.hiredThroughCareerOS)} />
+          </section>
+
+          <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="space-y-5">
+              <EmployerPanel title={`About ${profile.name}`}>
+                <p className="text-sm font-medium leading-7 text-[#59657f]">
+                  {profile.description}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["Industry", profile.industry, Building2],
+                    ["Location", profile.location, MapPin],
+                    ["Company size", profile.size, Users],
+                    ["Founded", profile.founded, Star],
+                  ].map(([label, value, Icon]) => (
+                    <div key={label as string} className="flex gap-3 rounded-[18px] border border-[#eceef6] bg-[#fbfbfe] p-4">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fff2f6] text-[#E00046]">
+                        {typeof Icon === "function" ? <Icon size={18} /> : <Sparkles size={18} />}
+                      </span>
+                      <div>
+                        <p className="text-xs font-extrabold text-[#53607b]">{label as string}</p>
+                        <p className="mt-1 text-sm font-semibold leading-5 text-[#070a17]">{value as string}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 rounded-[18px] border border-[#eceef6] bg-[#fbfbfe] p-4">
+                  <p className="text-sm font-extrabold text-[#070a17]">Mission</p>
+                  <p className="mt-2 text-sm font-medium leading-6 text-[#59657f]">{profile.mission}</p>
+                </div>
+              </EmployerPanel>
+
+              <EmployerPanel title="Hiring Process">
+                <div className="grid gap-3 md:grid-cols-2">
+                  {profile.hiringProcess.map((item, index) => (
+                    <div key={item.step} className="rounded-[18px] border border-[#eceef6] bg-[#fbfbfe] p-4">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#FFF2F6] text-xs font-black text-[#E00046]">
+                        {index + 1}
+                      </span>
+                      <p className="mt-3 text-sm font-extrabold text-[#070a17]">{item.step}</p>
+                      <p className="mt-2 text-xs font-medium leading-5 text-[#65718d]">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </EmployerPanel>
+
+              <EmployerPanel title="Open Roles">
+                <div className="space-y-3">
+                  {profile.openRoles.map((role) => (
+                    <div key={role.title} className="grid gap-3 rounded-[18px] border border-[#eceef6] bg-[#fbfbfe] p-4 md:grid-cols-[1fr_120px_132px] md:items-center">
+                      <div>
+                        <p className="text-sm font-extrabold text-[#070a17]">{role.title}</p>
+                        <p className="mt-1 text-xs font-medium leading-5 text-[#65718d]">
+                          {role.location} · {role.workMode} · {role.salary}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-[#FFF2F6] px-3 py-1.5 text-center text-xs font-bold text-[#E00046]">
+                        {role.match}% match
+                      </span>
+                      <button
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        title="Application is disabled in read-only browse profile"
+                        className="h-10 cursor-not-allowed rounded-xl border border-[#e1e5ee] bg-[#eef1f7] px-3 text-xs font-bold text-[#8B95A7]"
+                      >
+                        Apply unavailable
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </EmployerPanel>
+            </div>
+
+            <div className="space-y-5">
+              <EmployerPanel title="Candidate Fit Insight">
+                <div className="rounded-[18px] border border-[#f4d6df] bg-[#fff8fb] p-4">
+                  <p className="text-lg font-extrabold text-[#070a17]">
+                    Strong for analytical builders
+                  </p>
+                  <p className="mt-3 text-sm font-medium leading-6 text-[#59657f]">
+                    Based on your CareerOS profile, this company looks strongest if you enjoy structured analysis,
+                    stakeholder reporting, and turning data into product or business decisions.
+                  </p>
+                </div>
+                <div className="mt-3 rounded-[18px] border border-[#eceef6] bg-[#fbfbfe] p-4">
+                  <p className="text-sm font-extrabold text-[#070a17]">Best preparation angle</p>
+                  <p className="mt-2 text-sm font-medium leading-6 text-[#59657f]">
+                    Lead with dashboard evidence, SQL confidence, and one example where your analysis changed a decision.
+                  </p>
+                </div>
+              </EmployerPanel>
+
+              <EmployerPanel title="Team Work Style">
+                <div className="space-y-3">
+                  {profile.workStyle.map((item) => (
+                    <div key={item.label} className="rounded-[18px] border border-[#eceef6] bg-[#fbfbfe] p-4">
+                      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#53607b]">{item.label}</p>
+                      <p className="mt-1 text-sm font-semibold leading-5 text-[#070a17]">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </EmployerPanel>
+
+              <EmployerPanel title="Team Trait Mix">
+                <div className="space-y-4">
+                  {profile.teamTraits.map((trait) => {
+                    const animal = getWorkAnimal(trait.slug);
+                    return (
+                      <div key={trait.slug}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#FFF2F6] text-xl">
+                              {animal?.emoji ?? "•"}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-extrabold text-[#070a17]">{animal?.name ?? trait.slug}</p>
+                              <p className="truncate text-xs font-medium text-[#65718d]">{trait.label}</p>
+                            </div>
+                          </div>
+                          <span className="text-sm font-extrabold text-[#E00046]">{trait.percent}%</span>
+                        </div>
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
+                          <div className="h-full rounded-full bg-[#E00046]" style={{ width: `${trait.percent}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </EmployerPanel>
+
+              <EmployerPanel title="Company Proof">
+                <ul className="space-y-3">
+                  {profile.proofPoints.map((point) => (
+                    <li key={point} className="flex gap-3 text-sm font-medium leading-6 text-[#59657f]">
+                      <Sparkles className="mt-1 h-4 w-4 shrink-0 text-[#E00046]" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </EmployerPanel>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function EmployerStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof ShieldCheck;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[24px] border border-[#e9eaf2] bg-white p-5 shadow-[0_20px_55px_rgba(15,23,42,0.055)]">
+      <Icon className="h-5 w-5 text-[#E00046]" />
+      <p className="mt-3 text-xs font-extrabold text-[#53607b]">{label}</p>
+      <p className="mt-1 text-2xl font-extrabold leading-none text-[#070a17]">{value}</p>
+    </div>
+  );
+}
+
+function EmployerPanel({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[24px] border border-[#e9eaf2] bg-white p-5 shadow-[0_20px_55px_rgba(15,23,42,0.055)] md:p-6">
+      <h2 className="text-xl font-extrabold text-[#070a17]">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
 function OpportunityCard({
   item,
   isTarget,
@@ -994,24 +1322,14 @@ function OpportunityCard({
             <Target size={15} />
             {isTarget ? "Selected" : "Set target"}
           </button>
-          {item.kind === "university" ? (
-            <button
-              type="button"
-              onClick={onViewProfile}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#E00046] px-4 text-xs font-bold text-white shadow-[0_14px_30px_rgba(224,0,70,0.18)] transition hover:bg-[#C7003E] sm:w-32"
-            >
-              View profile
-              <ArrowRight size={15} />
-            </button>
-          ) : (
-            <Link
-              href={item.href ?? "/?view=company-profile"}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#E00046] px-4 text-xs font-bold text-white shadow-[0_14px_30px_rgba(224,0,70,0.18)] transition hover:bg-[#C7003E] sm:w-32"
-            >
-              View profile
-              <ArrowRight size={15} />
-            </Link>
-          )}
+          <button
+            type="button"
+            onClick={onViewProfile}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#E00046] px-4 text-xs font-bold text-white shadow-[0_14px_30px_rgba(224,0,70,0.18)] transition hover:bg-[#C7003E] sm:w-32"
+          >
+            View profile
+            <ArrowRight size={15} />
+          </button>
           <Link
             href={`/?view=ai-career-coach&coachSource=browse-directory&prompt=${encodeURIComponent(buildCoachPrompt(item))}`}
             className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#E5E8F0] bg-white px-4 text-xs font-bold text-[#34415e] transition hover:border-[#E00046] hover:text-[#E00046] sm:w-36"
@@ -1031,6 +1349,7 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
   const [setupDraft, setSetupDraft] = useState<PlannerSetup>(() => getDefaultSetup(kind));
   const [guideSetup, setGuideSetup] = useState<PlannerSetup | null>(null);
   const [selectedUniversity, setSelectedUniversity] = useState<UniversityProfileData | null>(null);
+  const [selectedEmployer, setSelectedEmployer] = useState<PublicCompanyProfile | null>(null);
   const isUniversity = kind === "university";
   const items = isUniversity ? universities : employers;
   const activeTarget = activeTargetId ? items.find((item) => item.id === activeTargetId) ?? null : null;
@@ -1171,7 +1490,13 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
                   setSetupDraft(getDefaultSetup(kind));
                   setGuideSetup(null);
                 }}
-                onViewProfile={() => setSelectedUniversity(buildPublicUniversityProfile(item))}
+                onViewProfile={() => {
+                  if (item.kind === "university") {
+                    setSelectedUniversity(buildPublicUniversityProfile(item));
+                    return;
+                  }
+                  setSelectedEmployer(buildPublicEmployerProfile(item));
+                }}
               />
             ))}
           </div>
@@ -1577,6 +1902,14 @@ export default function BrowseDirectory({ kind }: { kind: DirectoryKind }) {
               backLabel="Back to Planner"
               onBack={() => setSelectedUniversity(null)}
               className="min-h-full rounded-[1.5rem]"
+            />
+          </div>
+        ) : null}
+        {selectedEmployer ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 p-2 sm:p-6">
+            <PublicEmployerProfile
+              profile={selectedEmployer}
+              onBack={() => setSelectedEmployer(null)}
             />
           </div>
         ) : null}
