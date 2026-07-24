@@ -179,11 +179,14 @@ export function EmployerPrototype() {
   const [activeProjectId, setActiveProjectId] = useState(() => initialStore?.projects?.[0]?.id ?? 1);
   const [settings, setSettings] = useState<HiringSettings>(() => initialStore?.settings ?? initialHiringSettings);
   const [selectedCandidateId, setSelectedCandidateId] = useState(1);
+  const [candidateReturnPage, setCandidateReturnPage] = useState<Page>("candidates");
   const [searchTerm, setSearchTerm] = useState("");
   const [stageType, setStageType] = useState("Online interview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activityLog, setActivityLog] = useState<ActivityEvent[]>(() => initialStore?.activityLog ?? []);
   const [toast, setToast] = useState<{ title: string; body?: string; tone?: ActivityTone } | null>(null);
+  const [talentPoolManualIds, setTalentPoolManualIds] = useState<number[]>(() => initialStore?.talentPoolManualIds ?? []);
+  const [talentPoolHiddenIds, setTalentPoolHiddenIds] = useState<number[]>(() => initialStore?.talentPoolHiddenIds ?? []);
 
   useEffect(() => {
     if (!hasCompany) {
@@ -202,12 +205,14 @@ export function EmployerPrototype() {
       projects,
       settings,
       activityLog,
+      talentPoolManualIds,
+      talentPoolHiddenIds,
       createdAt: initialStore?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       mode: initialStore?.mode ?? "registered",
     };
     saveEmployerStore(store);
-  }, [activityLog, candidates, company, currentUser?.email, currentUserEmail, hasCompany, initialStore?.createdAt, initialStore?.mode, jobs, members, projects, settings]);
+  }, [activityLog, candidates, company, currentUser?.email, currentUserEmail, hasCompany, initialStore?.createdAt, initialStore?.mode, jobs, members, projects, settings, talentPoolHiddenIds, talentPoolManualIds]);
 
   const role = rolePreview;
   const permissions = rolePermissions[role];
@@ -350,7 +355,7 @@ export function EmployerPrototype() {
       workMode: draft.workMode.trim(),
       employmentType: draft.employmentType,
       visibility: draft.visibility,
-      targetUniversities: draft.visibility === "collab" ? draft.targetUniversities : [],
+      targetUniversities: draft.visibility === "open" ? [] : draft.targetUniversities,
       salary: draft.salary.trim(),
       description: draft.description.trim(),
       requirements: draft.requirements.trim(),
@@ -514,11 +519,61 @@ export function EmployerPrototype() {
     notify("Hire recorded", "The hired count and candidate status were updated.", "emerald");
   }
 
+  function openCandidateProfile(candidateId: number, returnPage: Page = "candidates") {
+    const candidate = candidates.find((item) => item.id === candidateId);
+    if (candidate) {
+      setActiveJobId(candidate.jobId);
+      setSelectedCandidateId(candidate.id);
+    }
+    setCandidateReturnPage(returnPage);
+    setPage("candidate-profile");
+  }
+
+  function addCandidateToTalentPool(candidateId: number) {
+    const candidate = candidates.find((item) => item.id === candidateId);
+    if (!candidate) return;
+    setTalentPoolManualIds((current) => current.includes(candidateId) ? current : [...current, candidateId]);
+    setTalentPoolHiddenIds((current) => current.filter((id) => id !== candidateId));
+    addActivity(`${candidate.name} added to Talent Pool`, "violet");
+    notify("Added to Talent Pool", `${candidate.name} is now saved in the employer library.`, "violet");
+  }
+
+  function removeCandidateFromTalentPool(candidateId: number) {
+    const candidate = candidates.find((item) => item.id === candidateId);
+    setTalentPoolManualIds((current) => current.filter((id) => id !== candidateId));
+    setTalentPoolHiddenIds((current) => current.includes(candidateId) ? current : [...current, candidateId]);
+    notify("Removed from Talent Pool", `${candidate?.name ?? "Candidate"} was hidden from the library.`, "zinc");
+  }
+
+  function isCandidateInTalentPool(candidateId: number) {
+    if (talentPoolHiddenIds.includes(candidateId)) return false;
+    if (talentPoolManualIds.includes(candidateId)) return true;
+
+    const candidate = candidates.find((item) => item.id === candidateId);
+    if (!candidate) return false;
+
+    const job = jobs.find((item) => item.id === candidate.jobId);
+    const hasProjectSignal = projects.some((project) =>
+      project.teams.some((team) =>
+        team.students.some((student) => student.candidateAccountId === candidateId && student.performance === "High potential")
+      )
+    );
+
+    return (
+      ["Shortlisted", "Invited", "Interview scheduled"].includes(candidate.stage) ||
+      candidate.pastSecondStage ||
+      candidate.stage === "Hired" ||
+      job?.employmentType === "Internship" ||
+      candidateScore(candidate, settings.scoreWeights) >= 90 ||
+      hasProjectSignal
+    );
+  }
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#f6f7f9] text-zinc-950">
+    <main className="career-employer-shell min-h-screen overflow-x-hidden text-[#18213a]">
       {hasCompany && (
         <CompanyNav
-          active={page}
+          active={page === "candidate-profile" ? candidateReturnPage : page}
           role={role}
           collapsed={sidebarCollapsed}
           topOffset={0}
@@ -529,7 +584,7 @@ export function EmployerPrototype() {
         />
       )}
 
-      <div className={cn(hasCompany && (sidebarCollapsed ? "xl:pl-24" : "xl:pl-72"))}>
+      <div className={cn("relative z-10", hasCompany && (sidebarCollapsed ? "xl:pl-[84px]" : "xl:pl-[252px]"))}>
       <AnimatePresence mode="wait">
       <motion.div key={`company-${page}`} {...pageMotion}>
       {hasCompany && page === "dashboard" && (
@@ -592,6 +647,21 @@ export function EmployerPrototype() {
             setActiveJobId(jobId);
             setPage("job-detail");
           }}
+          onCreatePost={() => go("post-job")}
+        />
+      )}
+
+      {hasCompany && page === "talent-pool" && (
+        <TalentPoolPage
+          candidates={candidates}
+          projects={projects}
+          jobs={jobs}
+          permissions={permissions}
+          scoreWeights={settings.scoreWeights}
+          manualIds={talentPoolManualIds}
+          hiddenIds={talentPoolHiddenIds}
+          onOpenProfile={(candidateId) => openCandidateProfile(candidateId, "talent-pool")}
+          onRemoveFromPool={removeCandidateFromTalentPool}
           onNavigate={go}
         />
       )}
@@ -625,6 +695,7 @@ export function EmployerPrototype() {
               onApproach={approachCandidate}
               onMarkApplied={markCandidateApplied}
               onOpenProfile={(candidateId) => {
+                setCandidateReturnPage("candidates");
                 setSelectedCandidateId(candidateId);
                 setPage("candidate-profile");
               }}
@@ -694,7 +765,14 @@ export function EmployerPrototype() {
       )}
 
       {hasCompany && page === "post-job" && (
-          <PostJobPage jobs={jobs} settings={settings} permissions={permissions} company={company} onPublish={publishJob} onBack={() => go("jobs")} />
+          <PostJobPage
+            jobs={jobs}
+            settings={settings}
+            permissions={permissions}
+            company={company}
+            onPublish={publishJob}
+            onBack={() => go("jobs")}
+          />
       )}
 
       {hasCompany && page === "candidate-profile" && (
@@ -702,12 +780,10 @@ export function EmployerPrototype() {
           candidate={selectedCandidate}
           permissions={permissions}
           scoreWeights={settings.scoreWeights}
-          isClosed={activeJob.status === "Closed"}
-          onBack={() => go("candidates")}
-          onShortlist={shortlistCandidate}
-          onApproach={approachCandidate}
-          onMarkApplied={markCandidateApplied}
-          onNavigate={go}
+          returnPage={candidateReturnPage}
+          isInTalentPool={isCandidateInTalentPool(selectedCandidate.id)}
+          onBack={() => go(candidateReturnPage)}
+          onAddToTalentPool={addCandidateToTalentPool}
         />
       )}
 
@@ -726,9 +802,14 @@ export function EmployerPrototype() {
       {hasCompany && page === "project-detail" && (
         <ProjectDetailPage
           project={projects.find((project) => project.id === activeProjectId) ?? projects[0]}
+          candidates={candidates}
           permissions={permissions}
           onBack={() => go("projects")}
           onNavigate={go}
+          onOpenCandidate={(candidateId) => openCandidateProfile(candidateId, "project-detail")}
+          onAddToTalentPool={addCandidateToTalentPool}
+          talentPoolManualIds={talentPoolManualIds}
+          talentPoolHiddenIds={talentPoolHiddenIds}
           onNotify={notify}
           onUpdateProject={(next) =>
             setProjects((current) => current.map((project) => (project.id === next.id ? next : project)))
@@ -750,6 +831,7 @@ export function EmployerPrototype() {
           }}
         />
       )}
+
       </motion.div>
       </AnimatePresence>
       </div>
@@ -804,7 +886,7 @@ function JobWorkspaceShell({
                   onClick={() => onNavigate(tab.page)}
                   className={cn(
                     "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                    active ? "bg-white text-pink-700 shadow-sm ring-1 ring-pink-100" : "text-zinc-500 hover:text-zinc-900"
+                    active ? "bg-white text-[#7A174F] shadow-sm ring-1 ring-[#E6D7E7]" : "text-zinc-500 hover:text-zinc-900"
                   )}
                 >
                   <Icon className="size-3.5" />
@@ -944,6 +1026,58 @@ function DashboardPage({
     { icon: MailPlus, label: "Response", value: `${analytics.responseRate}%`, detail: "Email engagement", tone: "text-[#f59e0b]", bg: "bg-[#fff5e0]" },
     { icon: Zap, label: "Shortlist time", value: analytics.timeToShortlist, detail: "Median decision speed", tone: "text-[#ec1761]", bg: "bg-[#ffe5f1]" },
     { icon: Sparkles, label: "Re-engage", value: String(analytics.reengage), detail: "Warm strong-fit talent", tone: "text-[#B80039]", bg: "bg-[#FFF2F6]" },
+  ];
+  const focusGroups = [
+    {
+      icon: UsersRound,
+      title: "Pipeline",
+      value: String(analytics.applicants),
+      detail: `${analytics.newApplicants} new this week`,
+      stats: [
+        ["Shortlisted", String(analytics.shortlisted)],
+        ["Interview", String(analytics.invited)],
+      ],
+    },
+    {
+      icon: Gauge,
+      title: "Quality",
+      value: `${analytics.averageMatch}%`,
+      detail: "Average candidate match",
+      stats: [
+        ["80%+ profiles", "64"],
+        ["Top match", bestCandidate ? `${candidateScore(bestCandidate, scoreWeights)}%` : "N/A"],
+      ],
+    },
+    {
+      icon: Zap,
+      title: "Speed",
+      value: analytics.timeToShortlist,
+      detail: "Median shortlist decision",
+      stats: [
+        ["Response", `${analytics.responseRate}%`],
+        ["Re-engage", String(analytics.reengage)],
+      ],
+    },
+  ];
+  const priorityActions = [
+    {
+      title: "Move the warm shortlist",
+      detail: `${analytics.shortlisted} candidates are ready for a decision or next-stage email.`,
+      icon: ClipboardList,
+      page: "shortlist" as Page,
+    },
+    {
+      title: "Review high-fit profiles",
+      detail: "64 candidates sit above 80% match. Start with strongest evidence fit.",
+      icon: Gauge,
+      page: "candidates" as Page,
+    },
+    {
+      title: "Save re-engagement talent",
+      detail: `${analytics.reengage} warm candidates should be kept for future roles.`,
+      icon: Sparkles,
+      page: "talent-pool" as Page,
+    },
   ];
   const matchDistribution = [
     {
@@ -1103,22 +1237,23 @@ function DashboardPage({
 
   return (
     <section className="mx-auto w-full max-w-7xl overflow-hidden px-5 py-6 lg:px-8">
-      <div className="career-command-shell relative max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-[2rem] p-5 lg:max-w-none lg:p-7">
-        <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_420px]">
+      <div className="career-command-shell career-dashboard-command relative max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-[2rem] p-5 text-white lg:max-w-none lg:p-7">
+        <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.06)_1px,transparent_1px)] [background-size:42px_42px]" />
+        <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.08fr)_440px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-[#FFF2F6] text-[#B80039] ring-1 ring-[#F5CBD6]">
+              <Badge className="bg-white/12 text-white ring-1 ring-white/18">
                 Live pipeline
               </Badge>
-              <Badge className="bg-[#F7F4FF] text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
+              <Badge className="bg-[#ff4f8b]/18 text-[#ffd9e6] ring-1 ring-[#ff4f8b]/25">
                 {company.industry}
               </Badge>
             </div>
-            <h1 className="mt-5 max-w-4xl text-3xl font-semibold leading-tight tracking-tight text-[#081433] sm:text-4xl lg:text-5xl">
-              Hiring, at a glance.
+            <h1 className="mt-5 max-w-4xl text-3xl font-semibold leading-tight tracking-normal text-white sm:text-4xl lg:text-5xl">
+              Employer command center.
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600">
-              Applicant volume, funnel quality, shortlist speed, and re-engagement opportunities for {company.name} — in one view.
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#d8c9e7]">
+              The fastest read on what is moving, what is stuck, and what {company.name} should do next across active hiring.
             </p>
 
             <motion.div
@@ -1127,63 +1262,63 @@ function DashboardPage({
               animate="animate"
               className="mt-7 grid gap-3 sm:grid-cols-3"
             >
-              <DashboardStage label="Applicants" value={`${analytics.applicants} total`} active />
-              <DashboardStage label="Quality signal" value={`${analytics.averageMatch}% avg match`} active />
-              <DashboardStage label="Hiring outcome" value={`${analytics.hired} hires`} active />
+              <DashboardStage label="Applicants" value={`${analytics.applicants} total`} active dark />
+              <DashboardStage label="Quality signal" value={`${analytics.averageMatch}% avg match`} active dark />
+              <DashboardStage label="Hiring outcome" value={`${analytics.hired} hires`} active dark />
             </motion.div>
           </div>
 
-          <div className="min-w-0 rounded-[1.35rem] border border-zinc-200 bg-white p-4 text-zinc-950 shadow-xl shadow-pink-950/5">
+          <div className="min-w-0 rounded-[1.35rem] border border-white/14 bg-white/[0.08] p-4 text-white shadow-2xl shadow-black/20 backdrop-blur">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-normal text-pink-600">
-                  Pipeline intelligence
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#ff9fbe]">
+                  Next best action
                 </p>
                 <h2 className="mt-3 text-2xl font-semibold tracking-normal">
-                  Selective screen, healthy volume
+                  {actionCopy.label}
                 </h2>
               </div>
-              <span className="flex size-10 items-center justify-center rounded-2xl bg-pink-50 text-pink-600 shadow-sm ring-1 ring-pink-100">
-                <Sparkles className="size-5" />
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-white/12 text-[#ffd9e6] shadow-sm ring-1 ring-white/18">
+                <ArrowRight className="size-5" />
               </span>
             </div>
-            <p className="mt-3 text-sm leading-6 text-zinc-600">
-              {analytics.shortlisted} of {analytics.applicants} applicants reached shortlist. The largest signal is quality filtering, not candidate volume.
+            <p className="mt-3 text-sm leading-6 text-[#d8c9e7]">
+              {actionCopy.detail}
             </p>
-            <Button variant="outline" className="mt-5 h-11 w-full" onClick={() => onNavigate(actionCopy.page)}>
-              Explore underlying profiles
+            <Button className="mt-5 h-11 w-full bg-white text-[#2b1242] hover:bg-[#f5eff9]" onClick={() => onNavigate(actionCopy.page)}>
+              Open workspace
               <ChevronRight />
             </Button>
-            <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl border border-pink-100 bg-pink-50/40 p-3">
-              <JobSignal label="Open roles" value={String(analytics.openJobs)} />
-              <JobSignal label="Shortlist" value={String(analytics.shortlisted)} />
-              <JobSignal label="Invites" value={String(analytics.invited)} />
+            <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl border border-white/12 bg-black/10 p-3">
+              <JobSignal label="Open roles" value={String(analytics.openJobs)} dark />
+              <JobSignal label="Shortlist" value={String(analytics.shortlisted)} dark />
+              <JobSignal label="Invites" value={String(analytics.invited)} dark />
             </div>
-            <div className="mt-3 rounded-2xl border border-zinc-100 bg-white p-3">
+            <div className="mt-3 rounded-2xl border border-white/12 bg-white/[0.07] p-3">
               {bestCandidate ? (
                 <>
-                  <div className="flex items-center justify-between text-xs text-zinc-500">
+                  <div className="flex items-center justify-between text-xs text-[#d8c9e7]">
                     <span>Current top match</span>
                     <span>{candidateScore(bestCandidate, scoreWeights)}%</span>
                   </div>
                   <div className="mt-2 flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-pink-100 text-sm font-semibold text-pink-700">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-[#ff4f8b]/20 text-sm font-semibold text-white ring-1 ring-[#ff4f8b]/25">
                       {bestCandidate.name.split(" ").map((part) => part[0]).join("")}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{bestCandidate.name}</p>
-                      <p className="text-xs text-zinc-500">{bestCandidate.title}</p>
+                      <p className="text-sm font-medium text-white">{bestCandidate.name}</p>
+                      <p className="text-xs text-[#d8c9e7]">{bestCandidate.title}</p>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="flex items-center gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-500">
+                  <span className="flex size-10 items-center justify-center rounded-full bg-white/10 text-[#d8c9e7]">
                     <UsersRound className="size-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-medium">No talent yet</p>
-                    <p className="text-xs text-zinc-500">Candidates appear here after a live role receives applicants.</p>
+                    <p className="text-sm font-medium text-white">No talent yet</p>
+                    <p className="text-xs text-[#d8c9e7]">Candidates appear here after a live role receives applicants.</p>
                   </div>
                 </div>
               )}
@@ -1192,22 +1327,40 @@ function DashboardPage({
         </div>
       </div>
 
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {priorityActions.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <button
+              key={item.title}
+              type="button"
+              onClick={() => onNavigate(item.page)}
+              className="career-clear-card group rounded-3xl p-4 text-left transition hover:-translate-y-0.5 hover:border-[#d9c5e6]"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#f1e8f6] text-[#3b1768] ring-1 ring-[#e2d2ea]">
+                  <Icon className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold text-[#081433]">{item.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-[#53607b]">{item.detail}</p>
+                </div>
+                <ChevronRight className="ml-auto mt-1 size-4 shrink-0 text-[#3b1768] transition group-hover:translate-x-0.5" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       <motion.div
         variants={listContainerMotion}
         initial="initial"
         animate="animate"
-        className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="mt-5 grid gap-3 lg:grid-cols-3"
       >
-        {dashboardKpis.map((kpi) => (
-          <DashboardMetricCard
-            key={kpi.label}
-            icon={kpi.icon}
-            label={kpi.label}
-            value={kpi.value}
-            detail={kpi.detail}
-            tone={kpi.tone}
-            bg={kpi.bg}
-          />
+        {focusGroups.map((group) => (
+          <DashboardFocusCard key={group.title} {...group} />
         ))}
       </motion.div>
 
@@ -1942,28 +2095,75 @@ function DashboardStage({
   label,
   value,
   active = false,
+  dark = false,
 }: {
   label: string;
   value: string;
   active?: boolean;
+  dark?: boolean;
 }) {
   return (
     <motion.div
       variants={listItemMotion}
       whileHover={{ y: -2 }}
       whileTap={tactileTap}
-      className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm transition hover:border-pink-100 hover:shadow-md hover:shadow-pink-950/5"
+      className={cn(
+        "rounded-2xl border p-3 shadow-sm transition",
+        dark
+          ? "border-white/12 bg-white/[0.08] text-white hover:bg-white/[0.12]"
+          : "border-zinc-200 bg-white hover:border-pink-100 hover:shadow-md hover:shadow-pink-950/5"
+      )}
     >
       <div className="flex items-center gap-2">
         <span
           className={cn(
             "size-2 rounded-full",
-            active ? "career-live-dot bg-pink-500" : "bg-zinc-300"
+            active ? "career-live-dot bg-pink-500" : dark ? "bg-white/30" : "bg-zinc-300"
           )}
         />
-        <p className="text-xs text-zinc-500">{label}</p>
+        <p className={cn("text-xs", dark ? "text-[#d8c9e7]" : "text-zinc-500")}>{label}</p>
       </div>
-      <p className="mt-2 text-sm font-medium text-zinc-950">{value}</p>
+      <p className={cn("mt-2 text-sm font-medium", dark ? "text-white" : "text-zinc-950")}>{value}</p>
+    </motion.div>
+  );
+}
+
+function DashboardFocusCard({
+  icon: Icon,
+  title,
+  value,
+  detail,
+  stats,
+}: {
+  icon: React.ElementType;
+  title: string;
+  value: string;
+  detail: string;
+  stats: string[][];
+}) {
+  return (
+    <motion.div
+      variants={listItemMotion}
+      whileHover={{ y: -2 }}
+      whileTap={tactileTap}
+      className="career-clear-card rounded-3xl p-5 transition hover:border-[#d9c5e6]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex size-11 items-center justify-center rounded-2xl bg-[#2b1242] text-white shadow-sm">
+          <Icon className="size-5" />
+        </span>
+        <p className="text-2xl font-semibold text-[#081433]">{value}</p>
+      </div>
+      <p className="mt-4 font-semibold text-[#081433]">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-[#53607b]">{detail}</p>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {stats.map(([label, stat]) => (
+          <div key={label} className="rounded-2xl bg-[#f7f4fa] p-3 ring-1 ring-[#eadff2]">
+            <p className="text-xs text-[#53607b]">{label}</p>
+            <p className="mt-1 text-sm font-semibold text-[#3b1768]">{stat}</p>
+          </div>
+        ))}
+      </div>
     </motion.div>
   );
 }
@@ -2662,6 +2862,7 @@ function CompanyProfilePage({
   const profileCompleteness = Math.round((profileFieldsComplete / 4) * 100);
   const openRoles = jobs.filter((job) => job.status !== "Closed").length;
   const superAdminCount = members.filter((member) => member.role === "Super Admin").length;
+  const profileReady = profileCompleteness === 100 && openRoles > 0;
 
   const heroStats = [
     { label: "Profile completeness", value: `${profileCompleteness}%`, icon: Gauge },
@@ -2678,10 +2879,10 @@ function CompanyProfilePage({
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
       <div className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-950/[0.04] lg:p-7">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-center">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_460px] xl:items-stretch">
           <div className="min-w-0">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-              <div className="flex size-20 shrink-0 items-center justify-center rounded-3xl border border-zinc-200 bg-zinc-950 text-2xl font-semibold text-white shadow-sm">
+              <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-950 text-2xl font-semibold text-white shadow-sm">
                 {companyInitials}
               </div>
               <div className="min-w-0 flex-1">
@@ -2703,16 +2904,32 @@ function CompanyProfilePage({
             </div>
           </div>
 
-          <div className="rounded-3xl border border-zinc-200 bg-zinc-50/70 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Public profile</p>
-                <p className="mt-1 text-lg font-semibold text-zinc-950">Ready for candidate review</p>
+          <div className="flex h-full flex-col justify-between rounded-3xl border border-zinc-200 bg-zinc-50/70 p-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Public profile</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
+                    {profileReady ? "Ready for candidate review" : "Needs a few details"}
+                  </h2>
+                  <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-600">
+                    {profileReady
+                      ? "Candidates can see a complete employer profile when they review roles."
+                      : "Complete the public details and keep at least one role open before candidate review."}
+                  </p>
+                </div>
+                <span className={cn(
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ring-1",
+                  profileReady ? "bg-emerald-50 text-emerald-700 ring-emerald-100" : "bg-amber-50 text-amber-700 ring-amber-100"
+                )}>
+                  {profileReady ? "Ready" : "Draft"}
+                </span>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
+
+              <div className="grid gap-2 sm:grid-cols-2">
                 <Button
                   variant="outline"
-                  className={cn("border-zinc-200 bg-white", previewMode && "border-pink-300 bg-pink-50 text-pink-700")}
+                  className={cn("h-11 justify-center border-zinc-200 bg-white", previewMode && "border-[#E6D7E7] bg-[#FCF7FB] text-[#7A174F]")}
                   onClick={() => {
                     setPreviewMode((current) => !current);
                     setEditing(false);
@@ -2721,20 +2938,27 @@ function CompanyProfilePage({
                   <Eye />
                   {previewMode ? "Exit preview" : "Preview public profile"}
                 </Button>
-                <Button disabled={!permissions.canEditCompany || previewMode} className="bg-zinc-950 hover:bg-zinc-800" onClick={() => setEditing((current) => !current)}>
+                <Button
+                  disabled={!permissions.canEditCompany || previewMode}
+                  className="h-11 justify-center bg-zinc-950 text-white hover:bg-zinc-800"
+                  onClick={() => setEditing((current) => !current)}
+                >
                   <PenLine />
-                  {editing ? "Close edit mode" : "Edit profile"}
+                  {editing ? "Close editor" : "Edit profile"}
                 </Button>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
               {heroStats.map((stat) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
-                      <Icon className="size-3.5 text-pink-600" />
-                      {stat.label}
+                  <div key={stat.label} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#FCF7FB] text-[#B42373] ring-1 ring-[#E6D7E7]">
+                        <Icon className="size-3.5" />
+                      </span>
+                      <p className="min-w-0 text-xs font-semibold leading-4 text-zinc-500">{stat.label}</p>
                     </div>
                     <p className="mt-2 text-xl font-semibold text-zinc-950">{stat.value}</p>
                   </div>
@@ -2753,34 +2977,49 @@ function CompanyProfilePage({
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_410px]">
         <div className="space-y-4">
           {editing && (
-            <Card className="career-clear-card rounded-2xl">
-              <CardHeader>
-                <CardTitle>Edit public profile</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3 md:grid-cols-2">
-                <Field label="Company name">
-                  <Input value={draftCompany.name} onChange={(event) => setDraftCompany((current) => ({ ...current, name: event.target.value }))} />
-                </Field>
-                <Field label="Industry">
-                  <Input value={draftCompany.industry} onChange={(event) => setDraftCompany((current) => ({ ...current, industry: event.target.value }))} />
-                </Field>
-                <Field label="Location">
-                  <Input value={draftCompany.location} onChange={(event) => setDraftCompany((current) => ({ ...current, location: event.target.value }))} />
-                </Field>
-                <Field label="Company size">
-                  <Input value={draftCompany.size} onChange={(event) => setDraftCompany((current) => ({ ...current, size: event.target.value }))} />
-                </Field>
-                <div className="md:col-span-2">
-                  <Field label="Description">
-                    <Input value={draftCompany.description} onChange={(event) => setDraftCompany((current) => ({ ...current, description: event.target.value }))} />
-                  </Field>
+            <Card className="career-clear-card overflow-hidden rounded-2xl">
+              <CardHeader className="border-b border-zinc-100 bg-zinc-50/70">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle>Edit public profile</CardTitle>
+                    <p className="mt-1 text-sm text-zinc-500">These details appear on the public employer page and role previews.</p>
+                  </div>
+                  <Badge className="w-fit bg-[#FCF7FB] text-[#7A174F] ring-1 ring-[#E6D7E7]">
+                    {profileCompleteness}% complete
+                  </Badge>
                 </div>
-                <div className="flex flex-wrap gap-2 md:col-span-2">
-                  <Button className="career-pink-action text-white" onClick={saveProfile}>Save profile</Button>
-                  <Button variant="outline" onClick={() => {
+              </CardHeader>
+              <CardContent className="space-y-4 p-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Field label="Company name">
+                    <Input value={draftCompany.name} onChange={(event) => setDraftCompany((current) => ({ ...current, name: event.target.value }))} />
+                  </Field>
+                  <Field label="Industry">
+                    <Input value={draftCompany.industry} onChange={(event) => setDraftCompany((current) => ({ ...current, industry: event.target.value }))} />
+                  </Field>
+                  <Field label="Location">
+                    <Input value={draftCompany.location} onChange={(event) => setDraftCompany((current) => ({ ...current, location: event.target.value }))} />
+                  </Field>
+                  <Field label="Company size">
+                    <Input value={draftCompany.size} onChange={(event) => setDraftCompany((current) => ({ ...current, size: event.target.value }))} />
+                  </Field>
+                  <div className="md:col-span-2">
+                    <Field label="Description">
+                      <textarea
+                        value={draftCompany.description}
+                        onChange={(event) => setDraftCompany((current) => ({ ...current, description: event.target.value }))}
+                        rows={4}
+                        className="min-h-28 w-full resize-y rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-[#B42373] focus:ring-4 focus:ring-[#F8E7F0]"
+                      />
+                    </Field>
+                  </div>
+                </div>
+                <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-4 sm:flex-row sm:justify-end">
+                  <Button variant="outline" className="h-11 justify-center" onClick={() => {
                     setDraftCompany(company);
                     setEditing(false);
                   }}>Cancel</Button>
+                  <Button className="career-pink-action h-11 justify-center text-white" onClick={saveProfile}>Save profile</Button>
                 </div>
               </CardContent>
             </Card>
@@ -3139,21 +3378,26 @@ function JobsPage({
   permissions,
   showCountdown,
   onSelectJob,
-  onNavigate,
+  onCreatePost,
 }: {
   jobs: Job[];
   activeJobId: number;
   permissions: (typeof rolePermissions)[CompanyRole];
   showCountdown: boolean;
   onSelectJob: (id: number) => void;
-  onNavigate: (page: Page) => void;
+  onCreatePost: () => void;
 }) {
   const [jobFilter, setJobFilter] = useState<"Active" | "Open" | "Interviewing" | "Hired" | "Closed">("Active");
+  const [typeFilter, setTypeFilter] = useState<"All" | "Jobs" | "Internships">("All");
   const openJobs = jobs.filter((job) => job.status !== "Closed").length;
-  const totalApplicants = jobs.reduce((sum, job) => sum + job.applicants, 0);
+  const openInternships = jobs.filter((job) => job.employmentType === "Internship" && job.status !== "Closed").length;
   const visibleJobs = jobs.filter((job) => {
-    if (jobFilter === "Active") return job.status === "Open" || job.status === "Interviewing" || job.status === "Hired";
-    return job.status === jobFilter;
+    const matchesStatus = jobFilter === "Active" ? job.status === "Open" || job.status === "Interviewing" || job.status === "Hired" : job.status === jobFilter;
+    const matchesType =
+      typeFilter === "All" ||
+      (typeFilter === "Jobs" && job.employmentType !== "Internship") ||
+      (typeFilter === "Internships" && job.employmentType === "Internship");
+    return matchesStatus && matchesType;
   });
   const jobNextActionLabel = (job: Job) => {
     if (job.hired > 0) return "View result";
@@ -3166,14 +3410,16 @@ function JobsPage({
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E00046]">Jobs</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B42373]">Jobs</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#081433] sm:text-3xl">
-            {openJobs} open role{openJobs === 1 ? "" : "s"} · {totalApplicants} applicant{totalApplicants === 1 ? "" : "s"}
+            {openJobs} open post{openJobs === 1 ? "" : "s"} · {openInternships} internship{openInternships === 1 ? "" : "s"}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">Each role opens into one workspace for candidates, shortlist, email, and results.</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Open posts include jobs and internships that still accept candidates. Each row shows the next hiring action.
+          </p>
         </div>
         {permissions.canManageJobs ? (
-          <Button className="career-pink-action h-11 shrink-0 text-white" onClick={() => onNavigate("post-job")}>
+          <Button className="h-11 shrink-0 bg-[#B42373] text-white hover:bg-[#95185f]" onClick={onCreatePost}>
             <FilePlus2 />
             Post job
           </Button>
@@ -3185,55 +3431,61 @@ function JobsPage({
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        {(["Active", "Open", "Interviewing", "Hired", "Closed"] as const).map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setJobFilter(filter)}
-            className={cn(
-              "rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition",
-              jobFilter === filter
-                ? "bg-[#081433] text-white ring-[#081433]"
-                : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#FFF2F6] hover:text-[#B80039] hover:ring-[#F5CBD6]"
-            )}
-          >
-            {filter}
-          </button>
-        ))}
+      <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {(["All", "Jobs", "Internships"] as const).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setTypeFilter(filter)}
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition",
+                typeFilter === filter
+                  ? "bg-[#081433] text-white ring-[#081433]"
+                  : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#FCF7FB] hover:text-[#7A174F] hover:ring-[#E6D7E7]"
+              )}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["Active", "Open", "Interviewing", "Hired", "Closed"] as const).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setJobFilter(filter)}
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition",
+                jobFilter === filter
+                  ? "bg-[#081433] text-white ring-[#081433]"
+                  : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#FCF7FB] hover:text-[#7A174F] hover:ring-[#E6D7E7]"
+              )}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-[#E7E9F1] bg-white">
-        {jobs.length > 0 && visibleJobs.length > 0 && (
-          <div className="hidden grid-cols-[minmax(240px,1.3fr)_140px_90px_90px_80px_90px_minmax(150px,0.8fr)] gap-3 border-b border-zinc-100 bg-zinc-50/70 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500 xl:grid">
-            <span>Role</span>
-            <span>Visibility</span>
-            <span>Applicants</span>
-            <span>Shortlist</span>
-            <span>Hired</span>
-            <span>Expiry</span>
-            <span>Next action</span>
-          </div>
-        )}
+      <div className="mt-4 grid gap-3">
         {jobs.length === 0 ? (
-          <div className="p-4">
           <EmptyState
             icon={BriefcaseBusiness}
-            title="No jobs posted yet"
-            description="Create the first open role to unlock candidate review, shortlist, email, and result workflows."
+            title="No job posts yet"
+            description="Create a job or internship post to unlock candidate review, shortlist, email, and result workflows."
             actionLabel="Post job"
-            onAction={() => onNavigate("post-job")}
+            onAction={() => onCreatePost()}
           />
-          </div>
         ) : visibleJobs.length === 0 ? (
-          <div className="p-4">
           <EmptyState
             icon={Search}
             title="No jobs match this filter"
-            description="Switch filters or post a new role to continue."
+            description="Switch filters or post a new job or internship to continue."
             actionLabel="Clear filter"
-            onAction={() => setJobFilter("Active")}
+            onAction={() => {
+              setJobFilter("Active");
+              setTypeFilter("All");
+            }}
           />
-          </div>
         ) : visibleJobs.map((job) => (
           <motion.button
             key={job.id}
@@ -3243,8 +3495,8 @@ function JobsPage({
             whileTap={tactileTap}
             onClick={() => onSelectJob(job.id)}
             className={cn(
-              "group grid w-full gap-2.5 border-b border-zinc-100 px-4 py-3.5 text-left transition-all last:border-b-0 hover:-translate-y-0.5 hover:bg-[#FFF9FB] hover:shadow-[0_8px_20px_rgba(15,23,42,0.05)] xl:grid-cols-[minmax(260px,1.3fr)_140px_90px_90px_80px_90px_minmax(150px,0.8fr)] xl:items-center",
-              activeJobId === job.id && "bg-[#FFF2F6]"
+              "career-clear-card group grid w-full gap-4 rounded-2xl p-4 text-left transition hover:border-[#E6D7E7] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center",
+              activeJobId === job.id && "border-[#E6D7E7] bg-[#FCF7FB]"
             )}
           >
             <div className="flex min-w-0 items-start gap-3">
@@ -3259,23 +3511,27 @@ function JobsPage({
                   <h2 className="truncate text-[15px] font-semibold tracking-tight text-[#081433]">{job.title}</h2>
                 </div>
                 <p className="mt-1 truncate text-sm text-zinc-500">{job.department} · {job.workMode} · {job.location} · {job.salary}</p>
-                <div className="mt-1.5 xl:hidden">
+                <PhaseMeaning label={`Phase: ${job.status}`}>
+                  {jobStatusMeaning[job.status]}
+                </PhaseMeaning>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <VisibilityChip visibility={job.visibility} />
+                  <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-500 ring-1 ring-zinc-200">
+                    {showCountdown && job.status !== "Closed" ? `${job.expiresIn}d left` : job.status === "Closed" ? "Closed" : "Expiry hidden"}
+                  </span>
                 </div>
               </div>
             </div>
-            <div className="hidden xl:block">
-              <VisibilityChip visibility={job.visibility} />
-            </div>
-            <CompactMetric value={String(job.applicants)} label="Applicants" />
-            <CompactMetric value={String(job.shortlisted)} label="Shortlist" />
-            <CompactMetric value={String(job.hired)} label="Hired" />
-            <span className="text-sm text-zinc-600">
-              {showCountdown && job.status !== "Closed" ? `${job.expiresIn}d` : job.status === "Closed" ? "Closed" : "Hidden"}
-            </span>
-            <div className="flex items-center justify-between gap-3 text-sm font-medium text-[#B80039] xl:justify-start">
-              <span>{jobNextActionLabel(job)}</span>
-              <ChevronRight className="size-4 transition group-hover:translate-x-0.5" />
+            <div className="flex flex-col gap-3 lg:items-end">
+              <div className="grid grid-cols-3 gap-2 text-center sm:w-72">
+                <CompactMetric value={String(job.applicants)} label="Applicants" />
+                <CompactMetric value={String(job.shortlisted)} label="Shortlist" />
+                <CompactMetric value={String(job.hired)} label="Hired" />
+              </div>
+              <div className="inline-flex items-center justify-between gap-3 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#7A174F] ring-1 ring-[#E6D7E7] lg:justify-start">
+                <span>{jobNextActionLabel(job)}</span>
+                <ChevronRight className="size-4 transition group-hover:translate-x-0.5" />
+              </div>
             </div>
           </motion.button>
         ))}
@@ -3578,6 +3834,7 @@ function PostJobPage({
   const [employmentType, setEmploymentType] = useState<EmploymentType | "">("");
   const [visibility, setVisibility] = useState<JobVisibility>("open");
   const [targetUniversities, setTargetUniversities] = useState<CollabUniversity[]>([]);
+  const [universitySelect, setUniversitySelect] = useState<CollabUniversity | "">("");
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -3592,6 +3849,7 @@ function PostJobPage({
   const [salaryReason, setSalaryReason] = useState("");
   const [visibilityReason, setVisibilityReason] = useState("");
   const [stage, setStage] = useState<"basics" | "review">("basics");
+  const postingLabel = "job";
 
   function runAiGeneration() {
     if (!title.trim()) return;
@@ -3615,6 +3873,19 @@ function PostJobPage({
       setAiGenerated(true);
       setStage("review");
     }, 900);
+  }
+
+  function chooseEmploymentType(type: EmploymentType) {
+    setEmploymentType(type);
+    if (type === "Internship" && visibility === "open") {
+      setVisibility("collab");
+    }
+  }
+
+  function addSelectedUniversity(value: CollabUniversity | "") {
+    if (!value) return;
+    setTargetUniversities((current) => current.includes(value) ? current : [...current, value]);
+    setUniversitySelect("");
   }
 
   const normalizedTitle = title.trim();
@@ -3748,20 +4019,20 @@ function PostJobPage({
   if (stage === "basics") {
     return (
       <section className="mx-auto w-full max-w-4xl px-5 py-6 lg:px-8">
-        <WorkflowGuide trail={["Jobs"]} current="Post job" onBack={onBack} />
+        <WorkflowGuide trail={["Jobs"]} current={`Post ${postingLabel}`} onBack={onBack} />
         <PageHeader
           eyebrow="Post job"
-          title="Start with the basics"
-          description="Give AI a title and level — it drafts the rest. You review and edit everything before it publishes."
+          title="Draft a job post"
+          description="Choose the role basics first. Full-time, part-time, contract, and internship posts all use this same flow."
         />
-        <div className="mt-5 overflow-hidden rounded-3xl border border-[#F5CBD6] bg-[linear-gradient(160deg,#fff7fb_0%,#ffffff_55%,#fff7fb_100%)] p-6 shadow-[0_16px_40px_rgba(224,0,70,0.08)] sm:p-8">
+        <div className="mt-5 rounded-2xl border border-[#E6D7E7] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center gap-2.5">
-            <span className="flex size-10 items-center justify-center rounded-full bg-[#E00046] text-white shadow-[0_10px_24px_rgba(224,0,70,0.28)]">
+            <span className="flex size-9 items-center justify-center rounded-full bg-[#B42373] text-white">
               <Sparkles className="size-4.5" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-[#B80039]">AI draft assistant</p>
-              <p className="text-xs text-zinc-500">Description, requirements, skills, salary, location, deadline, and who sees it — generated for you. Edit anything after.</p>
+              <p className="text-sm font-semibold text-[#7A174F]">AI draft assistant</p>
+              <p className="text-xs text-zinc-500">Generate the long text, then review the fields before publishing.</p>
             </div>
           </div>
 
@@ -3822,10 +4093,10 @@ function PostJobPage({
 
   return (
     <section className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-8">
-      <WorkflowGuide trail={["Jobs"]} current="Post job" onBack={onBack} />
+      <WorkflowGuide trail={["Jobs"]} current={`Post ${postingLabel}`} onBack={onBack} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader
-          eyebrow="Post job"
+          eyebrow={`Post ${postingLabel}`}
           title={title.trim() || "Review the draft"}
           description={aiGenerated ? "AI drafted the fields below — review and edit anything before publishing." : "Fill in the role details, then publish."}
         />
@@ -3835,13 +4106,13 @@ function PostJobPage({
         </button>
       </div>
 
-      <div className="mt-1 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className={cn(elevated, "divide-y divide-zinc-100 p-6")}>
+      <div className="mt-1 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className={cn(elevated, "divide-y divide-zinc-100 p-5 sm:p-6")}>
           <div className="pb-6">
             <p className="text-sm font-semibold text-[#081433]">Where, and who sees it</p>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
               <Field label="Salary range *" hint={aiGenerated && salaryReason ? salaryReason : undefined}>
-                <Input value={salary} onChange={(event) => setSalary(event.target.value)} placeholder="e.g. RM 8k-12k" />
+                <Input value={salary} onChange={(event) => setSalary(event.target.value)} placeholder={employmentType === "Internship" ? "e.g. RM 1.2k-1.8k/mo" : "e.g. RM 8k-12k"} />
               </Field>
               <Field label="Location *">
                 <Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="e.g. Kuala Lumpur" />
@@ -3874,10 +4145,10 @@ function PostJobPage({
                     <button
                       key={type}
                       type="button"
-                      onClick={() => setEmploymentType(type)}
+                      onClick={() => chooseEmploymentType(type)}
                       className={cn(
                         "h-10 rounded-xl text-sm font-medium ring-1 transition",
-                        employmentType === type ? "bg-[#E00046] text-white ring-[#E00046]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+                        employmentType === type ? "bg-[#B42373] text-white ring-[#B42373]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
                       )}
                     >
                       {type}
@@ -3893,7 +4164,7 @@ function PostJobPage({
             )}
 
             <div className="mt-4 flex items-center gap-1.5">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Who sees it</p>
+              <p className="text-sm font-semibold text-[#081433]">Who sees it</p>
               {aiGenerated && visibilityReason && <AiFieldHint text={visibilityReason} />}
             </div>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
@@ -3913,10 +4184,10 @@ function PostJobPage({
                     onClick={() => setVisibility(option.value)}
                     className={cn(
                       "flex items-start gap-2.5 rounded-xl border p-3 text-left transition",
-                      active ? "border-[#F5CBD6] bg-[#FFF2F6] ring-1 ring-[#F5CBD6]" : "border-zinc-200 hover:bg-zinc-50"
+                      active ? "border-[#E6D7E7] bg-[#FCF7FB] ring-1 ring-[#E6D7E7]" : "border-zinc-200 hover:bg-zinc-50"
                     )}
                   >
-                    <Icon className="mt-0.5 size-4 shrink-0 text-[#B80039]" />
+                    <Icon className="mt-0.5 size-4 shrink-0 text-[#B42373]" />
                     <span>
                       <span className="block text-sm font-semibold text-zinc-950">{option.label}</span>
                       <span className="block text-xs text-zinc-500">{option.detail}</span>
@@ -3932,27 +4203,32 @@ function PostJobPage({
               </div>
             )}
             {(visibility === "collab" || visibility === "both") && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {collabUniversities.map((uni) => {
-                  const active = targetUniversities.includes(uni);
-                  return (
-                    <button
-                      key={uni}
-                      type="button"
-                      onClick={() =>
-                        setTargetUniversities((current) =>
-                          active ? current.filter((item) => item !== uni) : [...current, uni]
-                        )
-                      }
-                      className={cn(
-                        "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
-                        active ? "bg-[#081433] text-white ring-[#081433]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#FFF2F6]"
-                      )}
-                    >
-                      {uni}
-                    </button>
-                  );
-                })}
+              <div className="mt-3 space-y-2">
+                <select
+                  value={universitySelect}
+                  onChange={(event) => addSelectedUniversity(event.target.value as CollabUniversity | "")}
+                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition focus:border-[#B42373] focus:ring-4 focus:ring-[#F7E5F0]"
+                  aria-label="Select collaborating university"
+                >
+                  <option value="">Select university</option>
+                  {collabUniversities
+                    .filter((uni) => !targetUniversities.includes(uni))
+                    .map((uni) => <option key={uni} value={uni}>{uni}</option>)}
+                </select>
+                {targetUniversities.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {targetUniversities.map((uni) => (
+                      <button
+                        key={uni}
+                        type="button"
+                        onClick={() => setTargetUniversities((current) => current.filter((item) => item !== uni))}
+                        className="rounded-full bg-[#FCF7FB] px-3 py-1.5 text-xs font-medium text-[#7A174F] ring-1 ring-[#E6D7E7] hover:bg-white"
+                      >
+                        {uni} <span className="text-[#B42373]/60">×</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -4070,14 +4346,17 @@ function PostJobPage({
           )}
         </div>
 
-        <div className={cn(elevated, "h-fit space-y-3 p-5")}>
-          <p className="text-sm font-semibold text-[#081433]">Ready to publish?</p>
-          <div className="space-y-2.5">
+        <div className={cn(elevated, "h-fit space-y-3 p-5 lg:sticky lg:top-5")}>
+          <div>
+            <p className="text-sm font-semibold text-[#081433]">Ready to publish?</p>
+            <p className="mt-1 text-xs text-zinc-500">{checks.filter((check) => check.complete).length} of {checks.length} checks complete</p>
+          </div>
+          <div className="max-h-[420px] space-y-2.5 overflow-auto pr-1">
             {checks.map((check) => (
               <PublishCheckRow key={check.label} complete={check.complete} label={check.label} detail={check.detail} />
             ))}
           </div>
-          <Button className="career-pink-action w-full text-white" disabled={!canPublish} onClick={handlePublish}>
+          <Button className="w-full bg-[#B42373] text-white hover:bg-[#95185f]" disabled={!canPublish} onClick={handlePublish}>
             <Send />
             Publish job
           </Button>
@@ -4092,15 +4371,337 @@ const projectStatusTone: Record<ProjectStatus, string> = {
   Draft: "bg-zinc-100 text-zinc-600 ring-zinc-200",
   Published: "bg-sky-50 text-sky-700 ring-sky-200",
   "Open for Interest": "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  "Team Assigned": "bg-amber-50 text-amber-800 ring-amber-200",
+  "Team Formed": "bg-amber-50 text-amber-800 ring-amber-200",
   "In Progress": "bg-[#F7F4FF] text-[#5B4FCF] ring-[#E4DEFB]",
   Submitted: "bg-cyan-50 text-cyan-700 ring-cyan-200",
   Completed: "bg-[#FFF2F6] text-[#B80039] ring-[#F5CBD6]",
   Closed: "bg-zinc-100 text-zinc-500 ring-zinc-200",
 };
 
+const projectStatusMeaning: Record<ProjectStatus, string> = {
+  Draft: "Only employer admins can see this brief. It is not visible to universities yet.",
+  Published: "The brief is visible to selected universities, but teams have not started.",
+  "Open for Interest": "Universities can register interest and students can start forming teams.",
+  "Team Formed": "A student team has been formed and confirmed for this project; team details can now be reviewed.",
+  "In Progress": "Assigned teams are working on the brief. Track milestones and wait for submissions.",
+  Submitted: "Teams have submitted work. Review submissions, linked candidate accounts, and feedback.",
+  Completed: "Employer review is finished. High-potential students can be kept in the Talent Pool.",
+  Closed: "The project is archived and no longer accepts team updates.",
+};
+
 function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
   return <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium ring-1", projectStatusTone[status])}>{status}</span>;
+}
+
+type TalentPoolRecord = {
+  candidate: Candidate;
+  reasons: string[];
+  projectLinks: Array<{ projectTitle: string; teamName: string; performance?: string }>;
+};
+
+function buildTalentPoolRecords({
+  candidates,
+  projects,
+  jobs,
+  scoreWeights,
+  manualIds,
+  hiddenIds,
+}: {
+  candidates: Candidate[];
+  projects: Project[];
+  jobs: Job[];
+  scoreWeights: HiringSettings["scoreWeights"];
+  manualIds: number[];
+  hiddenIds: number[];
+}): TalentPoolRecord[] {
+  const jobById = new Map(jobs.map((job) => [job.id, job]));
+  const hidden = new Set(hiddenIds);
+  const records = new Map<number, TalentPoolRecord>();
+
+  function ensureRecord(candidate: Candidate) {
+    const existing = records.get(candidate.id);
+    if (existing) return existing;
+    const next: TalentPoolRecord = { candidate, reasons: [], projectLinks: [] };
+    records.set(candidate.id, next);
+    return next;
+  }
+
+  candidates.forEach((candidate) => {
+    if (hidden.has(candidate.id)) return;
+    const record = ensureRecord(candidate);
+    const job = jobById.get(candidate.jobId);
+
+    if (["Shortlisted", "Invited", "Interview scheduled"].includes(candidate.stage)) {
+      record.reasons.push("Shortlisted before");
+    }
+    if (candidate.pastSecondStage) {
+      record.reasons.push("Reached second stage before");
+    }
+    if (candidate.stage === "Hired") {
+      record.reasons.push("Worked here before");
+    }
+    if (job?.employmentType === "Internship") {
+      record.reasons.push("Internship pipeline");
+    }
+    if (candidateScore(candidate, scoreWeights) >= 90) {
+      record.reasons.push("High match profile");
+    }
+    if (manualIds.includes(candidate.id)) {
+      record.reasons.push("Saved by employer");
+    }
+  });
+
+  projects.forEach((project) => {
+    project.teams.forEach((team) => {
+      team.students.forEach((student) => {
+        if (!student.candidateAccountId) return;
+        if (hidden.has(student.candidateAccountId)) return;
+        const candidate = candidates.find((item) => item.id === student.candidateAccountId);
+        if (!candidate) return;
+        const savedManually = manualIds.includes(candidate.id);
+        if (student.performance !== "High potential" && !savedManually) return;
+        const record = ensureRecord(candidate);
+        record.projectLinks.push({
+          projectTitle: project.title,
+          teamName: team.name,
+          performance: student.performance,
+        });
+        if (student.performance === "High potential") {
+          record.reasons.push("Did well in project");
+        } else if (savedManually) {
+          record.reasons.push("Saved from project");
+        }
+      });
+    });
+  });
+
+  return [...records.values()]
+    .map((record) => ({
+      ...record,
+      reasons: [...new Set(record.reasons)],
+      projectLinks: record.projectLinks.filter(
+        (link, index, all) =>
+          all.findIndex((item) => item.projectTitle === link.projectTitle && item.teamName === link.teamName) === index
+      ),
+    }))
+    .filter((record) => record.reasons.length > 0)
+    .sort((a, b) => candidateScore(b.candidate, scoreWeights) - candidateScore(a.candidate, scoreWeights));
+}
+
+function TalentPoolPage({
+  candidates,
+  projects,
+  jobs,
+  permissions,
+  scoreWeights,
+  manualIds,
+  hiddenIds,
+  onOpenProfile,
+  onRemoveFromPool,
+  onNavigate,
+}: {
+  candidates: Candidate[];
+  projects: Project[];
+  jobs: Job[];
+  permissions: RolePermission;
+  scoreWeights: HiringSettings["scoreWeights"];
+  manualIds: number[];
+  hiddenIds: number[];
+  onOpenProfile: (candidateId: number) => void;
+  onRemoveFromPool: (candidateId: number) => void;
+  onNavigate: (page: Page) => void;
+}) {
+  const [filter, setFilter] = useState<"All" | "Shortlisted" | "Projects" | "Internship" | "Worked here">("All");
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"Match" | "Name" | "Recent signal">("Match");
+  const records = buildTalentPoolRecords({ candidates, projects, jobs, scoreWeights, manualIds, hiddenIds });
+  const visibleRecords = records
+    .filter((record) => {
+      if (filter === "All") return true;
+      if (filter === "Shortlisted") return record.reasons.some((reason) => reason.includes("Shortlisted") || reason.includes("second stage"));
+      if (filter === "Projects") return record.projectLinks.length > 0;
+      if (filter === "Internship") return record.reasons.includes("Internship pipeline");
+      return record.reasons.includes("Worked here before");
+    })
+    .filter((record) => {
+      const value = query.trim().toLowerCase();
+      if (!value) return true;
+      return [
+        record.candidate.name,
+        record.candidate.title,
+        record.candidate.location,
+        ...record.candidate.tags,
+        ...record.reasons,
+        ...record.projectLinks.flatMap((link) => [link.projectTitle, link.teamName, link.performance ?? ""]),
+      ].join(" ").toLowerCase().includes(value);
+    })
+    .sort((a, b) => {
+      if (sortBy === "Name") return a.candidate.name.localeCompare(b.candidate.name);
+      if (sortBy === "Recent signal") return b.reasons.length + b.projectLinks.length - (a.reasons.length + a.projectLinks.length);
+      return candidateScore(b.candidate, scoreWeights) - candidateScore(a.candidate, scoreWeights);
+    });
+  const filters = [
+    { label: "All", value: "All" as const, count: records.length },
+    { label: "Shortlisted", value: "Shortlisted" as const, count: records.filter((record) => record.reasons.some((reason) => reason.includes("Shortlisted") || reason.includes("second stage"))).length },
+    { label: "Projects", value: "Projects" as const, count: records.filter((record) => record.projectLinks.length > 0).length },
+    { label: "Internship", value: "Internship" as const, count: records.filter((record) => record.reasons.includes("Internship pipeline")).length },
+    { label: "Worked here", value: "Worked here" as const, count: records.filter((record) => record.reasons.includes("Worked here before")).length },
+  ];
+
+  return (
+    <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
+      <WorkflowGuide trail={["Dashboard"]} current="Talent Pool" onBack={() => onNavigate("dashboard")} onNavigate={onNavigate} />
+      <PageHeader
+        eyebrow="Talent Pool"
+        title="Warm talent for re-engagement"
+        description="All shortlisted candidates, strong project performers, internship talent, and people who worked here before are collected here for future hiring cycles."
+        action={
+          <Button variant="outline" onClick={() => onNavigate("jobs")}>
+            <ClipboardList />
+            Review jobs
+          </Button>
+        }
+      />
+
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <MiniStat label="Talent records" value={String(records.length)} />
+        <MiniStat label="Project-linked" value={String(records.filter((record) => record.projectLinks.length > 0).length)} />
+        <MiniStat label="High match" value={String(records.filter((record) => candidateScore(record.candidate, scoreWeights) >= 90).length)} />
+        <MiniStat label="Internship route" value={String(records.filter((record) => record.reasons.includes("Internship pipeline")).length)} />
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[1fr_180px]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search talent, skills, university, signal" className="h-10 pl-9" />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
+            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-[#B42373] focus:ring-4 focus:ring-[#F7E5F0]"
+            aria-label="Sort Talent Pool"
+          >
+            <option>Match</option>
+            <option>Name</option>
+            <option>Recent signal</option>
+          </select>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {filters.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setFilter(item.value)}
+              className={cn(
+                "rounded-full px-4 py-2 text-sm font-medium ring-1 transition",
+                filter === item.value ? "bg-zinc-950 text-white ring-zinc-950" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-zinc-50"
+              )}
+            >
+              {item.label} <span className="ml-1 text-xs opacity-70">{item.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        {visibleRecords.length === 0 ? (
+          <EmptyState
+            icon={UsersRound}
+            title="No talent in this view"
+            description="Change the filter to see other re-engagement groups."
+            actionLabel="Show all"
+            onAction={() => setFilter("All")}
+          />
+        ) : (
+          visibleRecords.map((record) => (
+            <TalentPoolRow
+              key={record.candidate.id}
+              record={record}
+              permissions={permissions}
+              scoreWeights={scoreWeights}
+              onOpenProfile={onOpenProfile}
+              onRemoveFromPool={onRemoveFromPool}
+            />
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TalentPoolRow({
+  record,
+  permissions,
+  scoreWeights,
+  onOpenProfile,
+  onRemoveFromPool,
+}: {
+  record: TalentPoolRecord;
+  permissions: RolePermission;
+  scoreWeights: HiringSettings["scoreWeights"];
+  onOpenProfile: (candidateId: number) => void;
+  onRemoveFromPool: (candidateId: number) => void;
+}) {
+  const score = candidateScore(record.candidate, scoreWeights);
+
+  return (
+    <motion.div
+      variants={listItemMotion}
+      initial="initial"
+      animate="animate"
+      className="career-list-row rounded-2xl p-4 transition hover:-translate-y-0.5 hover:border-pink-200"
+    >
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
+              {record.candidate.name.split(" ").map((part) => part[0]).join("")}
+            </span>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-zinc-950">{record.candidate.name}</h2>
+              <p className="text-sm text-zinc-500">{record.candidate.title}</p>
+            </div>
+            <WorkAnimalTraitBadge candidate={record.candidate} />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {record.reasons.map((reason) => (
+              <Badge key={reason} className="bg-[#FFF2F6] text-pink-700 ring-1 ring-pink-100">{reason}</Badge>
+            ))}
+          </div>
+          {record.projectLinks.length > 0 && (
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
+              {record.projectLinks.map((link) => (
+                <div key={`${link.projectTitle}-${link.teamName}`} className="rounded-xl border border-violet-100 bg-[#F9F8FF] px-3 py-2">
+                  <p className="truncate text-sm font-semibold text-[#081433]">{link.projectTitle}</p>
+                  <p className="mt-0.5 text-xs text-zinc-500">{link.teamName}{link.performance ? ` · ${link.performance}` : ""}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3">
+          <ScoreBar label="Match" value={score} compact />
+          <div className="grid gap-2">
+            <Button variant="outline" size="sm" onClick={() => onOpenProfile(record.candidate.id)}>
+              <Eye />
+              View candidate
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+              disabled={!permissions.canManageJobs && !permissions.canApproach}
+              onClick={() => onRemoveFromPool(record.candidate.id)}
+            >
+              <X />
+              Remove
+            </Button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 function ProjectsPage({
@@ -4123,9 +4724,11 @@ function ProjectsPage({
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5B4FCF]">Projects</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#081433] sm:text-3xl">
-            {published} published · {totalStudents} student{totalStudents === 1 ? "" : "s"} assigned
+            {published} published brief{published === 1 ? "" : "s"} · {totalStudents} student{totalStudents === 1 ? "" : "s"} in teams
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">Employer-posted project briefs, visible only to your collaborating universities.</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Published briefs are visible to selected universities. Student counts come from assigned project teams.
+          </p>
         </div>
         {permissions.canManageJobs ? (
           <Button className="career-pink-action h-11 shrink-0 text-white" onClick={() => onNavigate("post-project")}>
@@ -4140,17 +4743,15 @@ function ProjectsPage({
         )}
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl border border-[#E7E9F1] bg-white">
+      <div className="mt-5 grid gap-3">
         {projects.length === 0 ? (
-          <div className="p-4">
-            <EmptyState
-              icon={FolderOpen}
-              title="No projects yet"
-              description="Create a project brief for students — a hackathon, dashboard build, research task, or case study."
-              actionLabel="New project"
-              onAction={() => onNavigate("post-project")}
-            />
-          </div>
+          <EmptyState
+            icon={FolderOpen}
+            title="No projects yet"
+            description="Create a project brief for students — a hackathon, dashboard build, research task, or case study."
+            actionLabel="New project"
+            onAction={() => onNavigate("post-project")}
+          />
         ) : (
           projects.map((project) => (
             <motion.button
@@ -4160,28 +4761,38 @@ function ProjectsPage({
               animate="animate"
               whileTap={tactileTap}
               onClick={() => onSelectProject(project.id)}
-              className="group flex w-full flex-col gap-2 border-b border-zinc-100 px-4 py-3.5 text-left transition-all last:border-b-0 hover:-translate-y-0.5 hover:bg-[#F9F8FF] hover:shadow-[0_8px_20px_rgba(91,79,207,0.06)] sm:flex-row sm:items-center sm:justify-between"
+              className="career-clear-card group grid w-full gap-4 rounded-2xl p-4 text-left transition hover:border-[#E4DEFB] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
             >
               <div className="flex min-w-0 items-start gap-3">
                 <RowIconAvatar icon={FolderOpen} tone="violet" />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <ProjectTypeChip projectType={project.projectType} />
                     <ProjectStatusBadge status={project.status} />
                     <h2 className="truncate text-[15px] font-semibold tracking-tight text-[#081433]">{project.title}</h2>
                   </div>
-                  <p className="mt-1 truncate text-sm text-zinc-500">{project.projectArea} · {project.duration}</p>
-                  <div className="mt-1">
+                  <p className="mt-1 truncate text-sm text-zinc-500">{project.projectArea} · {project.projectType} · {project.duration}</p>
+                  <PhaseMeaning label={`Phase: ${project.status}`}>
+                    {projectStatusMeaning[project.status]}
+                  </PhaseMeaning>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <VisibilityChip visibility={project.visibility} />
+                    {project.targetUniversities.length > 0 && (
+                      <span className="rounded-full bg-[#F7F4FF] px-2.5 py-1 text-xs font-medium text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
+                        {project.targetUniversities.length} universit{project.targetUniversities.length === 1 ? "y" : "ies"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-3 pl-[52px] sm:pl-0">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F7F4FF] px-2.5 py-1 text-xs font-semibold text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
-                  <UsersRound className="size-3" />
-                  {project.teams.length} team{project.teams.length === 1 ? "" : "s"}
-                </span>
-                <ChevronRight className="size-4 text-[#5B4FCF] transition group-hover:translate-x-0.5" />
+              <div className="flex flex-col gap-3 lg:items-end">
+                <div className="grid grid-cols-2 gap-2 text-center sm:w-48">
+                  <CompactMetric value={String(project.teams.length)} label="Teams" />
+                  <CompactMetric value={String(project.teams.reduce((sum, team) => sum + team.students.length, 0))} label="Students" />
+                </div>
+                <div className="inline-flex items-center justify-between gap-3 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#5B4FCF] ring-1 ring-[#E4DEFB] lg:justify-start">
+                  <span>Open project</span>
+                  <ChevronRight className="size-4 transition group-hover:translate-x-0.5" />
+                </div>
               </div>
             </motion.button>
           ))
@@ -4213,7 +4824,8 @@ function ProjectStageTracker({
               type="button"
               disabled={!canManage}
               onClick={() => onSetStatus(stage)}
-              title={stage}
+              title={`${stage}: ${projectStatusMeaning[stage]}`}
+              aria-label={`${stage}: ${projectStatusMeaning[stage]}`}
               className="group flex shrink-0 flex-col items-center gap-1.5 disabled:cursor-not-allowed"
             >
               <span
@@ -4348,13 +4960,31 @@ const teamStatusTone: Record<ProjectTeamStatus, string> = {
 
 const teamSubmittedStatuses: ProjectTeamStatus[] = ["Draft Submitted", "Final Submitted", "Reviewed", "Revision Requested", "Accepted"];
 
+type ProjectWorkspaceView = "brief" | "teams" | "submissions" | "talent" | "feedback";
+
+const projectWorkspaceViews: Array<{ view: ProjectWorkspaceView; label: string; icon: React.ElementType }> = [
+  { view: "brief", label: "Brief", icon: FileText },
+  { view: "teams", label: "Teams", icon: UsersRound },
+  { view: "submissions", label: "Submissions", icon: FolderOpen },
+  { view: "talent", label: "Talent", icon: UserCheck },
+  { view: "feedback", label: "Feedback", icon: MessageSquareText },
+];
+
 function TeamStatusBadge({ status }: { status: ProjectTeamStatus }) {
   return <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1", teamStatusTone[status])}>{status}</span>;
 }
 
 /** Assigned Teams — grouped by university, since one university may assign more than one team.
  * Uses <details> for progressive disclosure so student rosters aren't all expanded by default. */
-function AssignedTeamsSection({ project }: { project: Project }) {
+function AssignedTeamsSection({
+  project,
+  candidates,
+  onOpenCandidate,
+}: {
+  project: Project;
+  candidates: Candidate[];
+  onOpenCandidate: (candidateId: number) => void;
+}) {
   const elevated = "rounded-2xl border border-[#EEF0F6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]";
   const groups = project.targetUniversities.map((university) => ({
     university,
@@ -4380,7 +5010,7 @@ function AssignedTeamsSection({ project }: { project: Project }) {
                 </span>
               </div>
               {teams.length === 0 ? (
-                <p className="mt-2 text-sm text-zinc-500">No team assigned yet.</p>
+                <p className="mt-2 text-sm text-zinc-500">No student team formed yet.</p>
               ) : (
                 <div className="mt-3 space-y-2">
                   {teams.map((team) => (
@@ -4395,15 +5025,46 @@ function AssignedTeamsSection({ project }: { project: Project }) {
                           <TeamStatusBadge status={team.status} />
                         </span>
                       </summary>
-                      <div className="mt-2.5 space-y-1.5 pl-[22px]">
+                      <div className="mt-2.5 space-y-2 pl-[22px]">
                         {team.supervisor && <p className="text-xs text-zinc-500">Supervisor: {team.supervisor}</p>}
-                        <div className="space-y-1">
-                          {team.students.map((student) => (
-                            <p key={student.id} className="text-sm text-zinc-700">
-                              <span className="font-medium text-zinc-800">{student.name}</span>
-                              <span className="text-zinc-500"> — {student.program}{student.role ? ` — ${student.role}` : ""}</span>
-                            </p>
-                          ))}
+                        <div className="space-y-2">
+                          {team.students.map((student) => {
+                            const candidate = student.candidateAccountId
+                              ? candidates.find((item) => item.id === student.candidateAccountId)
+                              : undefined;
+                            return (
+                              <div key={student.id} className="rounded-lg bg-white p-2.5 ring-1 ring-zinc-100">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-zinc-800">{student.name}</p>
+                                    <p className="mt-0.5 text-xs text-zinc-500">{student.program}{student.role ? ` - ${student.role}` : ""}</p>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {student.performance && (
+                                      <Badge className={cn(
+                                        "text-[11px] ring-1",
+                                        student.performance === "High potential"
+                                          ? "bg-pink-50 text-pink-700 ring-pink-100"
+                                          : student.performance === "Strong"
+                                            ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                                            : "bg-zinc-100 text-zinc-600 ring-zinc-200"
+                                      )}>
+                                        {student.performance}
+                                      </Badge>
+                                    )}
+                                    {candidate ? (
+                                      <Button size="sm" variant="outline" onClick={() => onOpenCandidate(candidate.id)}>
+                                        <Eye />
+                                        View candidate
+                                      </Button>
+                                    ) : (
+                                      <Badge className="bg-amber-50 text-amber-700 ring-1 ring-amber-200">Link account</Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </details>
@@ -4437,7 +5098,7 @@ function SubmissionReviewSection({
       <p className="text-sm font-semibold text-[#081433]">Team Submissions</p>
       <p className="mt-1 text-xs text-zinc-500">Tracked per team, not just at project level.</p>
       {project.teams.length === 0 ? (
-        <p className="mt-3 text-sm text-zinc-500">No teams assigned yet — submissions will appear here once a university assigns a team.</p>
+        <p className="mt-3 text-sm text-zinc-500">No teams formed yet — submissions will appear here once students form a team and the university confirms it.</p>
       ) : (
         <div className="mt-3 space-y-3">
           {project.teams.map((team) => {
@@ -4622,6 +5283,7 @@ function ProjectDraftEditor({
   const [goal, setGoal] = useState(project.goal);
   const [description, setDescription] = useState(project.description ?? "");
   const [targetUniversities, setTargetUniversities] = useState<CollabUniversity[]>(project.targetUniversities);
+  const [universitySelect, setUniversitySelect] = useState<CollabUniversity | "">("");
   const [targetAudience, setTargetAudience] = useState<string[]>(project.targetAudience);
   const [skillInput, setSkillInput] = useState("");
   const [skills, setSkills] = useState<string[]>(project.skills);
@@ -4642,6 +5304,13 @@ function ProjectDraftEditor({
   function toggle<T>(list: T[], setList: (value: T[]) => void, value: T) {
     setSaved(false);
     setList(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  }
+
+  function addSelectedUniversity(value: CollabUniversity | "") {
+    if (!value) return;
+    setSaved(false);
+    setTargetUniversities((current) => current.includes(value) ? current : [...current, value]);
+    setUniversitySelect("");
   }
 
   function addSkill() {
@@ -4710,7 +5379,7 @@ function ProjectDraftEditor({
         <p className="text-sm font-semibold text-[#081433]">Editing draft</p>
       </div>
       <p className="mt-1 text-xs text-zinc-500">
-        This brief is only editable while in Draft — once published, it locks so assigned teams always see a stable brief.
+        This brief is only editable while in Draft — once published, it locks so formed teams always see a stable brief.
       </p>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -4786,24 +5455,34 @@ function ProjectDraftEditor({
       <div className="mt-5 border-t border-zinc-100 pt-4">
         <p className="text-sm font-semibold text-[#081433]">Who sees it</p>
         <p className="mt-1 text-xs text-zinc-500">Projects are only visible to collaborating universities — never public candidates.</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {collabUniversities.map((uni) => {
-            const active = targetUniversities.includes(uni);
-            return (
+        <div className="mt-2 space-y-2">
+          <select
+            value={universitySelect}
+            onChange={(event) => addSelectedUniversity(event.target.value as CollabUniversity | "")}
+            disabled={!canEdit}
+            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition focus:border-[#5B4FCF] focus:ring-4 focus:ring-violet-100 disabled:bg-zinc-50"
+            aria-label="Select collaborating university"
+          >
+            <option value="">Select university</option>
+            {collabUniversities
+              .filter((uni) => !targetUniversities.includes(uni))
+              .map((uni) => <option key={uni} value={uni}>{uni}</option>)}
+          </select>
+          {targetUniversities.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {targetUniversities.map((uni) => (
               <button
                 key={uni}
                 type="button"
                 disabled={!canEdit}
-                onClick={() => toggle(targetUniversities, setTargetUniversities, uni)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition disabled:cursor-not-allowed",
-                  active ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
-                )}
+                onClick={() => { setSaved(false); setTargetUniversities((current) => current.filter((item) => item !== uni)); }}
+                className="rounded-full bg-[#F9F8FF] px-3 py-1.5 text-xs font-medium text-[#5B4FCF] ring-1 ring-[#E4DEFB] hover:bg-white disabled:cursor-not-allowed"
               >
-                {uni}
+                {uni} <span className="text-[#5B4FCF]/60">×</span>
               </button>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
         {publishAttempted && !visibilityComplete && <p className="mt-2 text-xs text-amber-700">Select at least one university before publishing.</p>}
         <div className="mt-3">
@@ -5027,8 +5706,8 @@ function ProjectDraftEditor({
 
 function nextStageActionLabel(next: ProjectStatus): string {
   switch (next) {
-    case "Team Assigned":
-      return "Mark Team Assigned";
+    case "Team Formed":
+      return "Mark Team Formed";
     case "In Progress":
       return "Start Project";
     case "Submitted":
@@ -5044,19 +5723,43 @@ function nextStageActionLabel(next: ProjectStatus): string {
 
 function ProjectDetailPage({
   project,
+  candidates,
   permissions,
   onBack,
   onNavigate,
+  onOpenCandidate,
+  onAddToTalentPool,
+  talentPoolManualIds,
+  talentPoolHiddenIds,
   onNotify,
   onUpdateProject,
 }: {
   project?: Project;
+  candidates: Candidate[];
   permissions: (typeof rolePermissions)[CompanyRole];
   onBack: () => void;
   onNavigate: (page: Page) => void;
+  onOpenCandidate: (candidateId: number) => void;
+  onAddToTalentPool: (candidateId: number) => void;
+  talentPoolManualIds: number[];
+  talentPoolHiddenIds: number[];
   onNotify: (title: string, body?: string, tone?: ActivityTone) => void;
   onUpdateProject: (project: Project) => void;
 }) {
+  const [projectView, setProjectView] = useState<ProjectWorkspaceView>("brief");
+
+  useEffect(() => {
+    if (!project) return;
+    const currentIndex = projectStatusOrder.indexOf(project.status);
+    if (currentIndex >= projectStatusOrder.indexOf("Submitted")) {
+      setProjectView("submissions");
+    } else if (currentIndex >= projectStatusOrder.indexOf("Team Formed")) {
+      setProjectView("teams");
+    } else {
+      setProjectView("brief");
+    }
+  }, [project?.id, project?.status]);
+
   if (!project) {
     return (
       <section className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-8">
@@ -5106,13 +5809,24 @@ function ProjectDetailPage({
   const nextStatus = projectStatusOrder[currentIndex + 1];
   const prevStatus = currentIndex > 0 ? projectStatusOrder[currentIndex - 1] : undefined;
   const isDraft = project.status === "Draft";
-  const teamsUnlocked = currentIndex >= projectStatusOrder.indexOf("Team Assigned");
+  const teamsUnlocked = currentIndex >= projectStatusOrder.indexOf("Team Formed");
   const feedbackUnlocked = currentIndex >= projectStatusOrder.indexOf("Submitted");
 
   const teamCount = project.teams.length;
   const studentCount = project.teams.reduce((sum, team) => sum + team.students.length, 0);
   const submissionsReceived = project.teams.filter((team) => teamSubmittedStatuses.includes(team.status)).length;
   const submissionsAccepted = project.teams.filter((team) => team.status === "Accepted").length;
+  const linkedStudents = project.teams.flatMap((team) =>
+    team.students
+      .map((student) => ({
+        student,
+        team,
+        candidate: student.candidateAccountId
+          ? candidates.find((candidate) => candidate.id === student.candidateAccountId)
+          : undefined,
+      }))
+      .filter((entry) => entry.candidate)
+  );
 
   return (
     <section className="mx-auto w-full max-w-6xl px-5 py-6 lg:px-8">
@@ -5138,6 +5852,9 @@ function ProjectDetailPage({
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Project stage</p>
               <ProjectStatusBadge status={project.status} />
             </div>
+            <PhaseMeaning label={`Current stage: ${project.status}`}>
+              {projectStatusMeaning[project.status]}
+            </PhaseMeaning>
             <div className="mt-4">
               <ProjectStageTracker status={project.status} canManage={permissions.canManageJobs} onSetStatus={setStatus} />
             </div>
@@ -5174,13 +5891,36 @@ function ProjectDetailPage({
           {/* Project summary stats */}
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-5 sm:grid-cols-5">
             <MiniStat label="Universities" value={String(project.targetUniversities.length)} />
-            <MiniStat label="Teams assigned" value={String(teamCount)} />
+            <MiniStat label="Teams formed" value={String(teamCount)} />
             <MiniStat label="Students" value={String(studentCount)} />
             <MiniStat label="Submissions received" value={`${submissionsReceived} / ${teamCount || 0}`} />
             <MiniStat label="Submissions accepted" value={`${submissionsAccepted} / ${teamCount || 0}`} />
           </div>
         </div>
       </div>
+
+      {!isDraft && (
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-[#E7E9F1] bg-white p-1.5">
+          <div className="flex min-w-max gap-1">
+            {projectWorkspaceViews.map(({ view, label, icon: Icon }) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => setProjectView(view)}
+                className={cn(
+                  "inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition",
+                  projectView === view
+                    ? "bg-[#081433] text-white shadow-sm"
+                    : "text-zinc-600 hover:bg-zinc-50 hover:text-[#081433]"
+                )}
+              >
+                <Icon className="size-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isDraft ? (
         /* Draft: the brief is directly editable here — locks once published */
@@ -5189,6 +5929,8 @@ function ProjectDetailPage({
         </div>
       ) : (
         <>
+          {projectView === "brief" && (
+            <>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {/* 3. Project Brief Summary */}
             <div className={cn(elevated, "p-5")}>
@@ -5272,54 +6014,123 @@ function ProjectDetailPage({
               <ProjectTimelineVisual project={project} />
             )}
           </div>
+          <div className={cn(elevated, "mt-4 overflow-hidden")}>
+            <div className="flex items-center gap-2 border-b border-zinc-100 bg-[#FAFAFF] px-5 py-3">
+              <span className="flex size-7 items-center justify-center rounded-full bg-[#5B4FCF] text-white">
+                <Sparkles className="size-3.5" />
+              </span>
+              <p className="text-sm font-semibold text-[#081433]">AI insight</p>
+            </div>
+            <div className="divide-y divide-zinc-100">
+              {projectAiInsights(project).map((insight, index) => (
+                <div key={index} className="flex items-start gap-2.5 px-5 py-3 text-sm leading-5 text-zinc-700">
+                  <Sparkles className="mt-0.5 size-3.5 shrink-0 text-[#5B4FCF]" />
+                  <span>{insight}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+            </>
+          )}
 
           {/* 5. Assigned Teams — only once a university could plausibly have assigned one */}
-          {teamsUnlocked ? (
+          {projectView === "teams" && (teamsUnlocked ? (
             <div className="mt-4">
-              <AssignedTeamsSection project={project} />
+              <AssignedTeamsSection project={project} candidates={candidates} onOpenCandidate={onOpenCandidate} />
             </div>
           ) : (
             <div className={cn(elevated, "mt-4 p-5")}>
               <p className="text-sm font-semibold text-[#081433]">Assigned Teams</p>
               <p className="mt-2 text-sm text-zinc-500">
-                No teams yet — this project is at &quot;{project.status}&quot;. Teams appear here once a university assigns one and the project reaches &quot;Team Assigned&quot;.
+                No teams yet — this project is at &quot;{project.status}&quot;. Teams appear here once students form a team and the project reaches &quot;Team Formed&quot;.
               </p>
             </div>
-          )}
+          ))}
 
           {/* 7. Team Submissions / Submission Review */}
-          {teamsUnlocked && (
+          {projectView === "submissions" && teamsUnlocked && (
             <div className="mt-4">
               <SubmissionReviewSection project={project} permissions={permissions} onUpdateTeamStatus={updateTeamStatus} onNotify={onNotify} />
             </div>
           )}
+          {projectView === "submissions" && !teamsUnlocked && (
+            <div className={cn(elevated, "mt-4 p-5")}>
+              <p className="text-sm font-semibold text-[#081433]">Team submissions</p>
+              <p className="mt-2 text-sm text-zinc-500">Submissions appear after at least one university team is assigned.</p>
+            </div>
+          )}
+
+          {projectView === "talent" && teamsUnlocked && linkedStudents.length > 0 && (
+            <div className={cn(elevated, "mt-4 p-5")}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#081433]">Linked candidate accounts</p>
+                  <p className="mt-1 text-xs text-zinc-500">Students tied to CareerOS candidate accounts can be reviewed individually after project submission.</p>
+                </div>
+                <Badge className="bg-[#F7F4FF] text-[#5B4FCF] ring-1 ring-[#E4DEFB]">
+                  {linkedStudents.length} linked
+                </Badge>
+              </div>
+              <div className="mt-4 grid gap-2 md:grid-cols-2">
+                {linkedStudents.map(({ student, team, candidate }) => {
+                  const candidateId = candidate?.id;
+                  const savedBySignal = student.performance === "High potential" && candidateId && !talentPoolHiddenIds.includes(candidateId);
+                  const savedManually = candidateId ? talentPoolManualIds.includes(candidateId) : false;
+                  const saved = Boolean(savedBySignal || savedManually);
+                  return (
+                    <div key={`${team.id}-${student.id}`} className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-zinc-950">{student.name}</p>
+                          <p className="mt-0.5 truncate text-xs text-zinc-500">{team.name} · {student.program}</p>
+                          {student.performance && <p className="mt-1 text-xs font-medium text-[#7A174F]">{student.performance}</p>}
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => candidateId && onOpenCandidate(candidateId)}>
+                            <Eye />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={saved ? "outline" : undefined}
+                            className={saved ? "border-[#E6D7E7] bg-[#FCF7FB] text-[#7A174F]" : "bg-[#B42373] text-white hover:bg-[#95185f]"}
+                            disabled={!candidateId || saved || !permissions.canManageJobs}
+                            onClick={() => candidateId && onAddToTalentPool(candidateId)}
+                          >
+                            <UsersRound />
+                            {saved ? "In pool" : "Add to pool"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {projectView === "talent" && (!teamsUnlocked || linkedStudents.length === 0) && (
+            <div className={cn(elevated, "mt-4 p-5")}>
+              <p className="text-sm font-semibold text-[#081433]">Linked candidate accounts</p>
+              <p className="mt-2 text-sm text-zinc-500">
+                Candidate accounts appear here when universities link submitted students to CareerOS profiles.
+              </p>
+            </div>
+          )}
 
           {/* 8. Employer Feedback — relevant once there's something to review */}
-          {feedbackUnlocked && (
+          {projectView === "feedback" && feedbackUnlocked && (
             <div className="mt-4">
               <EmployerFeedbackSection project={project} permissions={permissions} onSaveFeedback={saveFeedback} />
             </div>
           )}
+          {projectView === "feedback" && !feedbackUnlocked && (
+            <div className={cn(elevated, "mt-4 p-5")}>
+              <p className="text-sm font-semibold text-[#081433]">Employer feedback</p>
+              <p className="mt-2 text-sm text-zinc-500">Feedback opens once teams submit work for review.</p>
+            </div>
+          )}
         </>
       )}
-
-      {/* 9. AI Insight — stage-aware, comes last */}
-      <div className={cn(elevated, "mt-4 overflow-hidden")}>
-        <div className="flex items-center gap-2 border-b border-zinc-100 bg-[#FAFAFF] px-5 py-3">
-          <span className="flex size-7 items-center justify-center rounded-full bg-[#5B4FCF] text-white">
-            <Sparkles className="size-3.5" />
-          </span>
-          <p className="text-sm font-semibold text-[#081433]">AI insight</p>
-        </div>
-        <div className="divide-y divide-zinc-100">
-          {projectAiInsights(project).map((insight, index) => (
-            <div key={index} className="flex items-start gap-2.5 px-5 py-3 text-sm leading-5 text-zinc-700">
-              <Sparkles className="mt-0.5 size-3.5 shrink-0 text-[#5B4FCF]" />
-              <span>{insight}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }
@@ -5333,7 +6144,7 @@ function projectAiInsights(project: Project): string[] {
 
   if (universityCount === 0) {
     insights.push(
-      "No collaborating universities selected yet — add at least one so a university can assign a student team. Projects are only visible to universities, never public candidates."
+      "No collaborating universities selected yet — add at least one so students from that university can form a team. Projects are only visible to universities, never public candidates."
     );
   }
 
@@ -5348,17 +6159,17 @@ function projectAiInsights(project: Project): string[] {
       break;
     case "Published":
       insights.push(
-        `Published to ${universityCount} collaborating universit${universityCount === 1 ? "y" : "ies"} — no teams assigned yet. Move to "Open for Interest" once universities can start proposing teams.`
+        `Published to ${universityCount} collaborating universit${universityCount === 1 ? "y" : "ies"} — no teams formed yet. Move to "Open for Interest" once students can start forming teams.`
       );
       break;
     case "Open for Interest":
       insights.push(
         teams.length === 0
-          ? "No teams assigned yet. A sharper project goal or a shorter first milestone often helps a university commit a team faster."
+          ? "No teams formed yet. A sharper project goal or a shorter first milestone often helps students decide to form a team faster."
           : `${teams.length} team${teams.length === 1 ? "" : "s"} assigned across ${universitiesWithTeams} universit${universitiesWithTeams === 1 ? "y" : "ies"} so far.`
       );
       break;
-    case "Team Assigned":
+    case "Team Formed":
     case "In Progress": {
       if (teams.length > 0) {
         const submitted = teams.filter((team) => teamSubmittedStatuses.includes(team.status));
@@ -5391,7 +6202,7 @@ function projectAiInsights(project: Project): string[] {
           }
         }
       } else {
-        insights.push("No teams assigned yet — this project can't move forward until at least one university commits a team.");
+        insights.push("No teams formed yet — this project can't move forward until at least one student team is confirmed.");
       }
       break;
     }
@@ -5558,6 +6369,7 @@ function PostProjectPage({
   const [goal, setGoal] = useState("");
   const [description, setDescription] = useState("");
   const [targetUniversities, setTargetUniversities] = useState<CollabUniversity[]>([]);
+  const [universitySelect, setUniversitySelect] = useState<CollabUniversity | "">("");
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
@@ -5583,6 +6395,12 @@ function PostProjectPage({
 
   function toggle<T>(list: T[], setList: (value: T[]) => void, value: T) {
     setList(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  }
+
+  function addSelectedUniversity(value: CollabUniversity | "") {
+    if (!value) return;
+    setTargetUniversities((current) => current.includes(value) ? current : [...current, value]);
+    setUniversitySelect("");
   }
 
   function addSkill() {
@@ -5729,40 +6547,26 @@ function PostProjectPage({
           </div>
           <div className="mt-3">
             <Field label="Project area *">
-              <div className="flex flex-wrap gap-1.5">
-                {projectAreas.map((area) => (
-                  <button
-                    key={area}
-                    type="button"
-                    onClick={() => setProjectArea(area)}
-                    className={cn(
-                      "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition",
-                      projectArea === area ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
-                    )}
-                  >
-                    {area}
-                  </button>
-                ))}
-              </div>
+              <select
+                value={projectArea}
+                onChange={(event) => setProjectArea(event.target.value)}
+                className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition focus:border-[#5B4FCF] focus:ring-4 focus:ring-violet-100"
+              >
+                <option value="">Select project area</option>
+                {projectAreas.map((area) => <option key={area} value={area}>{area}</option>)}
+              </select>
             </Field>
           </div>
           <div className="mt-3">
             <Field label="Project type *">
-              <div className="flex flex-wrap gap-1.5">
-                {projectTypes.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setProjectType(type)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
-                      projectType === type ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
-                    )}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
+              <select
+                value={projectType}
+                onChange={(event) => setProjectType(event.target.value)}
+                className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition focus:border-[#5B4FCF] focus:ring-4 focus:ring-violet-100"
+              >
+                <option value="">Select project type</option>
+                {projectTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+              </select>
             </Field>
           </div>
 
@@ -5800,7 +6604,7 @@ function PostProjectPage({
         </button>
       </div>
 
-      <div className="mt-1 grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="mt-1 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className={cn(elevated, "divide-y divide-zinc-100 p-6")}>
           <div className="pb-6">
             <div className="flex items-center gap-1.5">
@@ -5811,23 +6615,32 @@ function PostProjectPage({
               <GraduationCap className="mt-0.5 size-4 shrink-0" />
               Projects are only visible to your collaborating universities — candidates never see projects.
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {collabUniversities.map((uni) => {
-                const active = targetUniversities.includes(uni);
-                return (
-                  <button
-                    key={uni}
-                    type="button"
-                    onClick={() => toggle(targetUniversities, setTargetUniversities, uni)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition",
-                      active ? "bg-[#5B4FCF] text-white ring-[#5B4FCF]" : "bg-white text-zinc-600 ring-zinc-200 hover:bg-[#F9F8FF]"
-                    )}
-                  >
-                    {uni}
-                  </button>
-                );
-              })}
+            <div className="mt-3 space-y-2">
+              <select
+                value={universitySelect}
+                onChange={(event) => addSelectedUniversity(event.target.value as CollabUniversity | "")}
+                className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition focus:border-[#5B4FCF] focus:ring-4 focus:ring-violet-100"
+                aria-label="Select collaborating university"
+              >
+                <option value="">Select university</option>
+                {collabUniversities
+                  .filter((uni) => !targetUniversities.includes(uni))
+                  .map((uni) => <option key={uni} value={uni}>{uni}</option>)}
+              </select>
+              {targetUniversities.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {targetUniversities.map((uni) => (
+                    <button
+                      key={uni}
+                      type="button"
+                      onClick={() => setTargetUniversities((current) => current.filter((item) => item !== uni))}
+                      className="rounded-full bg-[#F9F8FF] px-3 py-1.5 text-xs font-medium text-[#5B4FCF] ring-1 ring-[#E4DEFB] hover:bg-white"
+                    >
+                      {uni} <span className="text-[#5B4FCF]/60">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {publishAttempted && !visibilityComplete && (
               <p className="mt-2 text-xs text-amber-700">Select at least one university.</p>
@@ -6061,9 +6874,12 @@ function PostProjectPage({
           )}
         </div>
 
-        <div className={cn(elevated, "h-fit space-y-3 p-5")}>
-          <p className="text-sm font-semibold text-[#081433]">Ready to publish?</p>
-          <div className="space-y-2.5">
+        <div className={cn(elevated, "h-fit space-y-3 p-5 lg:sticky lg:top-5")}>
+          <div>
+            <p className="text-sm font-semibold text-[#081433]">Ready to publish?</p>
+            <p className="mt-1 text-xs text-zinc-500">{checks.filter((check) => check.complete).length} of {checks.length} checks complete</p>
+          </div>
+          <div className="max-h-[420px] space-y-2.5 overflow-auto pr-1">
             {checks.map((check) => (
               <PublishCheckRow key={check.label} complete={check.complete} label={check.label} detail={check.detail} />
             ))}
@@ -6256,30 +7072,39 @@ function CandidateProfilePage({
   candidate,
   permissions,
   scoreWeights,
-  isClosed,
+  returnPage,
+  isInTalentPool,
   onBack,
-  onShortlist,
-  onApproach,
-  onMarkApplied,
-  onNavigate,
+  onAddToTalentPool,
 }: {
   candidate: Candidate;
   permissions: (typeof rolePermissions)[CompanyRole];
   scoreWeights: HiringSettings["scoreWeights"];
-  isClosed: boolean;
+  returnPage: Page;
+  isInTalentPool: boolean;
   onBack: () => void;
-  onShortlist: (id: number) => void;
-  onApproach: (id: number) => void;
-  onMarkApplied: (id: number) => void;
-  onNavigate: (page: Page) => void;
+  onAddToTalentPool: (id: number) => void;
 }) {
-  const isApproachable = candidate.source === "Potential" && candidate.stage === "New";
-  const isApproached = candidate.source === "Potential" && candidate.stage === "Approached";
-  const canShortlist = candidate.appliedToJob && !["Shortlisted", "Invited", "Interview scheduled", "Hired", "Rejected"].includes(candidate.stage);
   const livingCv = candidate.livingCvDetails;
   const candidateAnimal = getWorkAnimal(livingCv.workAnimal);
   const secondaryAnimal = getWorkAnimal(livingCv.secondaryWorkAnimal);
   const shadowAnimal = getWorkAnimal(livingCv.shadowWorkAnimal);
+  const canManageLibrary = permissions.canManageJobs || permissions.canApproach;
+  const originLabel =
+    returnPage === "talent-pool"
+      ? "Talent Pool"
+      : returnPage === "project-detail"
+        ? "Project"
+        : "Candidate review";
+  const profileTrail =
+    returnPage === "talent-pool"
+      ? ["Talent Pool"]
+      : returnPage === "project-detail"
+        ? ["Projects", "Project workspace"]
+        : ["Jobs", "Job workspace", "Candidate review"];
+  const libraryButtonLabel = isInTalentPool ? "Already in Talent Pool" : "Add to Talent Pool";
+  const libraryStatusLabel = isInTalentPool ? "Saved in library" : "Not in library yet";
+  const libraryStatusTone = isInTalentPool ? "text-emerald-700 bg-emerald-50 ring-emerald-100" : "text-[#7A174F] bg-[#FCF7FB] ring-[#E6D7E7]";
   const skillGroups = [
     ["Technical", livingCv.skills.technical],
     ["Tools", livingCv.skills.tools],
@@ -6289,68 +7114,67 @@ function CandidateProfilePage({
   return (
     <section className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-8">
       <WorkflowGuide
-        trail={["Jobs", "Job workspace", "Candidate review"]}
+        trail={profileTrail}
         current="Candidate CV"
         onBack={onBack}
-        onNavigate={onNavigate}
       />
 
       <div className="career-form-panel mt-4 overflow-hidden rounded-3xl">
-        <div className="relative h-44 overflow-hidden rounded-t-3xl bg-[linear-gradient(120deg,#fff1f7_0%,#ffdce8_50%,#f6ecff_100%)]">
-          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.14)_1px,transparent_1px)] [background-size:38px_38px]" />
-          <div className="absolute bottom-5 right-5 hidden rounded-2xl bg-white/30 p-4 text-pink-950 ring-1 ring-white/50 backdrop-blur md:block">
-            <p className="text-xs uppercase text-pink-700/70">Composite fit</p>
-            <p className="mt-1 text-3xl font-semibold text-pink-700">{candidateScore(candidate, scoreWeights)}%</p>
+        <div className="relative h-32 overflow-hidden rounded-t-3xl bg-[linear-gradient(120deg,#fff7fb_0%,#f8edf5_58%,#f3f4f8_100%)]">
+          <div className="absolute inset-x-6 bottom-0 h-px bg-[linear-gradient(90deg,transparent,#E6D7E7,transparent)]" />
+          <div className="absolute bottom-4 right-5 hidden items-center gap-3 rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-pink-950 shadow-sm backdrop-blur md:flex">
+            <Gauge className="size-5 text-[#B42373]" />
+            <div>
+              <p className="text-xs font-medium text-zinc-500">Composite fit</p>
+              <p className="text-2xl font-semibold text-[#7A174F]">{candidateScore(candidate, scoreWeights)}%</p>
+            </div>
           </div>
         </div>
         <div className="relative px-5 pb-6 lg:px-7">
-          <div className="absolute left-5 top-0 flex size-28 -translate-y-1/2 items-center justify-center rounded-3xl border-4 border-white bg-[linear-gradient(135deg,#df0746,#f4537c)] text-3xl font-semibold text-white shadow-md lg:left-7">
+          <div className="absolute left-5 top-0 flex size-24 -translate-y-1/2 items-center justify-center rounded-2xl border-4 border-white bg-[#B42373] text-2xl font-semibold text-white shadow-md lg:left-7">
             {livingCv.name.split(" ").map((part) => part[0]).join("")}
           </div>
-          <div className="grid gap-4 pt-20 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+          <div className="grid gap-5 pt-16 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
             <div className="min-w-0">
-	                <div className="flex flex-wrap items-center gap-2">
-	                  <h1 className="text-3xl font-semibold tracking-normal">{livingCv.name}</h1>
-                    <WorkAnimalTraitBadge candidate={candidate} />
-	                  {candidateLabels(candidate, scoreWeights).map((label) => (
-	                    <CandidateLabel key={label} label={label} />
-	                  ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-3xl font-semibold tracking-normal text-zinc-950">{livingCv.name}</h1>
+                  <WorkAnimalTraitBadge candidate={candidate} />
+                  {candidateLabels(candidate, scoreWeights).map((label) => (
+                    <CandidateLabel key={label} label={label} />
+                  ))}
                 </div>
                 <p className="mt-1 text-zinc-600">{livingCv.title}</p>
                 <p className="mt-1 text-sm text-zinc-500">{livingCv.location}</p>
                 <p className="mt-2 text-sm font-medium text-pink-700">{livingCv.trajectory}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 ring-1 ring-zinc-200">
+                    <Eye className="size-3.5" />
+                    Read-only profile
+                  </span>
+                  <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ring-1", libraryStatusTone)}>
+                    {isInTalentPool ? <UserCheck className="size-3.5" /> : <UsersRound className="size-3.5" />}
+                    {libraryStatusLabel}
+                  </span>
+                </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {isApproachable ? (
-                <Button className="bg-violet-50 text-violet-700 ring-1 ring-violet-100 hover:bg-violet-100" disabled={isClosed || !permissions.canApproach} onClick={() => onApproach(candidate.id)}>
-                  <MessageSquareText />
-                  Approach
-                </Button>
-              ) : isApproached ? (
-                <Button className="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100" disabled={isClosed || !permissions.canApproach} onClick={() => onMarkApplied(candidate.id)}>
-                  <UserCheck />
-                  Mark applied
-                </Button>
-              ) : candidate.stage === "Shortlisted" || candidate.stage === "Invited" || candidate.stage === "Interview scheduled" ? (
-                <Button variant="outline" onClick={() => onNavigate("shortlist")}>
-                  <ClipboardList />
-                  Open decision shortlist
-                </Button>
-              ) : candidate.stage === "Hired" ? (
-                <Button className="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" disabled>
-                  <UserCheck />
-                  Hired
-                </Button>
-              ) : (
-                <Button
-                  className="career-pink-action text-white"
-                  disabled={isClosed || !canShortlist}
-                  onClick={() => onShortlist(candidate.id)}
-                >
-                  <ClipboardList />
-                  Shortlist
-                </Button>
-              )}
+            <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
+              <Button variant="outline" className="justify-center whitespace-nowrap" onClick={onBack}>
+                <ChevronRight className="rotate-180" />
+                Back to {originLabel}
+              </Button>
+              <Button
+                className={cn(
+                  "justify-center whitespace-nowrap",
+                  isInTalentPool
+                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-50"
+                    : "career-pink-action text-white"
+                )}
+                disabled={isInTalentPool || !canManageLibrary}
+                onClick={() => onAddToTalentPool(candidate.id)}
+              >
+                {isInTalentPool ? <UserCheck /> : <UsersRound />}
+                {isInTalentPool ? "In Talent Pool" : "Save to Talent Pool"}
+              </Button>
             </div>
           </div>
           <div className="mt-6 grid gap-3 md:grid-cols-4">
@@ -6519,6 +7343,53 @@ function CandidateProfilePage({
         </div>
 
         <aside className="space-y-4">
+          <Card className="career-clear-card overflow-hidden rounded-2xl lg:sticky lg:top-5">
+            <CardHeader className="border-b border-zinc-100 bg-white">
+              <CardTitle className="flex items-center gap-2">
+                <UsersRound className="size-5 text-pink-600" />
+                Profile actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 text-sm text-zinc-600">
+              <div className={cn("rounded-2xl p-4 ring-1", libraryStatusTone)}>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-white/80 ring-1 ring-white">
+                    {isInTalentPool ? <UserCheck className="size-4" /> : <UsersRound className="size-4" />}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-zinc-950">{libraryStatusLabel}</p>
+                    <p className="mt-1 leading-5 text-zinc-600">
+                      Hiring decisions stay in the job workspace. This page only saves or reviews the candidate record.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Button
+                  className={cn(
+                    "h-11 w-full justify-center",
+                    isInTalentPool
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-50"
+                      : "bg-[#B42373] text-white hover:bg-[#95185f]"
+                  )}
+                  disabled={isInTalentPool || !canManageLibrary}
+                  onClick={() => onAddToTalentPool(candidate.id)}
+                >
+                  {isInTalentPool ? <UserCheck /> : <UsersRound />}
+                  {libraryButtonLabel}
+                </Button>
+                <Button variant="outline" className="h-11 w-full justify-center" onClick={onBack}>
+                  <ChevronRight className="rotate-180" />
+                  Back to {originLabel}
+                </Button>
+              </div>
+              {!canManageLibrary && (
+                <p className="rounded-xl bg-zinc-50 px-3 py-2 text-xs text-zinc-500 ring-1 ring-zinc-100">
+                  Your current role can view this profile but cannot change the Talent Pool.
+                </p>
+              )}
+            </CardContent>
+          </Card>
           <Card className="career-clear-card rounded-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -6550,23 +7421,6 @@ function CandidateProfilePage({
                   <p className="mt-1 text-zinc-600">{upload.fileName}</p>
                 </div>
               ))}
-            </CardContent>
-          </Card>
-          <Card className="career-clear-card rounded-2xl">
-            <CardHeader>
-              <CardTitle>Hiring action</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-zinc-600">
-              <p className="leading-6">
-                {isClosed
-                  ? "This job is closed, so candidate actions are read-only."
-                  : candidate.appliedToJob
-                  ? "Candidate has submitted CV for this job, so the primary action is Shortlist."
-                  : candidate.stage === "Approached"
-                    ? "Candidate has been approached. Mark applied in the prototype to show the next step."
-                    : "Candidate reached second stage before but has not applied to this job, so the primary action is Approach."}
-              </p>
-              <Button className="career-pink-action w-full text-white" onClick={() => onNavigate("shortlist")}>Open decision shortlist</Button>
             </CardContent>
           </Card>
         </aside>
@@ -7697,7 +8551,7 @@ function ResultPage({
     if (!permissions.canManageJobs || isClosed) return;
     setConfirmation({
       title: "Close this job post?",
-      body: `Close ${activeJob.title}? Candidates and hiring history stay visible, but the job will stop accepting new applicants.`,
+      body: `${eligible.length > 0 ? `${eligible.length} interview candidate${eligible.length === 1 ? "" : "s"} still need an outcome. ` : ""}Close ${activeJob.title}? Candidates and hiring history stay visible, but the job will stop accepting new applicants.`,
       confirmLabel: "Close job post",
       onConfirm: () => {
         onCloseJob();
@@ -7851,6 +8705,7 @@ function CompanyNav({
   const navIcon = {
     dashboard: BriefcaseBusiness,
     jobs: ClipboardList,
+    "talent-pool": UsersRound,
     projects: FolderOpen,
     team: UsersRound,
     profile: Building2,
@@ -7865,18 +8720,18 @@ function CompanyNav({
 
   return (
     <>
-      <div className="sticky top-0 z-40 border-b border-zinc-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur xl:hidden">
+      <div className="sticky top-0 z-40 border-b border-[#ececf4] bg-white/92 px-4 py-3 shadow-sm backdrop-blur-xl xl:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-lg font-semibold tracking-normal text-pink-600">CareerOS Employer</p>
+            <p className="truncate text-xl font-extrabold tracking-normal text-black">Career<span className="text-[#f0185b]">OS</span></p>
             <p className="mt-0.5 truncate text-xs font-medium text-zinc-500">
-              {activeItem?.label ?? "Dashboard"} · {rolePermissions[role].label}
+              Employer · {activeItem?.label ?? "Dashboard"}
             </p>
           </div>
           <button
             type="button"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-800 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-[#111827] shadow-sm ring-1 ring-[#e6e6ef] transition hover:bg-[#faf7ff] hover:text-[#7c2dff]"
             aria-label={mobileMenuOpen ? "Close employer navigation" : "Open employer navigation"}
             aria-expanded={mobileMenuOpen}
           >
@@ -7943,49 +8798,36 @@ function CompanyNav({
           } as React.CSSProperties
         }
         className={cn(
-          "z-30 hidden border-b bg-white/95 backdrop-blur transition-[width,top,height] duration-300 xl:fixed xl:left-0 xl:top-[var(--sidebar-top)] xl:block xl:h-[calc(100vh-var(--sidebar-top))] xl:overflow-y-auto xl:border-b-0 xl:border-r xl:shadow-[10px_0_35px_rgba(24,24,27,0.05)]",
-          collapsed ? "xl:w-24" : "xl:w-72"
+          "z-30 hidden border-r border-[#ececf4] bg-white/92 px-4 py-5 shadow-[10px_0_35px_rgba(15,23,42,0.035)] backdrop-blur-xl transition-[width,top,height] duration-300 ease-out xl:fixed xl:left-0 xl:top-[var(--sidebar-top)] xl:block xl:h-[calc(100vh-var(--sidebar-top))] xl:overflow-y-auto",
+          collapsed ? "xl:w-[84px]" : "xl:w-[252px]"
         )}
       >
-        <div className={cn("mx-auto flex w-full max-w-7xl flex-col items-start gap-3 px-5 py-3 xl:min-h-full xl:pb-6 xl:pt-4", collapsed ? "xl:px-3" : "xl:px-4")}>
-          <div
-            className={cn(
-              "w-full rounded-3xl border border-pink-100 bg-[linear-gradient(135deg,#fff,#fff7fb)] transition-all",
-              collapsed ? "p-3" : "p-4"
-            )}
-          >
-            <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-3")}>
-              <div className={cn("min-w-0", collapsed && "sr-only")}>
-                <p className="truncate text-2xl font-semibold tracking-normal text-pink-600">CareerOS</p>
-                <span className="mt-2 inline-flex rounded-full bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-700 ring-1 ring-pink-100">
+        <div className="flex min-h-full w-full flex-col">
+          <div className={cn("flex items-start", collapsed ? "justify-center" : "justify-between gap-2")}>
+            {collapsed ? null : (
+              <div className="min-w-0 overflow-hidden">
+                <div className="whitespace-nowrap text-[28px] font-extrabold leading-none tracking-normal text-black">
+                  Career<span className="text-[#f0185b]">OS</span>
+                </div>
+                <div className="mt-2 inline-flex whitespace-nowrap rounded-full bg-[#efe7f6] px-3.5 py-1 text-xs font-bold text-[#3b1768]">
                   Employer
-                </span>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => onCollapsedChange(!collapsed)}
-                className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
-                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                <ChevronRight className={cn("size-4 transition", !collapsed && "rotate-180")} />
-              </button>
-            </div>
-
-            {collapsed ? (
-              <div className="mt-3 flex justify-center">
-                <span className="flex size-11 items-center justify-center rounded-2xl bg-pink-50 text-sm font-semibold text-pink-700 ring-1 ring-pink-100">
-                  OS
-                </span>
-              </div>
-            ) : (
-              null
             )}
+            <button
+              type="button"
+              onClick={() => onCollapsedChange(!collapsed)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#e6e6ef] bg-white text-[#111827] shadow-sm transition hover:bg-[#faf7ff] hover:text-[#3b1768]"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <ChevronRight className={cn("size-4 transition", !collapsed && "rotate-180")} />
+            </button>
           </div>
 
           <motion.div
             layout
-            className={cn("grid w-full grid-cols-2 gap-2 sm:grid-cols-3 xl:flex xl:flex-col", collapsed && "xl:grid-cols-1")}
+            className={cn("mt-7 grid w-full grid-cols-2 gap-1 sm:grid-cols-3 xl:flex xl:flex-col", collapsed && "xl:grid-cols-1")}
           >
             {navItems.map((item) => (
               <SidebarButton
@@ -8003,37 +8845,33 @@ function CompanyNav({
             <button
               type="button"
               onClick={() => onCollapsedChange(false)}
-              className="mt-auto flex w-full items-center justify-center rounded-2xl border bg-white p-3 text-xs font-semibold text-pink-700 shadow-sm ring-1 ring-pink-100 transition hover:bg-pink-50"
+              className="mt-auto flex h-10 w-full items-center justify-center rounded-xl border border-[#e6e8ef] bg-white text-xs font-semibold text-[#3b1768] shadow-sm transition hover:bg-[#faf7ff]"
               title={`${role}: ${rolePermissions[role].label}`}
             >
               {role.slice(0, 1)}
             </button>
           ) : (
-            <div className="w-full xl:mt-auto">
-              <div className="career-clear-card w-full rounded-2xl p-3">
-              <p className="text-xs font-medium uppercase text-zinc-500">Preview role</p>
-              <select
-                value={role}
-                onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
-                className="mt-2 h-10 w-full rounded-xl border bg-white px-3 text-sm"
-                aria-label="Preview role"
-              >
-                {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
-              </select>
-              <p className="mt-2 text-xs leading-5 text-zinc-500">
-                Use this to test what each company role can access.
-              </p>
+            <>
+              <div className="mt-auto w-full space-y-2 pb-1">
+                <select
+                  value={role}
+                  onChange={(e) => onRoleChange(e.target.value as CompanyRole)}
+                  className="h-10 w-full rounded-xl border border-[#e6e8ef] bg-white px-3 text-[13px] font-semibold text-[#4b5670] shadow-sm"
+                  aria-label="Preview role"
+                >
+                  {Object.keys(rolePermissions).map((roleName) => <option key={roleName}>{roleName}</option>)}
+                </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 w-full justify-start gap-2 rounded-xl border-[#e6e8ef] bg-white text-[#4b5670] shadow-sm hover:bg-[#faf7ff] hover:text-[#3b1768]"
+                  onClick={onLogOut}
+                >
+                  <LogOut className="size-4" />
+                  Log out
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-3 w-full justify-start gap-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                onClick={onLogOut}
-              >
-                <LogOut className="size-4" />
-                Log out
-              </Button>
-            </div>
+            </>
           )}
         </div>
       </motion.aside>
@@ -8062,14 +8900,14 @@ function SidebarButton({
       onClick={onClick}
       title={collapsed ? label : undefined}
       className={cn(
-        "career-sidebar-button flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition lg:w-full",
-        collapsed && "lg:justify-center lg:px-0 lg:py-3",
+        "career-sidebar-button flex h-11 items-center rounded-xl text-left text-[13px] font-semibold transition lg:w-full",
+        collapsed ? "justify-center px-0" : "gap-3 px-3.5",
         active
-          ? "bg-zinc-950 text-white shadow-[0_12px_24px_rgba(24,24,27,0.14)]"
-          : "bg-white text-zinc-700 ring-1 ring-zinc-200 hover:bg-pink-50 hover:text-pink-700 hover:ring-pink-200"
+          ? "bg-[#f0e9ff] text-[#3b1768] shadow-[0_12px_26px_rgba(59,23,104,0.08)]"
+          : "text-[#18213a] hover:bg-[#faf7ff] hover:text-[#3b1768]"
       )}
     >
-      <Icon className="size-4" />
+      <Icon className="size-[17px] shrink-0" strokeWidth={2.2} />
       <span className={cn(collapsed && "lg:sr-only")}>{label}</span>
     </motion.button>
   );
@@ -8121,7 +8959,7 @@ function CandidateCard({
       "career-list-row min-w-0 rounded-2xl p-3 transition hover:-translate-y-0.5 hover:border-pink-200",
       active && "career-list-row-active"
     )}>
-      <button className="w-full min-w-0 text-left" onClick={() => onSelect(candidate.id)}>
+      <div className="w-full min-w-0 text-left">
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_150px] xl:grid-cols-[minmax(0,1fr)_190px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -8136,7 +8974,13 @@ function CandidateCard({
                 className="career-checkbox size-4 accent-pink-600"
                 aria-label={`Select ${candidate.name}`}
               />
-              <h2 className="text-base font-semibold">{candidate.name}</h2>
+              <button
+                type="button"
+                onClick={() => onSelect(candidate.id)}
+                className="text-left text-base font-semibold text-zinc-950 hover:text-[#B42373]"
+              >
+                {candidate.name}
+              </button>
               <WorkAnimalTraitBadge candidate={candidate} />
               {candidateLabels(candidate, scoreWeights).map((label) => (
                 <CandidateLabel key={label} label={label} />
@@ -8162,7 +9006,7 @@ function CandidateCard({
             </div>
           </div>
         </div>
-      </button>
+      </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3">
         <div className="flex items-center gap-2 text-sm text-zinc-500">
           <MapPin className="size-4" />
@@ -8362,9 +9206,9 @@ function PageHeader({
   return (
     <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
       <div>
-        <Badge className="bg-pink-50 text-pink-700 ring-1 ring-pink-200">{eyebrow}</Badge>
-        <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">{title}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">{description}</p>
+        <Badge className="bg-[#f1e8f6] text-[#3b1768] ring-1 ring-[#e2d2ea]">{eyebrow}</Badge>
+        <h1 className="mt-3 text-3xl font-semibold tracking-normal text-[#081433] md:text-4xl">{title}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#53607b]">{description}</p>
       </div>
       {action}
     </div>
@@ -8416,7 +9260,7 @@ function WorkflowGuide({
           </span>
         );
       })}
-      <span className="truncate rounded-full bg-pink-50 px-3 py-1 font-semibold text-pink-700 ring-1 ring-pink-100">
+      <span className="truncate rounded-full bg-[#f1e8f6] px-3 py-1 font-semibold text-[#3b1768] ring-1 ring-[#e2d2ea]">
         {current}
       </span>
     </nav>
@@ -8433,7 +9277,7 @@ function BreadcrumbTrail({ items }: { items: string[] }) {
             className={cn(
               "truncate",
               index === items.length - 1
-                ? "rounded-full bg-pink-50 px-3 py-1 font-semibold text-pink-700 ring-1 ring-pink-100"
+                ? "rounded-full bg-[#f1e8f6] px-3 py-1 font-semibold text-[#3b1768] ring-1 ring-[#e2d2ea]"
                 : "font-medium text-zinc-500"
             )}
           >
@@ -8447,9 +9291,9 @@ function BreadcrumbTrail({ items }: { items: string[] }) {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-200">
+    <div className="rounded-2xl bg-white p-3 ring-1 ring-[#e6e8ef] shadow-sm">
       <p className="text-xs text-zinc-500">{label}</p>
-      <p className="mt-1 truncate text-sm font-medium">{value}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-[#081433]">{value}</p>
     </div>
   );
 }
@@ -8516,9 +9360,9 @@ function JobSignal({
 
 function CompactMetric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex items-baseline gap-2 xl:block">
-      <span className="text-sm font-semibold text-zinc-950">{value}</span>
-      <span className="text-xs text-zinc-500 xl:hidden">{label}</span>
+    <div className="min-w-0 rounded-xl bg-white/70 px-2.5 py-2 ring-1 ring-zinc-100">
+      <span className="block truncate text-sm font-semibold text-zinc-950">{value}</span>
+      <span className="mt-0.5 block truncate text-[11px] leading-4 text-zinc-500">{label}</span>
     </div>
   );
 }
@@ -8859,6 +9703,30 @@ function StatusBadge({ status }: { status: JobStatus }) {
   }[status];
 
   return <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium ring-1", tone)}>{status}</span>;
+}
+
+const jobStatusMeaning: Record<JobStatus, string> = {
+  Open: "Accepting applicants; review candidates and build the shortlist.",
+  Interviewing: "At least one shortlisted candidate has been invited to the next stage.",
+  Hired: "A hire has been recorded; review the result or close the post when complete.",
+  Closed: "Read-only. The post no longer accepts applicants or candidate changes.",
+};
+
+function PhaseMeaning({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <p className="mt-2 flex max-w-2xl items-start gap-2 text-xs leading-5 text-zinc-500">
+      <Info className="mt-0.5 size-3.5 shrink-0" />
+      <span>
+        <span className="font-semibold text-[#18213a]">{label}:</span> {children}
+      </span>
+    </p>
+  );
 }
 
 /* ── Employer-only CareerOS visual tokens (navy ink / rose accent) ──

@@ -143,7 +143,7 @@ export const initialProjects: Project[] = [
     submissionDate: "2026-07-27",
     milestones: [
       { label: "Project brief published", date: "2026-06-20" },
-      { label: "University team assigned", date: "2026-07-08" },
+      { label: "Student team formed", date: "2026-07-08" },
       { label: "Project kickoff", date: "2026-07-13" },
       { label: "Data exploration checkpoint", date: "2026-07-17" },
       { label: "Draft dashboard submission", date: "2026-07-22" },
@@ -164,9 +164,9 @@ export const initialProjects: Project[] = [
         submittedAt: "2026-07-27T00:00:00.000Z",
         submittedBy: "Mei Ling Tan",
         students: [
-          { id: 1, name: "Mei Ling Tan", program: "Data Analytics", role: "Team Lead" },
-          { id: 2, name: "Farid Rahman", program: "Software Engineering", role: "Dashboard Developer" },
-          { id: 3, name: "Priya Sundaram", program: "Data Science", role: "Analyst" },
+          { id: 1, candidateAccountId: 6, name: getCandidateLivingCv(6).name, program: "Data Analytics", role: "Team Lead", performance: "High potential" },
+          { id: 2, candidateAccountId: 8, name: getCandidateLivingCv(8).name, program: "Software Engineering", role: "Dashboard Developer", performance: "Strong" },
+          { id: 3, candidateAccountId: 3, name: getCandidateLivingCv(3).name, program: "Data Science", role: "Analyst", performance: "High potential" },
         ],
         files: [
           { name: "Power BI Dashboard.pbix", kind: "file" },
@@ -183,8 +183,8 @@ export const initialProjects: Project[] = [
         status: "In Progress",
         expectedSubmissionDate: "2026-07-27",
         students: [
-          { id: 4, name: "Wei Jian Lim", program: "Business Analytics", role: "Presenter" },
-          { id: 5, name: "Aaron Lim", program: "Data Analytics", role: "Dashboard Designer" },
+          { id: 4, candidateAccountId: 4, name: getCandidateLivingCv(4).name, program: "Business Analytics", role: "Presenter", performance: "Strong" },
+          { id: 5, name: "Aaron Lim", program: "Data Analytics", role: "Dashboard Designer", performance: "Needs review" },
         ],
         files: [],
       },
@@ -196,8 +196,8 @@ export const initialProjects: Project[] = [
         status: "Confirmed",
         expectedSubmissionDate: "2026-07-27",
         students: [
-          { id: 6, name: "Alya Hassan", program: "Data Science", role: "Analyst" },
-          { id: 7, name: "Daniel Wong", program: "Software Engineering", role: "Developer" },
+          { id: 6, candidateAccountId: 3, name: getCandidateLivingCv(3).name, program: "Data Science", role: "Analyst", performance: "High potential" },
+          { id: 7, candidateAccountId: 7, name: getCandidateLivingCv(7).name, program: "Software Engineering", role: "Developer", performance: "Strong" },
         ],
         files: [],
       },
@@ -506,6 +506,7 @@ export const initialActivity: ActivityEvent[] = [
 export const navItems: Array<{ page: Page; label: string }> = [
   { page: "dashboard", label: "Dashboard" },
   { page: "jobs", label: "Jobs" },
+  { page: "talent-pool", label: "Talent Pool" },
   { page: "projects", label: "Projects" },
   { page: "team", label: "Team" },
   { page: "profile", label: "Profile" },

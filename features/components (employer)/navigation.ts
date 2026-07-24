@@ -11,6 +11,7 @@ export const employerPageMap: Record<string, Page> = {
   "Interview email": "invite",
   "Hired email": "hire-email",
   "Hiring result": "result",
+  "Talent Pool": "talent-pool",
   Projects: "projects",
   "Project workspace": "project-detail",
   "Post project": "post-project",
