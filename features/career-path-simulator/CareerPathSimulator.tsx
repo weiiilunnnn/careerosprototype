@@ -1,7 +1,8 @@
 "use client";
 
 import { NotebookPen, Printer, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { buildSequentialYears, saveSimulatedCareerPath } from "@/lib/careerPathHandoff";
 import {
   baseExpandedNodes,
   generateScenarioBranch,
@@ -301,6 +302,22 @@ export default function CareerPathSimulator() {
   function titleForNode(node: CareerNodeData) {
     return titleOverrides[node.id] ?? node.title;
   }
+
+  // Whenever the candidate settles on a route beyond the starting point, hand
+  // it off to the Life Chapter Designer so its career milestones stay in sync
+  // with whatever was simulated here.
+  useEffect(() => {
+    if (selectedNodeId === "current" || activePathNodes.length < 2) return;
+    const years = buildSequentialYears(activePathNodes.map((node) => node.timeline));
+    saveSimulatedCareerPath(
+      activePathNodes.map((node, index) => ({
+        id: node.id,
+        title: titleOverrides[node.id] ?? node.title,
+        subtitle: node.roleType,
+        targetYear: years[index],
+      })),
+    );
+  }, [activePathNodes, selectedNodeId, titleOverrides]);
 
   function selectNode(nodeId: string) {
     if (nodeId === selectedNodeId) {
