@@ -48,12 +48,12 @@ const navItems = [
     icon: BotMessageSquare,
   },
   {
-    label: "Browse University",
+    label: "University Readiness",
     href: "/?view=browse-university",
     icon: Building2,
   },
   {
-    label: "Browse Employer",
+    label: "Employer Readiness",
     href: "/?view=browse-employer",
     icon: BriefcaseBusiness,
   },

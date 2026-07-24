@@ -847,6 +847,25 @@
     opacity: 0.22;
   }
 
+  .career-dashboard-command {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(240, 24, 91, 0.25), transparent 16rem),
+      radial-gradient(circle at 82% 8%, rgba(125, 69, 190, 0.22), transparent 18rem),
+      linear-gradient(135deg, #21102f 0%, #2b1242 48%, #4a1b6f 100%) !important;
+    color: #fff !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.12) inset,
+      0 22px 54px rgba(33, 16, 47, 0.24) !important;
+  }
+
+  .career-dashboard-command:hover {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.14) inset,
+      0 24px 60px rgba(33, 16, 47, 0.28) !important;
+  }
+
   .career-clear-shell {
     position: relative;
     border: 1px solid var(--career-border) !important;
@@ -969,8 +988,8 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    background: linear-gradient(135deg, #d81c3f, #f4537c) !important;
-    box-shadow: 0 8px 18px rgba(216, 28, 63, 0.16) !important;
+    background: linear-gradient(135deg, #2b1242, #5b1f86 68%, #f0185b) !important;
+    box-shadow: 0 12px 24px rgba(43, 18, 66, 0.18) !important;
     transform: translateZ(0);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -985,8 +1004,8 @@
     filter: brightness(0.98);
     transform: translateY(-1px);
     box-shadow:
-      0 10px 22px rgba(216, 28, 63, 0.2),
-      0 8px 16px rgba(255, 0, 122, 0.06) !important;
+      0 14px 28px rgba(43, 18, 66, 0.22),
+      0 8px 16px rgba(240, 24, 91, 0.08) !important;
   }
 
   .career-pink-action:active {
@@ -1020,6 +1039,8 @@
   }
 
   .career-sidebar-button {
+    position: relative;
+    overflow: hidden;
     border: 1px solid transparent;
     text-decoration: none !important;
     background-image: none !important;
@@ -1028,6 +1049,244 @@
       color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .career-sidebar-button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: #f0e9ff;
+    opacity: 0;
+    transform: translateX(-12px);
+    transition: opacity 250ms ease-out, transform 250ms ease-out;
+  }
+
+  .career-sidebar-button > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .career-sidebar-button[class*="bg-[#f0e9ff]"]::before,
+  .career-sidebar-button[class*="bg-\\[\\#f0e9ff\\]"]::before {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .career-sidebar-button[class*="bg-[#2b1242]"]::before,
+  .career-sidebar-button[class*="bg-\\[\\#2b1242\\]"]::before {
+    background: #2b1242;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .career-employer-shell {
+    position: relative;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(43, 18, 66, 0.12), transparent 22rem),
+      radial-gradient(circle at 88% 14%, rgba(91, 31, 134, 0.10), transparent 26rem),
+      linear-gradient(180deg, #ffffff 0%, #fbf8fc 18rem, #f5f4f8 100%);
+  }
+
+  .career-employer-shell::before {
+    content: "";
+    position: fixed;
+    z-index: 0;
+    right: -18rem;
+    top: 7rem;
+    width: 44rem;
+    height: 44rem;
+    pointer-events: none;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 22%, transparent 23%),
+      conic-gradient(from 150deg, rgba(43, 18, 66, 0), rgba(43, 18, 66, 0.16), rgba(91, 31, 134, 0.12), rgba(43, 18, 66, 0));
+    mask-image: radial-gradient(circle, black 0 62%, transparent 63%);
+    opacity: 0.55;
+  }
+
+  .career-employer-shell {
+    --employer-ink: #081433;
+    --employer-text: #18213a;
+    --employer-muted: #53607b;
+    --employer-border: #e6e8ef;
+    --employer-soft: #f7f4fa;
+    --employer-soft-strong: #f0e9ff;
+    --employer-accent: #3b1768;
+    --employer-accent-2: #5b1f86;
+    --employer-action: #2b1242;
+    --employer-rose: #f0185b;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .career-employer-shell :where(h1, h2, h3, [data-slot="card-title"]) {
+    color: var(--employer-ink);
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .career-employer-shell :where(p, label, span, button, input, select, textarea) {
+    letter-spacing: 0 !important;
+  }
+
+  .career-employer-shell :where(.text-zinc-500, .text-zinc-600, .text-\[\#53607b\]) {
+    color: var(--employer-muted) !important;
+  }
+
+  .career-employer-shell :where(.text-pink-600, .text-pink-700, .text-violet-700, .text-\[\#B42373\], .text-\[\#B80039\], .text-\[\#5B4FCF\]) {
+    color: var(--employer-accent) !important;
+  }
+
+  .career-employer-shell :where(.bg-pink-50, .bg-violet-50, .bg-\[\#F7F4FF\], .bg-\[\#FFF2F6\], .bg-\[\#f1e8f6\]) {
+    background-color: var(--employer-soft) !important;
+  }
+
+  .career-employer-shell :where(.ring-pink-100, .ring-pink-200, .ring-violet-100, .ring-violet-200, .ring-\[\#E4DEFB\], .ring-\[\#F5CBD6\], .ring-\[\#e2d2ea\]) {
+    --tw-ring-color: #e5d9ee !important;
+  }
+
+  .career-employer-shell :where(.border-pink-100, .border-pink-200, .border-violet-100, .border-\[\#E6D7E7\]) {
+    border-color: #e5d9ee !important;
+  }
+
+  .career-employer-shell [data-slot="button"] {
+    min-height: 2.5rem;
+    border-radius: 0.75rem !important;
+    gap: 0.5rem;
+    padding-inline: 0.875rem !important;
+    font-size: 0.8125rem !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.14) inset,
+      0 8px 18px rgba(33, 16, 47, 0.08) !important;
+  }
+
+  .career-employer-shell [data-slot="button"][data-variant="default"] {
+    border-color: transparent !important;
+    background: linear-gradient(135deg, var(--employer-action), var(--employer-accent-2)) !important;
+    color: #fff !important;
+  }
+
+  .career-employer-shell [data-slot="button"][data-variant="default"]:hover {
+    background: linear-gradient(135deg, #35164f, #6a2897) !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.16) inset,
+      0 12px 24px rgba(33, 16, 47, 0.16) !important;
+  }
+
+  .career-employer-shell [data-slot="button"].bg-red-600 {
+    background: #dc2626 !important;
+    color: #fff !important;
+  }
+
+  .career-employer-shell [data-slot="button"].bg-red-600:hover {
+    background: #b91c1c !important;
+  }
+
+  .career-employer-shell [data-slot="button"].bg-violet-50,
+  .career-employer-shell [data-slot="button"].bg-emerald-50 {
+    border-color: var(--employer-border) !important;
+    background: #fff !important;
+    color: var(--employer-text) !important;
+  }
+
+  .career-employer-shell [data-slot="button"].bg-violet-50:hover,
+  .career-employer-shell [data-slot="button"].bg-emerald-50:hover {
+    background: #faf7ff !important;
+    color: var(--employer-accent) !important;
+  }
+
+  .career-employer-shell [data-slot="button"][data-variant="outline"] {
+    border-color: var(--employer-border) !important;
+    background: #fff !important;
+    color: var(--employer-text) !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.94) inset,
+      0 8px 18px rgba(8, 20, 51, 0.04) !important;
+  }
+
+  .career-employer-shell [data-slot="button"][data-variant="outline"]:hover,
+  .career-employer-shell [data-slot="button"][data-variant="secondary"]:hover,
+  .career-employer-shell [data-slot="button"][data-variant="ghost"]:hover {
+    border-color: #d8cbe4 !important;
+    background: #faf7ff !important;
+    color: var(--employer-accent) !important;
+  }
+
+  .career-employer-shell [data-slot="button"][data-variant="ghost"],
+  .career-employer-shell [data-slot="button"][data-variant="secondary"] {
+    background: var(--employer-soft) !important;
+    color: var(--employer-accent) !important;
+    box-shadow: none !important;
+  }
+
+  .career-employer-shell .career-dashboard-command :where(h1, h2, h3, [data-slot="card-title"]) {
+    color: #fff !important;
+  }
+
+  .career-employer-shell .career-dashboard-command [data-slot="button"][data-variant="default"] {
+    border-color: rgba(255, 255, 255, 0.26) !important;
+    background: #fff !important;
+    color: var(--employer-action) !important;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14) !important;
+  }
+
+  .career-employer-shell .career-dashboard-command [data-slot="button"][data-variant="default"]:hover {
+    background: #f5eff9 !important;
+    color: var(--employer-action) !important;
+  }
+
+  .career-employer-shell :where(input, select, textarea, [data-slot="input"]) {
+    min-height: 2.5rem;
+    border-color: var(--employer-border) !important;
+    border-radius: 0.75rem !important;
+    background: #fff !important;
+    color: var(--employer-text) !important;
+    font-size: 0.875rem !important;
+    font-weight: 500;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  }
+
+  .career-employer-shell :where(input, select, textarea, [data-slot="input"]):focus {
+    border-color: #cbb8d8 !important;
+    box-shadow:
+      0 0 0 4px rgba(59, 23, 104, 0.08),
+      0 8px 18px rgba(8, 20, 51, 0.05) !important;
+  }
+
+  .career-employer-shell [data-slot="card"],
+  .career-employer-shell :where(.career-clear-card, .career-panel-muted, .career-form-panel, .career-section-band, .career-command-shell) {
+    border-color: rgba(8, 20, 51, 0.09) !important;
+    border-radius: 1.25rem !important;
+  }
+
+  .career-employer-shell :where(.career-clear-card, .career-panel-muted, .career-form-panel, .career-section-band) {
+    background: #fff !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 10px 24px rgba(8, 20, 51, 0.035) !important;
+  }
+
+  .career-employer-shell [data-slot="badge"],
+  .career-employer-shell :where(.rounded-full) {
+    font-weight: 650;
+  }
+
+  .career-employer-shell .career-pink-action {
+    background: linear-gradient(135deg, var(--employer-action), var(--employer-accent-2)) !important;
+    color: #fff !important;
+    box-shadow: 0 12px 24px rgba(33, 16, 47, 0.16) !important;
+  }
+
+  .career-employer-shell .career-progress-fill {
+    background: linear-gradient(90deg, var(--employer-accent), var(--employer-rose)) !important;
+  }
+
+  .career-employer-shell .career-sidebar-button {
+    font-size: 0.8125rem !important;
+    font-weight: 650 !important;
   }
 
   .university-motion :where(button, a, [role="button"]) {
@@ -1102,8 +1361,6 @@
     }
   }
 
-  .career-sidebar-button::before,
-  .career-sidebar-button::after,
   .career-sidebar-button *::before,
   .career-sidebar-button *::after {
     content: none !important;

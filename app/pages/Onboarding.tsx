@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import {
   ArrowLeft,
@@ -9,7 +10,6 @@ import {
   FileText,
   GraduationCap,
   Heart,
-  Link2,
   LucideIcon,
   Plus,
   SlidersHorizontal,
@@ -63,14 +63,14 @@ function Navbar() {
       }}
     >
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <a href="/" style={{ textDecoration: "none" }}>
+        <Link href="/" style={{ textDecoration: "none" }}>
           <div className="text-2xl font-black tracking-tight" style={{ color: theme.deepNavy }}>
             Career<span style={{ color: theme.rose2 }}>OS</span>
           </div>
-        </a>
+        </Link>
 
         <div className="flex items-center gap-3">
-          <a
+          <Link
             href="/?view=login"
             className="inline-flex items-center rounded-full border px-6 py-3 text-sm font-extrabold"
             style={{
@@ -92,28 +92,7 @@ function Navbar() {
             }}
           >
             Log in
-          </a>
-
-          <a
-            href="/?view=employer-onboarding"
-            className="inline-flex items-center rounded-full px-6 py-3 text-sm font-extrabold text-white"
-            style={{
-              backgroundColor: theme.rose2,
-              boxShadow: "0 4px 16px rgba(224,0,70,.25)",
-              textDecoration: "none",
-              transition: "transform .2s ease, box-shadow .2s ease",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = "scale(1.03)";
-              (e.currentTarget as HTMLElement).style.boxShadow = "0 16px 40px rgba(224,0,70,.35)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = "scale(1)";
-              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(224,0,70,.25)";
-            }}
-          >
-            Employer Site
-          </a>
+          </Link>
         </div>
       </nav>
     </header>
@@ -972,7 +951,6 @@ function OnboardingStep({
   const canvasOffsetRef = useRef(0);
 
   useEffect(() => {
-    setMounted(false);
     const timeout = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(timeout);
   }, [stepIndex]);

@@ -14,7 +14,6 @@ export default function NavbarWrapper() {
     "signup",
     "forgot-password",
     "onboarding",
-    "employer-onboarding",
   ];
 
   if (hiddenViews.includes(view)) {

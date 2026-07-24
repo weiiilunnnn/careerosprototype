@@ -13,7 +13,6 @@ import MyApplications from "./pages/MyApplications";
 import TrackApplication from "./pages/TrackApplication";
 import SignInPage from "./pages/SignInPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import EmployerOnboarding from "./pages/EmployerOnboarding";
 import CompanyProfile from "./pages/CompanyProfile";
 import BrowseDirectory from "./pages/BrowseDirectory";
 
@@ -25,7 +24,6 @@ export default async function Home({
   const { view } = await searchParams;
 
   if (view === "onboarding") return <Onboarding />;
-  if (view === "employer-onboarding") return <EmployerOnboarding />;
   if (view === "deep-dive") return <DeepDive />;
   if (view === "career-path-simulator") return <CareerPathSimulator />;
   if (view === "career-landscape") return <CareerLandscape />;
