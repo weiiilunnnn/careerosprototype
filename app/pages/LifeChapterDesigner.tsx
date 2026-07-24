@@ -2,9 +2,13 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
   BriefcaseBusiness,
   Calculator,
   Calendar,
+  Camera,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -14,7 +18,9 @@ import {
   FileText,
   FileUser,
   FolderOpen,
+  Gamepad2,
   GraduationCap,
+  HeartHandshake,
   HeartPulse,
   Home,
   Landmark,
@@ -35,7 +41,9 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { readSimulatedCareerPath, type SimulatedCareerPath } from "@/lib/careerPathHandoff";
 
 const theme = {
   navy: "#081433",
@@ -52,12 +60,6 @@ const theme = {
 
 type NodeType = "career" | "life";
 type ChapterKind = "goal" | "break";
-type StartingPoint =
-  | "Final Year Student"
-  | "Fresh Graduate"
-  | "Junior UX Designer"
-  | "Junior Data Analyst"
-  | "Marketing Executive";
 
 type TimelineNode = {
   id: string;
@@ -95,11 +97,6 @@ type RetirementRecommendation = {
   sourceVision?: "travel" | "family" | "business" | "hobbies";
 };
 
-type CareerTemplate = {
-  label: StartingPoint;
-  nodes: TimelineNode[];
-};
-
 type LifeGoalOption = {
   key: string;
   title: string;
@@ -121,67 +118,6 @@ type ChapterPlan = {
   actionTitle: string;
   action: string;
   recommended?: string;
-};
-
-const startingOptions: StartingPoint[] = [
-  "Final Year Student",
-  "Fresh Graduate",
-  "Junior UX Designer",
-  "Junior Data Analyst",
-  "Marketing Executive",
-];
-
-const careerTemplates: Record<StartingPoint, CareerTemplate> = {
-  "Final Year Student": {
-    label: "Final Year Student",
-    nodes: [
-      career("student", "Final Year Student", 0, "Building portfolio foundation"),
-      career("junior-ux", "Junior UX Designer", 1, "First full-time design role"),
-      career("ux", "UX Designer", 3, "Owns design tasks and user flows"),
-      career("senior-ux", "Senior UX Designer", 7, "Leads product design decisions"),
-      career("lead-ux", "Product Design Lead", 12, "Guides design strategy and team direction"),
-    ],
-  },
-  "Fresh Graduate": {
-    label: "Fresh Graduate",
-    nodes: [
-      career("fresh-grad", "Fresh Graduate", 0, "Choosing the first career platform"),
-      career("junior-ux", "Junior UX Designer", 1, "First full-time design role"),
-      career("ux", "UX Designer", 3, "Owns design tasks and user flows"),
-      career("senior-ux", "Senior UX Designer", 7, "Leads product design decisions"),
-      career("lead-ux", "Product Design Lead", 12, "Guides design strategy and team direction"),
-    ],
-  },
-  "Junior UX Designer": {
-    label: "Junior UX Designer",
-    nodes: [
-      career("junior-ux", "Junior UX Designer", 0, "First full-time design role"),
-      career("ux", "UX Designer", 3, "Owns design tasks and user flows"),
-      career("senior-ux", "Senior UX Designer", 7, "Leads product design decisions"),
-      career("product-designer", "Product Designer II", 10, "Shapes product direction with evidence"),
-      career("lead-ux", "Product Design Lead", 14, "Guides design strategy and team direction"),
-    ],
-  },
-  "Junior Data Analyst": {
-    label: "Junior Data Analyst",
-    nodes: [
-      career("fresh-grad", "Fresh Graduate", 0, "Building employability and tool confidence"),
-      career("junior-data", "Junior Data Analyst", 1, "Learns reporting and business context"),
-      career("data-analyst", "Data Analyst", 3, "Owns analysis and dashboard delivery"),
-      career("senior-data", "Senior Data Analyst", 7, "Leads insight quality and stakeholder decisions"),
-      career("analytics-lead", "Analytics Lead", 12, "Guides analytics strategy and team standards"),
-    ],
-  },
-  "Marketing Executive": {
-    label: "Marketing Executive",
-    nodes: [
-      career("marketing-exec", "Marketing Executive", 0, "Runs campaigns and learns audience signals"),
-      career("digital-specialist", "Digital Marketing Specialist", 1, "Builds channel expertise and reporting habits"),
-      career("growth-analyst", "Growth Marketing Analyst", 3, "Connects campaigns, data, and experiments"),
-      career("marketing-manager", "Marketing Manager", 7, "Leads plans, budgets, and campaign teams"),
-      career("head-growth", "Head of Growth", 12, "Owns growth strategy and business outcomes"),
-    ],
-  },
 };
 
 const lifeGoalOptions: LifeGoalOption[] = [
@@ -236,6 +172,41 @@ const lifePlans: Record<string, Partial<ChapterPlan>> = {
 
 function career(id: string, title: string, targetYear: number, subtitle: string): TimelineNode {
   return { id, title, time: yearLabel(targetYear), subtitle, targetYear, baseYear: targetYear, displayYear: targetYear, type: "career" };
+}
+
+function buildCareerNodesFromSimulatedPath(path: SimulatedCareerPath): TimelineNode[] {
+  return path.steps.map((step) => career(step.id, step.title, step.targetYear, step.subtitle));
+}
+
+// Life chapters (goals/breaks) are kept across page navigation and across
+// re-simulations in the Career Path Simulator, so they are persisted in
+// localStorage the same way the simulated career path is. `icon` is a
+// component reference and cannot be serialized, so it is stripped before
+// saving and reattached from `lifeGoalOptions` when reading nodes back.
+const LIFE_NODES_STORAGE_KEY = "careeros.lifeChapterNodes";
+
+function saveLifeNodesToStorage(nodes: TimelineNode[]) {
+  if (typeof window === "undefined") return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const serializable = nodes.map(({ icon, ...rest }) => rest);
+    window.localStorage.setItem(LIFE_NODES_STORAGE_KEY, JSON.stringify(serializable));
+  } catch {
+    // Ignore storage errors (private browsing, quota, etc.) — non-critical for a prototype.
+  }
+}
+
+function readLifeNodesFromStorage(): TimelineNode[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LIFE_NODES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as TimelineNode[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((node) => ({ ...node, icon: getLifeOption(node.lifeGoalKey)?.icon }));
+  } catch {
+    return [];
+  }
 }
 
 function yearLabel(year: number) {
@@ -1169,7 +1140,7 @@ function renderGoalFeatures(kind: GoalKind, node: TimelineNode, timelineNodes: T
   if (kind === "family") return <MarriageReadinessPlanner node={node} timelineNodes={timelineNodes} />;
   if (kind === "study") return <StudyAgainGoalFeatures node={node} timelineNodes={timelineNodes} />;
   if (kind === "relocate") return <RelocateOverseasGoalFeatures node={node} timelineNodes={timelineNodes} />;
-  if (kind === "hobbies") return <GrowthHobbyCompass timelineNodes={timelineNodes} node={node} />;
+  if (kind === "hobbies") return <GrowthHobbyStudio timelineNodes={timelineNodes} node={node} />;
   if (kind === "sideIncome") return <SideCareerBlueprint node={node} timelineNodes={timelineNodes} />;
   if (kind === "retirement") return <GuidedRetirementRoadmapEditor node={node} timelineNodes={timelineNodes} onApplyRecommendations={onApplyRetirementRecommendations} />;
   return <TimelineCompatibility node={node} />;
@@ -3576,72 +3547,129 @@ function AIRecommendationPanel({ country, profile, role, differences }: { countr
   );
 }
 
-function GrowthHobbyCompass({ timelineNodes, node }: { timelineNodes: TimelineNode[]; node: TimelineNode }) {
+type HobbyOption = {
+  name: string;
+  icon: LucideIcon;
+  skill: string;
+  time: string;
+  difficulty: string;
+  bestFor: string;
+  why: string;
+  progression: string;
+};
+
+const hobbyOptions: HobbyOption[] = [
+  { name: "Photography", icon: Camera, skill: "Visual Judgement", time: "1-2 hours/week", difficulty: "Beginner-friendly", bestFor: "Visual quality growth", why: "Photography trains composition, spacing, contrast, hierarchy, balance, and storytelling.", progression: "As you move toward senior level, sharper visual judgement helps you critique work with more clarity and explain quality decisions with confidence." },
+  { name: "Writing", icon: BookOpen, skill: "Design Communication", time: "1 hour/week", difficulty: "Beginner-friendly", bestFor: "Clearer explanation", why: "Writing builds clearer thinking and stronger explanation of decisions.", progression: "As you move toward senior level, concise writing helps you document rationale, align teams, and turn fuzzy ideas into decisions others can act on." },
+  { name: "Volunteering", icon: HeartHandshake, skill: "User Empathy", time: "2 hours/week", difficulty: "Moderate", bestFor: "People-centred growth", why: "Volunteering exposes you to people, constraints, and service situations.", progression: "As you move toward senior level, empathy helps you design with more context, understand diverse users, and make better product decisions." },
+  { name: "Sketching", icon: Pencil, skill: "Creative Direction", time: "1 hour/week", difficulty: "Beginner-friendly", bestFor: "Idea exploration", why: "Sketching improves visual exploration and idea generation.", progression: "As you move toward senior level, quick sketching helps you explore options faster and guide conversations before teams over-invest in one solution." },
+  { name: "Public Speaking", icon: Mic, skill: "Leadership Confidence", time: "1-2 hours/week", difficulty: "Moderate", bestFor: "Influence building", why: "Speaking builds influence and senior-level communication.", progression: "As you move toward senior level, confident communication helps you frame trade-offs, present design decisions, and lead stakeholder discussions." },
+  { name: "Strategy Games", icon: Gamepad2, skill: "Systems Thinking", time: "1 hour/week", difficulty: "Easy", bestFor: "Decision practice", why: "Strategy games build trade-off thinking and pattern recognition.", progression: "As you move toward senior level, systems thinking helps you understand dependencies, anticipate consequences, and make stronger product decisions." },
+];
+
+function GrowthHobbyStudio({ timelineNodes, node }: { timelineNodes: TimelineNode[]; node: TimelineNode }) {
   const targetRole = getNextCareerRole(node, timelineNodes);
-  const hobbies = [
-    { name: "Photography", skill: "Visual Judgement", time: "1-2 hours/week", difficulty: "Beginner-friendly", bestFor: "Visual quality growth", why: "Photography trains composition, spacing, contrast, hierarchy, balance, and storytelling.", progression: "As you move toward senior level, sharper visual judgement helps you critique work with more clarity and explain quality decisions with confidence." },
-    { name: "Writing", skill: "Design Communication", time: "1 hour/week", difficulty: "Beginner-friendly", bestFor: "Clearer explanation", why: "Writing builds clearer thinking and stronger explanation of decisions.", progression: "As you move toward senior level, concise writing helps you document rationale, align teams, and turn fuzzy ideas into decisions others can act on." },
-    { name: "Volunteering", skill: "User Empathy", time: "2 hours/week", difficulty: "Moderate", bestFor: "People-centred growth", why: "Volunteering exposes you to people, constraints, and service situations.", progression: "As you move toward senior level, empathy helps you design with more context, understand diverse users, and make better product decisions." },
-    { name: "Sketching", skill: "Creative Direction", time: "1 hour/week", difficulty: "Beginner-friendly", bestFor: "Idea exploration", why: "Sketching improves visual exploration and idea generation.", progression: "As you move toward senior level, quick sketching helps you explore options faster and guide conversations before teams over-invest in one solution." },
-    { name: "Public Speaking", skill: "Leadership Confidence", time: "1-2 hours/week", difficulty: "Moderate", bestFor: "Influence building", why: "Speaking builds influence and senior-level communication.", progression: "As you move toward senior level, confident communication helps you frame trade-offs, present design decisions, and lead stakeholder discussions." },
-    { name: "Strategy Games", skill: "Systems Thinking", time: "1 hour/week", difficulty: "Easy", bestFor: "Decision practice", why: "Strategy games build trade-off thinking and pattern recognition.", progression: "As you move toward senior level, systems thinking helps you understand dependencies, anticipate consequences, and make stronger product decisions." },
-  ];
-  const [selected, setSelected] = useState(hobbies[0]);
+  const [selected, setSelected] = useState<HobbyOption>(hobbyOptions[0]);
 
   return (
-    <GoalFeaturePanel title="Growth Hobby Compass" eyebrow="Hobbies">
-      <p className="mx-auto max-w-2xl text-center text-sm font-semibold leading-6 text-[#46536D]">
-        Hobbies can quietly strengthen the judgement, empathy, and communication skills that support your next stage of career growth.
-      </p>
-      <div className="mt-7 flex justify-center">
-        <div className="relative h-[430px] w-full max-w-[520px] rounded-full bg-[radial-gradient(circle,#FFFFFF_0%,#FFFFFF_24%,#FFF7FA_25%,#FFF7FA_44%,#FFFFFF_45%,#FFFFFF_62%,#F8F9FB_63%,#FFFFFF_100%)] shadow-[inset_0_0_0_1px_rgba(229,232,240,0.9),0_24px_60px_rgba(21,34,56,0.08)]">
-          <div className="absolute left-1/2 top-1/2 grid h-36 w-36 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#081433] p-4 text-center text-base font-semibold leading-6 text-white shadow-[0_18px_42px_rgba(8,20,51,0.18)]">{targetRole}</div>
-          {hobbies.map((hobby, index) => {
-            const angle = (index / hobbies.length) * Math.PI * 2 - Math.PI / 2;
+    <GoalFeaturePanel title="Hobby Growth Studio" eyebrow="Hobbies">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-2xl text-sm font-semibold leading-6 text-[#46536D]">
+          Hobbies can quietly strengthen the judgement, empathy, and communication skills that support your next stage of career growth.
+        </p>
+        <span className="shrink-0 rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">Target: {targetRole}</span>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[260px_1fr]">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+          {hobbyOptions.map((hobby) => {
+            const HobbyIcon = hobby.icon;
             const active = selected.name === hobby.name;
             return (
               <button
                 key={hobby.name}
                 type="button"
                 onClick={() => setSelected(hobby)}
-                className="absolute rounded-full border px-4 py-3 text-sm font-semibold transition duration-200 hover:-translate-y-0.5"
+                className="relative flex items-center gap-3 overflow-hidden rounded-2xl border p-3.5 text-left transition duration-200 hover:-translate-y-0.5"
                 style={{
-                  left: `calc(50% + ${Math.cos(angle) * 178}px)`,
-                  top: `calc(50% + ${Math.sin(angle) * 178}px)`,
-                  transform: "translate(-50%, -50%)",
-                  backgroundColor: active ? theme.rose2 : "#fff",
-                  color: active ? "#fff" : theme.navy,
                   borderColor: active ? theme.rose2 : theme.border,
-                  boxShadow: active ? "0 16px 34px rgba(224,0,70,0.22), 0 0 0 7px rgba(224,0,70,0.08)" : "0 10px 24px rgba(21,34,56,0.08)",
+                  backgroundColor: active ? "#FFF7FA" : "#fff",
+                  boxShadow: active ? "0 14px 30px rgba(224,0,70,0.14)" : "0 8px 20px rgba(21,34,56,0.05)",
                 }}
               >
-                {hobby.name}
+                <span className="absolute left-0 top-0 h-full w-[3px]" style={{ backgroundColor: active ? theme.rose2 : "transparent" }} />
+                <span
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+                  style={{ backgroundColor: active ? theme.rose2 : "#F8F9FB", color: active ? "#fff" : theme.navy }}
+                >
+                  <HobbyIcon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-[#081433]">{hobby.name}</span>
+                  <span className="mt-0.5 block truncate text-xs font-semibold" style={{ color: active ? theme.rose2 : "#8B95A7" }}>
+                    {hobby.skill}
+                  </span>
+                </span>
               </button>
             );
           })}
         </div>
+
+        <SelectedHobbyInsightPanel hobby={selected} targetRole={targetRole} />
       </div>
-      <SelectedHobbyInsightCard hobby={selected} targetRole={targetRole} />
     </GoalFeaturePanel>
   );
 }
 
-function SelectedHobbyInsightCard({ hobby, targetRole }: { hobby: { name: string; skill: string; time: string; difficulty: string; bestFor: string; why: string; progression: string }; targetRole: string }) {
+function SelectedHobbyInsightPanel({ hobby, targetRole }: { hobby: HobbyOption; targetRole: string }) {
+  const HobbyIcon = hobby.icon;
   return (
-    <div className="mx-auto mt-7 max-w-3xl rounded-[1.7rem] bg-white p-6 shadow-[0_18px_42px_rgba(21,34,56,0.08)] ring-1 ring-[#E5E8F0]">
-      <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">Recommended for your next stage</span>
-      <h4 className="mt-4 text-2xl font-semibold text-[#081433]">{hobby.name}</h4>
-      <p className="mt-3 text-sm font-semibold text-[#E00046]">Strengthens: {hobby.skill}</p>
-      <p className="mt-3 text-sm leading-6 text-[#46536D]">{hobby.why} This helps {targetRole} build stronger judgement, clearer context, and more mature career decision-making.</p>
-      <div className="mt-5 rounded-[1.2rem] bg-[#FFF7FA] p-4">
-        <p className="text-sm font-semibold text-[#081433]">Why it matters for your progression:</p>
-        <p className="mt-2 text-sm leading-6 text-[#46536D]">{hobby.progression}</p>
-      </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <MiniMetric label="Time commitment" value={hobby.time} />
-        <MiniMetric label="Difficulty" value={hobby.difficulty} />
-        <MiniMetric label="Best for" value={hobby.bestFor} />
-      </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={hobby.name}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.2 }}
+        className="rounded-[1.6rem] bg-white p-5 shadow-[0_18px_42px_rgba(21,34,56,0.08)] ring-1 ring-[#E5E8F0] sm:p-6"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#FFF2F6] text-[#E00046]">
+              <HobbyIcon className="h-6 w-6" />
+            </span>
+            <div>
+              <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-[11px] font-semibold text-[#E00046]">Recommended for your next stage</span>
+              <h4 className="mt-2 text-2xl font-semibold text-[#081433]">{hobby.name}</h4>
+            </div>
+          </div>
+          <span className="shrink-0 rounded-full bg-[#081433] px-3 py-1 text-xs font-semibold text-white">Strengthens: {hobby.skill}</span>
+        </div>
+
+        <p className="mt-4 text-sm leading-6 text-[#46536D]">
+          {hobby.why} This helps {targetRole} build stronger judgement, clearer context, and more mature career decision-making.
+        </p>
+
+        <div className="mt-5 rounded-2xl bg-[#F8F9FB] p-4" style={{ borderLeft: `4px solid ${theme.rose2}` }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8B95A7]">Why it matters for your progression</p>
+          <p className="mt-2 text-sm leading-6 text-[#46536D]">{hobby.progression}</p>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <HobbyStat label="Time commitment" value={hobby.time} />
+          <HobbyStat label="Difficulty" value={hobby.difficulty} />
+          <HobbyStat label="Best for" value={hobby.bestFor} />
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function HobbyStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#F8F9FB] p-4 ring-1 ring-[#E5E8F0]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8B95A7]">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-[#081433]">{value}</p>
     </div>
   );
 }
@@ -4661,9 +4689,8 @@ type ProofTask = {
   id: string;
   area: string;
   title: string;
-  output: string;
-  why: string;
-  roleLink?: string;
+  badges: string[];
+  impact: string;
   status: "Ready" | "Recommended" | "Needs proof" | "Missing" | "Needs prep";
   icon: LucideIcon;
   draftText?: string;
@@ -4943,12 +4970,17 @@ function ReturnProofBuilder({ packet, selectedBreak }: { packet: ReturnProofPack
   const duration = selectedBreak.durationMonths ?? getDefaultDurationMonths(selectedBreak.lifeGoalKey);
   const phases = generateReturnPhases(duration);
   const [activeReturnPhase, setActiveReturnPhase] = useState<ReturnPhaseKey>("start");
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const activeIndex = Math.max(0, phases.findIndex((phase) => phase.key === activeReturnPhase));
   const activePhase = phases[activeIndex] ?? phases[0];
   const tasks = generateProofTasksForPhase(activePhase.key, selectedBreak, packet);
   const progressPercent = phases.length <= 1 ? 0 : (activeIndex / (phases.length - 1)) * 100;
-  const phaseContext = getReturnPhaseContext(activePhase.key, selectedBreak, packet.targetRole);
   const breakTypeLabel = getBreakTypeLabel(selectedBreak);
+
+  const handlePhaseChange = (key: ReturnPhaseKey) => {
+    setActiveReturnPhase(key);
+    setExpandedTaskId(null);
+  };
 
   return (
     <section className="overflow-hidden rounded-[1.7rem] bg-white shadow-sm ring-1 ring-[#E5E8F0]">
@@ -4993,7 +5025,7 @@ function ReturnProofBuilder({ packet, selectedBreak }: { packet: ReturnProofPack
                   <motion.button
                     key={phase.key}
                     type="button"
-                    onClick={() => setActiveReturnPhase(phase.key)}
+                    onClick={() => handlePhaseChange(phase.key)}
                     whileHover={{ y: -3 }}
                     className="return-phase-node group relative z-10 flex gap-3 text-left sm:flex-col sm:items-center sm:text-center"
                   >
@@ -5032,50 +5064,75 @@ function ReturnProofBuilder({ packet, selectedBreak }: { packet: ReturnProofPack
             transition={{ duration: 0.22 }}
             className="rounded-[1.6rem] bg-[#FFF7FA]/75 p-5 shadow-sm ring-1 ring-[#F5CBD6]"
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h4 className="text-xl font-semibold text-[#081433]">Month {activePhase.month}: {activePhase.label}</h4>
-                <p className="mt-1 text-sm font-semibold text-[#46536D]">{getShortPhasePurpose(activePhase.key)}</p>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#46536D]">{phaseContext}</p>
+                <h4 className="text-base font-semibold text-[#081433]">Month {activePhase.month} &middot; {activePhase.label}</h4>
+                <p className="mt-0.5 text-xs font-semibold text-[#46536D]">{getShortPhasePurpose(activePhase.key)}</p>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#081433] ring-1 ring-[#E5E8F0]">Target: {packet.targetRole}</span>
                 <span className="rounded-full bg-[#FFF4D8] px-3 py-1 text-xs font-semibold text-[#8A5A00] ring-1 ring-[#F3DE9A]">{breakTypeLabel}</span>
-                <span className="rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-semibold text-[#4F46E5] ring-1 ring-[#DDE3FF]">{tasks.length} proof tasks</span>
+                <span className="rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-semibold text-[#4F46E5] ring-1 ring-[#DDE3FF]">{tasks.length} tasks</span>
               </div>
             </div>
 
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
               {tasks.map((task, index) => {
                 const TaskIcon = task.icon;
+                const isDraftOpen = expandedTaskId === task.id;
                 return (
                   <motion.div
                     key={task.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    whileHover={{ y: -3 }}
-                    className="proof-task-card rounded-[1.35rem] bg-white p-5 shadow-sm ring-1 ring-[#E5E8F0] transition-shadow hover:shadow-[0_18px_38px_rgba(15,23,42,0.08)]"
+                    whileHover={{ y: -2 }}
+                    className="proof-task-card rounded-[1.2rem] bg-white p-4 shadow-sm ring-1 ring-[#E5E8F0] transition-shadow hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)]"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FFF7FA] text-[#E00046] ring-1 ring-[#F5CBD6]">
-                          <TaskIcon className="h-[18px] w-[18px]" />
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#FFF7FA] text-[#E00046] ring-1 ring-[#F5CBD6]">
+                          <TaskIcon className="h-4 w-4" />
                         </span>
                         <div className="min-w-0">
-                          <p className="rounded-full bg-[#F8F9FB] px-3 py-1 text-xs font-semibold text-[#46536D] ring-1 ring-[#E5E8F0]">{task.area}</p>
+                          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8A94A8]">{task.area}</p>
+                          <h5 className="truncate text-sm font-semibold text-[#081433]">{task.title}</h5>
                         </div>
                       </div>
                       <BreakStatusPill label={task.status} tone={task.status === "Ready" ? "support" : task.status === "Missing" ? "risk" : task.status === "Needs proof" || task.status === "Needs prep" ? "caution" : "neutral"} />
                     </div>
-                    <h5 className="mt-4 text-base font-semibold leading-6 text-[#081433]">{task.title}</h5>
-                    <div className="mt-4 flex flex-wrap items-center gap-2 rounded-[1rem] bg-[#F8F9FB] px-3 py-2 ring-1 ring-[#E5E8F0]">
-                      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#46536D]">Output</span>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#081433] ring-1 ring-[#E5E8F0]">{task.output}</span>
-                      {task.draftText ? <span className="rounded-full bg-[#E9F8F1] px-3 py-1 text-xs font-semibold text-[#147A55] ring-1 ring-[#CDECDD]">Draft ready</span> : null}
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {task.badges.map((badge) => (
+                        <span key={badge} className="rounded-full bg-[#F8F9FB] px-2.5 py-1 text-[11px] font-semibold text-[#46536D] ring-1 ring-[#E5E8F0]">{badge}</span>
+                      ))}
                     </div>
-                    <p className="mt-4 text-sm font-semibold leading-6 text-[#46536D]">{task.why}</p>
-                    {task.roleLink ? <p className="mt-3 rounded-[1rem] bg-[#EEF2FF] px-3 py-2 text-xs font-semibold leading-5 text-[#4F46E5] ring-1 ring-[#DDE3FF]">{task.roleLink}</p> : null}
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#C86B2B]">
+                        <Sparkles className="h-3 w-3" />
+                        {task.impact}
+                      </span>
+                      {task.draftText ? (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedTaskId(isDraftOpen ? null : task.id)}
+                          className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-semibold text-[#4F46E5] transition hover:bg-[#E1E6FF]"
+                        >
+                          {isDraftOpen ? "Hide Draft" : "View Draft"}
+                          <ChevronDown className={`h-3 w-3 transition-transform ${isDraftOpen ? "rotate-180" : ""}`} />
+                        </button>
+                      ) : null}
+                    </div>
+                    <AnimatePresence>
+                      {isDraftOpen && task.draftText ? (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-3 overflow-hidden rounded-[0.9rem] bg-[#F8F9FB] px-3 py-2 text-xs leading-5 text-[#46536D]"
+                        >
+                          {task.draftText}
+                        </motion.p>
+                      ) : null}
+                    </AnimatePresence>
                   </motion.div>
                 );
               })}
@@ -5326,40 +5383,34 @@ function generateReturnPhases(durationMonths: number): ReturnPhase[] {
 
 function generateProofTasksForPhase(phaseKey: ReturnPhaseKey, selectedBreak: TimelineNode, packet: ReturnProofPacket): ProofTask[] {
   const lightBreak = isLightContinuityBreak(selectedBreak);
-  const primarySkill = packet.skillTargets[0] ?? "one core return skill";
-  const role = packet.targetRole;
-  const roleProof = getRoleAwareProofTask(role);
-  const breakNote = getBreakAwareProofNote(selectedBreak);
+  const roleProof = getRoleAwareProofTask(packet.targetRole);
 
   if (phaseKey === "start") {
     return [
       {
         id: "start-role",
         area: "Return Direction",
-        title: "Confirm your return target role",
-        output: "Clear target role",
-        why: "Keeps the break connected to your next career step instead of becoming an undefined pause.",
-        roleLink: `Useful for returning toward ${role}.`,
+        title: "Return Target",
+        badges: ["Timeline Role", "Target"],
+        impact: "Return clarity",
         status: "Ready",
         icon: Compass,
       },
       {
         id: "start-requirements",
-        area: "Role Requirements",
-        title: "Save the requirements for your target role",
-        output: "Short role requirement note",
-        why: "Helps you know what proof or skills to refresh before returning.",
-        roleLink: lightBreak ? "Keep this light. The goal is to stay connected, not overload recovery." : undefined,
+        area: "Role Evidence",
+        title: "Role Requirements",
+        badges: ["Job Signals", "Saved Criteria"],
+        impact: "Clear target",
         status: "Recommended",
         icon: FileText,
       },
       {
         id: "start-proof",
-        area: "Proof Plan",
-        title: "Choose one proof asset to build later",
-        output: "One planned proof item",
-        why: "Gives the break a simple return goal without overloading the early stage.",
-        roleLink: breakNote,
+        area: "Portfolio",
+        title: "Proof Asset Plan",
+        badges: lightBreak ? ["Proof Asset", "Light Pace"] : ["Proof Asset", "Plan"],
+        impact: "Portfolio signal",
         status: "Needs proof",
         icon: FolderOpen,
       },
@@ -5369,32 +5420,29 @@ function generateProofTasksForPhase(phaseKey: ReturnPhaseKey, selectedBreak: Tim
   if (phaseKey === "checkin") {
     return [
       {
-        id: "checkin-fit",
-        area: "Direction Check",
-        title: "Review whether the target role still fits",
-        output: "Keep or adjust decision",
-        why: "Your career goals may feel different after time away, so this prevents returning blindly.",
-        roleLink: `Check if ${role} still feels like the right return direction.`,
-        status: "Recommended",
-        icon: Target,
-      },
-      {
         id: "checkin-skill",
-        area: "Skill Gap",
-        title: "Identify one skill to refresh",
-        output: "One skill refresh focus",
-        why: "A small skill focus is easier to maintain than trying to refresh everything at once.",
-        roleLink: lightBreak ? "Keep this light and realistic for your recovery pace." : `Start with ${formatSkillTitle(primarySkill)} if it still matters for ${role}.`,
+        area: "Skill Refresh",
+        title: "Skill Gap Review",
+        badges: ["Skill Proof", "Gap"],
+        impact: "Skill visibility",
         status: "Recommended",
         icon: Sparkles,
       },
       {
+        id: "checkin-fit",
+        area: "Return Direction",
+        title: "Return Fit Check",
+        badges: ["Fit Check", "Target"],
+        impact: "Return clarity",
+        status: "Recommended",
+        icon: Target,
+      },
+      {
         id: "checkin-timeline",
-        area: "Return Timing",
-        title: "Check if the return month still feels realistic",
-        output: "Updated return timing note",
-        why: "Helps you adjust preparation early if the break needs to be longer or shorter.",
-        roleLink: breakNote,
+        area: "Planning",
+        title: "Timeline Reality Check",
+        badges: ["Timeline", "Check-in"],
+        impact: "Re-entry control",
         status: "Needs prep",
         icon: RefreshCcw,
       },
@@ -5406,30 +5454,27 @@ function generateProofTasksForPhase(phaseKey: ReturnPhaseKey, selectedBreak: Tim
       {
         id: "prepare-proof",
         area: "Role Evidence",
-        title: roleProof.task,
-        output: roleProof.output,
-        why: roleProof.why,
-        roleLink: `Useful for returning as ${role}.`,
+        title: roleProof.title,
+        badges: roleProof.badges,
+        impact: "Role-ready proof",
         status: "Needs proof",
         icon: roleProof.icon,
       },
       {
         id: "prepare-skill",
         area: "Skill Refresh",
-        title: "Refresh one key skill for the target role",
-        output: "Short learning or practice record",
-        why: "Shows that you have stayed connected to the core skills needed for your return role.",
-        roleLink: `A focused ${formatSkillTitle(primarySkill)} refresh is enough to start.`,
+        title: "Skill Refresh",
+        badges: ["Skill Proof", "Learning Note"],
+        impact: "Visible skill evidence",
         status: "Recommended",
         icon: Sparkles,
       },
       {
         id: "prepare-explanation",
         area: "Break Explanation",
-        title: "Draft your career break explanation",
-        output: "Interview-ready explanation",
-        why: "Helps you explain the gap clearly instead of sounding unsure or defensive.",
-        roleLink: breakNote,
+        title: "Break Story Draft",
+        badges: ["Interview Asset", "Gap Story"],
+        impact: "Clear gap story",
         status: "Missing",
         icon: MessageSquareText,
         draftText: packet.explanationDraft,
@@ -5439,67 +5484,43 @@ function generateProofTasksForPhase(phaseKey: ReturnPhaseKey, selectedBreak: Tim
 
   return [
     {
-      id: "return-explanation",
-      area: "Break Explanation",
-      title: "Finalise your break explanation",
-      output: "Polished explanation draft",
-      why: "A clear explanation helps employers understand the break without making it the main concern.",
-      roleLink: `Keep it connected to your return toward ${role}.`,
-      status: "Needs prep",
-      icon: MessageSquareText,
-      draftText: packet.explanationDraft,
-    },
-    {
       id: "return-talking-points",
       area: "Interview Confidence",
-      title: "Prepare two return talking points",
-      output: "Two interview-ready statements",
-      why: "Helps you explain what you learned, how you prepared, and why you are ready now.",
-      roleLink: packet.talkingPoints[0],
+      title: "Talking Points",
+      badges: ["Interview Prep", "Answers"],
+      impact: "Interview confidence",
       status: "Needs prep",
       icon: Mic,
     },
     {
       id: "return-summary",
-      area: "Application Proof",
-      title: "Update your resume or portfolio summary",
-      output: "Updated profile summary",
-      why: "Connects your break, proof work, and return target into one clear story.",
-      roleLink: roleProof.output,
+      area: "Application",
+      title: "Resume Refresh",
+      badges: ["Resume", "Summary"],
+      impact: "Application-ready",
       status: "Recommended",
       icon: FileUser,
     },
     {
-      id: "return-apply",
-      area: "Reconnect",
-      title: "Start applying or reconnecting with contacts",
-      output: "First application or outreach step",
-      why: "Turns preparation into action once your return window arrives.",
-      roleLink: breakNote,
+      id: "return-portfolio",
+      area: "Role Evidence",
+      title: "Portfolio Summary",
+      badges: ["Portfolio", "Proof"],
+      impact: "Portfolio signal",
       status: "Recommended",
-      icon: Users,
+      icon: BriefcaseBusiness,
+    },
+    {
+      id: "return-explanation",
+      area: "Break Explanation",
+      title: "Break Story Draft",
+      badges: ["Interview Asset", "Gap Story"],
+      impact: "Clear gap story",
+      status: "Needs prep",
+      icon: MessageSquareText,
+      draftText: packet.explanationDraft,
     },
   ];
-}
-
-function getReturnPhaseContext(key: ReturnPhaseKey, selectedBreak: TimelineNode, targetRole: string) {
-  if (isLightContinuityBreak(selectedBreak)) {
-    return "Keep the tasks realistic for your recovery pace. The goal is to stay connected, not overload the break.";
-  }
-  const role = targetRole.toLowerCase();
-  if (role.includes("ux") || role.includes("design") || role.includes("product")) {
-    return "Focus on evidence that shows your design thinking, role readiness, and confidence explaining the break.";
-  }
-  if (role.includes("data") || role.includes("analytics") || role.includes("analyst")) {
-    return "Focus on evidence that shows analytical skill, dashboard or SQL practice, and a clear break explanation.";
-  }
-  if (role.includes("software") || role.includes("engineer") || role.includes("developer")) {
-    return "Focus on evidence that shows coding practice, project proof, and confidence explaining the break.";
-  }
-  if (key === "start" || key === "checkin") {
-    return "Keep the tasks realistic for your current stage and prepare proof gradually before your return window.";
-  }
-  return "Focus on evidence that connects your break, refreshed skills, and return target role.";
 }
 
 function getBreakTypeLabel(selectedBreak: TimelineNode) {
@@ -5513,57 +5534,21 @@ function getBreakTypeLabel(selectedBreak: TimelineNode) {
   return "Career break";
 }
 
-function getBreakAwareProofNote(selectedBreak: TimelineNode) {
-  const value = `${selectedBreak.lifeGoalKey ?? ""} ${selectedBreak.title}`.toLowerCase();
-  if (value.includes("burnout") || value.includes("health") || value.includes("recovery")) return "Keep this light. The goal is to stay connected, not overload recovery.";
-  if (value.includes("family") || value.includes("care") || value.includes("parental") || value.includes("maternity") || value.includes("paternity")) return "Choose a small proof task that can be done when responsibilities allow.";
-  if (value.includes("study")) return "Use one study assignment or project as return evidence.";
-  if (value.includes("business")) return "Document one business decision or customer problem as return evidence.";
-  if (value.includes("relocation")) return "Prepare proof that matches expectations in your target market.";
-  if (value.includes("sabbatical")) return "Use this planned pause to return with clearer direction.";
-  return "Keep the proof small, role-relevant, and easy to explain.";
-}
-
 function getRoleAwareProofTask(role: string) {
   const value = role.toLowerCase();
   if (value.includes("ux") || value.includes("design") || value.includes("product")) {
-    return {
-      task: "Complete one updated UX case study",
-      output: "Portfolio-ready case study",
-      why: "UX roles need proof that you can explain decisions, trade-offs, and user-centred problem solving.",
-      icon: BriefcaseBusiness,
-    };
+    return { title: "UX Case Study", badges: ["Proof Asset", "Portfolio"], icon: BriefcaseBusiness };
   }
   if (value.includes("data") || value.includes("analytics") || value.includes("analyst")) {
-    return {
-      task: "Complete one dashboard or analysis project",
-      output: "Dashboard or analysis project",
-      why: "Analytics roles need proof that you can turn data into clear business insight.",
-      icon: Target,
-    };
+    return { title: "Analytics Project", badges: ["Proof Asset", "Dashboard"], icon: Target };
   }
   if (value.includes("software") || value.includes("engineer") || value.includes("developer")) {
-    return {
-      task: "Complete one GitHub-ready feature build",
-      output: "GitHub-ready feature build",
-      why: "Tech roles need proof that you can still build, debug, and explain your implementation.",
-      icon: FolderOpen,
-    };
+    return { title: "GitHub Feature Build", badges: ["Proof Asset", "Code Sample"], icon: FolderOpen };
   }
   if (value.includes("marketing") || value.includes("growth") || value.includes("business")) {
-    return {
-      task: "Complete one campaign or market analysis",
-      output: "Strategy-ready analysis",
-      why: "Business roles need proof that you can communicate clearly and show practical judgement.",
-      icon: BriefcaseBusiness,
-    };
+    return { title: "Campaign Analysis", badges: ["Proof Asset", "Strategy"], icon: BriefcaseBusiness };
   }
-  return {
-    task: "Complete one role-relevant proof project",
-    output: "Portfolio-ready proof item",
-    why: "Employers need clear evidence that you are still prepared for the role after the break.",
-    icon: FileText,
-  };
+  return { title: "Role Proof Project", badges: ["Proof Asset", "Portfolio"], icon: FileText };
 }
 
 function getShortPhasePurpose(key: ReturnPhaseKey) {
@@ -5571,10 +5556,6 @@ function getShortPhasePurpose(key: ReturnPhaseKey) {
   if (key === "checkin") return "Check whether the return direction still makes sense.";
   if (key === "prepare") return "Prepare visible proof before applications begin.";
   return "Use your proof to apply and explain the break confidently.";
-}
-
-function formatSkillTitle(skill: string) {
-  return skill.replace(/\bone\b|\bcore\b|\breturn\b|\bskill\b/gi, "").trim().replace(/\s+/g, " ") || "Skill";
 }
 
 function isLightContinuityBreak(selectedBreak: TimelineNode) {
@@ -6434,18 +6415,108 @@ function NumberField({
   );
 }
 
+const lockedPreviewNodes = [
+  { label: "Checkpoint role", time: "Now" },
+  { label: "Next milestone", time: "Year 1" },
+  { label: "Growth role", time: "Year 3" },
+  { label: "Senior milestone", time: "Year 6" },
+  { label: "Leadership role", time: "Year 10" },
+];
+
+function LockedTimelinePreview() {
+  return (
+    <div className="relative overflow-hidden">
+      <div className="pointer-events-none select-none blur-md" aria-hidden="true">
+        <div className="flex flex-col gap-4 border-b px-6 py-5 lg:flex-row lg:items-center lg:justify-between" style={{ borderColor: theme.border }}>
+          <div className="w-full max-w-xs">
+            <span className="text-sm font-semibold text-[#081433]">Checkpoint</span>
+            <div className="mt-2 flex h-11 items-center gap-2 rounded-xl border bg-[#F8F9FB] px-4 text-sm font-semibold text-[#081433]" style={{ borderColor: theme.border }}>
+              <BriefcaseBusiness className="h-4 w-4 shrink-0 text-[#E00046]" />
+              <span>Checkpoint role</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">Selected progress: 1/5</span>
+            <span className="career-pink-action flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white">
+              <Plus className="h-4 w-4" />
+              Add Life Chapter
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-[linear-gradient(135deg,#FFF7FA_0%,#FFFFFF_46%,#FFF2F6_100%)] px-4 py-7 sm:px-6">
+          <p className="mb-5 text-center text-sm font-semibold text-[#46536D]">Checkpoint role / Now</p>
+          <div className="flex items-start justify-between gap-6 px-6 py-5">
+            {lockedPreviewNodes.map((node, index) => (
+              <div key={node.label} className="flex w-[190px] shrink-0 flex-col items-center text-center">
+                <span
+                  className="grid h-14 w-14 place-items-center rounded-full border-4 shadow-lg"
+                  style={{
+                    background: index === 0 ? `linear-gradient(135deg, ${theme.navy}, ${theme.deepNavy})` : "#fff",
+                    borderColor: index === 0 ? "#fff" : "#CBD3E5",
+                    color: index === 0 ? "#fff" : theme.navy,
+                  }}
+                >
+                  <BriefcaseBusiness className="h-6 w-6" />
+                </span>
+                <span className="mt-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#46536D] shadow-sm">{node.time}</span>
+                <span className="mt-2 text-sm font-semibold text-[#081433]">{node.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute inset-0 flex items-center justify-center bg-white/5 px-6">
+        <Link
+          href="/?view=career-path-simulator"
+          className="status-soft-pulse career-pink-action inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white"
+        >
+          Move to Career Path Simulator
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function LifeChapterDesigner() {
-  const [startingPoint, setStartingPoint] = useState<StartingPoint>("Final Year Student");
+  // undefined = not hydrated from localStorage yet, null = hydrated but no simulated path exists.
+  const [simulatedPath, setSimulatedPath] = useState<SimulatedCareerPath | null | undefined>(undefined);
   const [lifeNodes, setLifeNodes] = useState<TimelineNode[]>([]);
-  const [selectedId, setSelectedId] = useState("student");
+  const [selectedId, setSelectedId] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
   const selectedNodeRef = useRef<HTMLDivElement | null>(null);
+  const hasMountedLifeNodesRef = useRef(false);
 
+  useEffect(() => {
+    // One-time read of browser-only external sources (localStorage) after mount,
+    // so the server-rendered "loading" state matches the client's first paint.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSimulatedPath(readSimulatedCareerPath());
+    setLifeNodes(readLifeNodesFromStorage());
+  }, []);
+
+  useEffect(() => {
+    // Skip the very first run so hydration (above) isn't immediately
+    // overwritten with the pre-hydration empty array.
+    if (!hasMountedLifeNodesRef.current) {
+      hasMountedLifeNodesRef.current = true;
+      return;
+    }
+    saveLifeNodesToStorage(lifeNodes);
+  }, [lifeNodes]);
+
+  const careerNodes = useMemo(
+    () => (simulatedPath ? buildCareerNodesFromSimulatedPath(simulatedPath) : []),
+    [simulatedPath],
+  );
+  const hasCheckpoint = careerNodes.length > 0;
   const timelineNodes = useMemo(
-    () => applyTimelineDelays(careerTemplates[startingPoint].nodes, lifeNodes),
-    [startingPoint, lifeNodes],
+    () => applyTimelineDelays(careerNodes, lifeNodes),
+    [careerNodes, lifeNodes],
   );
   const selectedIndex = Math.max(0, timelineNodes.findIndex((node) => node.id === selectedId));
   const selectedNode = timelineNodes[selectedIndex] ?? timelineNodes[0];
@@ -6455,6 +6526,9 @@ export default function LifeChapterDesigner() {
   const progressPercent = timelineNodes.length <= 1 ? 0 : (selectedIndex / (timelineNodes.length - 1)) * 100;
   const timelineWidth = timelineNodes.length <= 5 ? "100%" : `${timelineNodes.length * 216}px`;
 
+  // No sync effect needed here: selectedIndex/selectedNode below already fall
+  // back to the first timeline node whenever selectedId doesn't match one.
+
   useEffect(() => {
     selectedNodeRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -6462,12 +6536,6 @@ export default function LifeChapterDesigner() {
       inline: "nearest",
     });
   }, [selectedId, timelineNodes.length]);
-
-  function changeStartingPoint(value: StartingPoint) {
-    setStartingPoint(value);
-    setLifeNodes([]);
-    setSelectedId(careerTemplates[value].nodes[0].id);
-  }
 
   function shiftSelection(direction: -1 | 1) {
     const nextIndex = Math.min(timelineNodes.length - 1, Math.max(0, selectedIndex + direction));
@@ -6508,7 +6576,7 @@ export default function LifeChapterDesigner() {
     const previousNode = remainingTimeline[Math.max(0, nodeIndex - 1)] ?? remainingTimeline[0];
 
     setLifeNodes((current) => current.filter((node) => node.id !== nodeId));
-    setSelectedId(previousNode?.id ?? careerTemplates[startingPoint].nodes[0].id);
+    setSelectedId(previousNode?.id ?? careerNodes[0]?.id ?? "");
     setDeleteCandidateId(null);
   }
 
@@ -6562,119 +6630,128 @@ export default function LifeChapterDesigner() {
         <div className="career-fade-up overflow-hidden rounded-2xl border bg-white shadow-sm" style={{ borderColor: theme.border }}>
           <div className="relative overflow-hidden bg-[#081433] px-7 py-8 text-white">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(240,77,122,0.30),transparent_22rem),radial-gradient(circle_at_10%_90%,rgba(125,182,255,0.18),transparent_18rem),linear-gradient(135deg,#081433,#152238)]" />
-            <div className="relative z-10 max-w-4xl">
-              <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold text-white/78 backdrop-blur-sm">
-                Career-life planning module
-              </span>
-              <h1 className="mt-5 text-4xl font-semibold tracking-normal text-white md:text-5xl">
-                Life Chapter Designer
-              </h1>
-              <p className="mt-4 text-lg font-medium text-white/82">
-                Design your career around real life milestones, not just job titles.
-              </p>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70 md:text-base">
-                Map your career growth path together with savings, study plans, family goals, career breaks, entrepreneurship, and comeback strategies.
-              </p>
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-4xl">
+                <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold text-white/78 backdrop-blur-sm">
+                  Career-life planning module
+                </span>
+                <h1 className="mt-5 text-4xl font-semibold tracking-normal text-white md:text-5xl">
+                  Life Chapter Designer
+                </h1>
+                <p className="mt-4 text-lg font-medium text-white/82">
+                  Design your career around real life milestones, not just job titles.
+                </p>
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70 md:text-base">
+                  Map your career growth path together with savings, study plans, family goals, career breaks, entrepreneurship, and comeback strategies.
+                </p>
+              </div>
+              <Link
+                href="/?view=career-path-simulator"
+                className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/35 hover:bg-white/18"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Career Path Simulator
+              </Link>
             </div>
           </div>
         </div>
 
         <section className="career-fade-up mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm" style={{ borderColor: theme.border, animationDelay: "120ms" }}>
-          <div className="flex flex-col gap-4 border-b px-6 py-5 lg:flex-row lg:items-center lg:justify-between" style={{ borderColor: theme.border }}>
-            <label className="w-full max-w-xs">
-              <span className="text-sm font-semibold text-[#081433]">Starting point</span>
-              <span className="relative mt-2 block">
-                <select
-                  value={startingPoint}
-                  onChange={(event) => changeStartingPoint(event.target.value as StartingPoint)}
-                  className="h-11 w-full appearance-none rounded-xl border bg-white px-4 pr-10 text-sm font-semibold text-[#46536D] outline-none"
-                  style={{ borderColor: theme.border }}
-                >
-                  {startingOptions.map((option) => (
-                    <option key={option}>{option}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#46536D]" />
-              </span>
-            </label>
+          {simulatedPath === undefined ? (
+            <div className="grid h-[360px] place-items-center text-sm font-semibold text-[#8B95A7]">Loading your checkpoint&hellip;</div>
+          ) : !hasCheckpoint ? (
+            <LockedTimelinePreview />
+          ) : (
+            <>
+              <div className="flex flex-col gap-4 border-b px-6 py-5 lg:flex-row lg:items-center lg:justify-between" style={{ borderColor: theme.border }}>
+                <div className="w-full max-w-xs">
+                  <span className="text-sm font-semibold text-[#081433]">Checkpoint</span>
+                  <div className="mt-2 flex h-11 items-center gap-2 rounded-xl border bg-[#F8F9FB] px-4 text-sm font-semibold text-[#081433]" style={{ borderColor: theme.border }}>
+                    <BriefcaseBusiness className="h-4 w-4 shrink-0 text-[#E00046]" />
+                    <span className="truncate">{careerNodes[0]?.title}</span>
+                  </div>
+                </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">
-                Selected progress: {selectedIndex + 1}/{timelineNodes.length}
-              </span>
-              <button
-                type="button"
-                aria-label="Edit selected life chapter"
-                disabled={selectedNode.type !== "life"}
-                onClick={() => openEditModal(selectedNode)}
-                className="grid h-11 w-11 place-items-center rounded-xl border bg-white text-[#081433] shadow-sm transition hover:bg-[#FFF2F6] disabled:cursor-not-allowed disabled:text-[#A8B0C2] disabled:opacity-45"
-                style={{ borderColor: theme.border }}
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Delete selected life chapter"
-                disabled={selectedNode.type !== "life"}
-                onClick={() => setDeleteCandidateId(selectedNode.id)}
-                className="grid h-11 w-11 place-items-center rounded-xl border bg-white text-[#E00046] shadow-sm transition hover:bg-[#FFF2F6] disabled:cursor-not-allowed disabled:text-[#A8B0C2] disabled:opacity-45"
-                style={{ borderColor: theme.border }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={openAddModal}
-                className="career-pink-action flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white"
-              >
-                <Plus className="h-4 w-4" />
-                Add Life Chapter
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-[linear-gradient(135deg,#FFF7FA_0%,#FFFFFF_46%,#FFF2F6_100%)] px-4 py-7 sm:px-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <button type="button" onClick={() => shiftSelection(-1)} disabled={selectedIndex === 0} className="grid h-10 w-10 place-items-center rounded-xl border bg-white text-[#081433] shadow-sm transition hover:bg-[#FFF2F6] disabled:opacity-35" style={{ borderColor: theme.border }}>
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <p className="text-center text-sm font-semibold text-[#46536D]">
-                {selectedNode.title} / {selectedNode.time}
-              </p>
-              <button type="button" onClick={() => shiftSelection(1)} disabled={selectedIndex === timelineNodes.length - 1} className="grid h-10 w-10 place-items-center rounded-xl border bg-white text-[#081433] shadow-sm transition hover:bg-[#FFF2F6] disabled:opacity-35" style={{ borderColor: theme.border }}>
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="overflow-x-auto px-1 pb-3">
-              <div
-                className="relative flex min-w-[960px] items-start justify-between px-6 py-5"
-                style={{ width: timelineWidth }}
-              >
-                <div className="absolute left-[calc(1.5rem+95px)] right-[calc(1.5rem+95px)] top-[48px] h-1 rounded-full bg-[#E5E8F0]" />
-                <motion.div
-                  className="absolute left-[calc(1.5rem+95px)] top-[48px] h-1 rounded-full bg-[linear-gradient(90deg,#081433,#F04D7A)]"
-                  animate={{ width: `calc((100% - 3rem - 190px) * ${progressPercent / 100})` }}
-                  transition={{ type: "spring", stiffness: 120, damping: 22 }}
-                />
-                <AnimatePresence initial={false}>
-                  {timelineNodes.map((node, index) => (
-                    <div key={node.id} ref={node.id === selectedNode.id ? selectedNodeRef : null}>
-                      <TimelineNodeItem
-                        node={node}
-                        index={index}
-                        selected={node.id === selectedNode.id}
-                        active={index <= selectedIndex}
-                        onSelect={() => setSelectedId(node.id)}
-                      />
-                    </div>
-                  ))}
-                </AnimatePresence>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <span className="rounded-full bg-[#FFF2F6] px-3 py-1 text-xs font-semibold text-[#E00046]">
+                    Selected progress: {selectedIndex + 1}/{timelineNodes.length}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Edit selected life chapter"
+                    disabled={selectedNode.type !== "life"}
+                    onClick={() => openEditModal(selectedNode)}
+                    className="grid h-11 w-11 place-items-center rounded-xl border bg-white text-[#081433] shadow-sm transition hover:bg-[#FFF2F6] disabled:cursor-not-allowed disabled:text-[#A8B0C2] disabled:opacity-45"
+                    style={{ borderColor: theme.border }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Delete selected life chapter"
+                    disabled={selectedNode.type !== "life"}
+                    onClick={() => setDeleteCandidateId(selectedNode.id)}
+                    className="grid h-11 w-11 place-items-center rounded-xl border bg-white text-[#E00046] shadow-sm transition hover:bg-[#FFF2F6] disabled:cursor-not-allowed disabled:text-[#A8B0C2] disabled:opacity-45"
+                    style={{ borderColor: theme.border }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openAddModal}
+                    className="career-pink-action flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Life Chapter
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
+
+              <div className="bg-[linear-gradient(135deg,#FFF7FA_0%,#FFFFFF_46%,#FFF2F6_100%)] px-4 py-7 sm:px-6">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <button type="button" onClick={() => shiftSelection(-1)} disabled={selectedIndex === 0} className="grid h-10 w-10 place-items-center rounded-xl border bg-white text-[#081433] shadow-sm transition hover:bg-[#FFF2F6] disabled:opacity-35" style={{ borderColor: theme.border }}>
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <p className="text-center text-sm font-semibold text-[#46536D]">
+                    {selectedNode.title} / {selectedNode.time}
+                  </p>
+                  <button type="button" onClick={() => shiftSelection(1)} disabled={selectedIndex === timelineNodes.length - 1} className="grid h-10 w-10 place-items-center rounded-xl border bg-white text-[#081433] shadow-sm transition hover:bg-[#FFF2F6] disabled:opacity-35" style={{ borderColor: theme.border }}>
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto px-1 pb-3">
+                  <div
+                    className="relative flex min-w-[960px] items-start justify-between px-6 py-5"
+                    style={{ width: timelineWidth }}
+                  >
+                    <div className="absolute left-[calc(1.5rem+95px)] right-[calc(1.5rem+95px)] top-[48px] h-1 rounded-full bg-[#E5E8F0]" />
+                    <motion.div
+                      className="absolute left-[calc(1.5rem+95px)] top-[48px] h-1 rounded-full bg-[linear-gradient(90deg,#081433,#F04D7A)]"
+                      animate={{ width: `calc((100% - 3rem - 190px) * ${progressPercent / 100})` }}
+                      transition={{ type: "spring", stiffness: 120, damping: 22 }}
+                    />
+                    <AnimatePresence initial={false}>
+                      {timelineNodes.map((node, index) => (
+                        <div key={node.id} ref={node.id === selectedNode.id ? selectedNodeRef : null}>
+                          <TimelineNodeItem
+                            node={node}
+                            index={index}
+                            selected={node.id === selectedNode.id}
+                            active={index <= selectedIndex}
+                            onSelect={() => setSelectedId(node.id)}
+                          />
+                        </div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </section>
 
+        {hasCheckpoint ? (
         <div className="mt-6">
           <AnimatePresence>
             {deleteCandidate?.type === "life" && (
@@ -6698,6 +6775,7 @@ export default function LifeChapterDesigner() {
           </AnimatePresence>
           <ChapterPlanCard node={selectedNode} timelineNodes={timelineNodes} onApplyRetirementRecommendations={applyRetirementRecommendations} onAddEmergencySavings={addEmergencySavingsBeforeBreak} />
         </div>
+        ) : null}
       </section>
 
       <AnimatePresence>

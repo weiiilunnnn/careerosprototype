@@ -2,6 +2,8 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
+  CalendarRange,
   GitBranch,
   Maximize2,
   Save,
@@ -43,6 +45,11 @@ export default function SimulatorToolbar({
             <Save className="h-4 w-4" />
             Save Plan
           </button>
+          <Link href="/?view=life-chapter-designer" className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#081433] px-3.5 text-sm font-semibold text-white transition hover:bg-[#152238]">
+            <CalendarRange className="h-4 w-4" />
+            Life Chapter Designer
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
           <span className="hidden h-9 items-center gap-2 rounded-xl bg-[#F8FAFC] px-3 text-xs font-semibold text-[#59657A] 2xl:inline-flex">
             <GitBranch className="h-4 w-4 text-[#E00046]" />
             Decision map
