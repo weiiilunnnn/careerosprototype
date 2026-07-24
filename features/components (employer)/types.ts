@@ -13,6 +13,7 @@ export type Page =
   | "invite"
   | "hire-email"
   | "result"
+  | "talent-pool"
   | "projects"
   | "project-detail"
   | "post-project"
@@ -121,9 +122,11 @@ export type ProjectVisibility = "collab";
 /** A university-assigned student, never a "candidate": projects have no hiring pipeline. */
 export type ProjectStudent = {
   id: number;
+  candidateAccountId?: number;
   name: string;
   program: string;
   role?: string;
+  performance?: "High potential" | "Strong" | "Needs review";
 };
 
 /** A single university may assign more than one team — never assume one university equals one team. */
@@ -178,7 +181,7 @@ export type ProjectStatus =
   | "Draft"
   | "Published"
   | "Open for Interest"
-  | "Team Assigned"
+  | "Team Formed"
   | "In Progress"
   | "Submitted"
   | "Completed"
@@ -188,7 +191,7 @@ export const projectStatusOrder: ProjectStatus[] = [
   "Draft",
   "Published",
   "Open for Interest",
-  "Team Assigned",
+  "Team Formed",
   "In Progress",
   "Submitted",
   "Completed",
@@ -362,6 +365,8 @@ export type EmployerStore = {
   projects: Project[];
   settings: HiringSettings;
   activityLog: ActivityEvent[];
+  talentPoolManualIds?: number[];
+  talentPoolHiddenIds?: number[];
   createdAt: string;
   updatedAt: string;
   mode?: "registered" | "demo";
